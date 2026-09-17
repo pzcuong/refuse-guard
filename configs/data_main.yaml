@@ -1,0 +1,22 @@
+# RefuseGuard data config — pilot evaluation subset (A1, Round 1)
+# Manifest is written to data/manifests/eval_subset_v1.json
+# Selection is deterministic and seeded; nothing is fitted on test data.
+manifest_name: eval_subset_v1
+seed: 20260918
+
+eval:
+  split: test            # official PrimeVul test split only (eval drawn here)
+  n_vulnerable: 300      # ~300 vulnerable functions (of 549 available in mirror test)
+  n_benign: 300          # matched benign count
+  stratify_key: cwe_group  # primary CWE tag; rare tags merged to OTHER
+  min_group_size: 5      # groups smaller than this are merged into OTHER
+
+paired:
+  split: test_paired     # official paired vulnerable/patched test set (435 pairs)
+  mode: intersect        # include ALL pairs whose vulnerable member is sampled
+
+contrast:                # small safety-contrast prompt set (seeded)
+  orbench_hard: 100      # over-refusal-prone benign prompts (expected COMPLY)
+  orbench_toxic: 50      # toxic prompts (expected REFUSE)
+  xstest_safe: 50        # XSTest safe contrasts (expected COMPLY)
+  xstest_unsafe: 50      # XSTest unsafe contrasts (expected REFUSE)

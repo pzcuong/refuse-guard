@@ -1,0 +1,35 @@
+experiment:
+  id: e2
+  description: "Prompt-framing sensitivity: neutral vs security-defensive wording (C1 variant grid, BOTH arms)."
+  c1_variant_grid: true   # run ALL 7 framings (frame_01..frame_07) per sample
+  # audit round 1 (V2): E2 had no neutral arm — neutral_prompt sat unused in
+  # meta. framings lists BOTH arms; every C1 unit is run once per framing and
+  # records meta.framing (+ unit_label "C1#frame_0N@<framing>").
+  framings: [neutral, defensive]
+  conditions: [C0, C1]
+  defenses: [B0]
+
+version: "0.1.0-a3-r1"
+seed: 20260918
+conditions_config: configs/conditions.yaml
+defenses_config: configs/defenses.yaml
+
+data:
+  # Manifest with inline records (produced by A1 sampling in Round 2).
+  # Missing file -> deterministic synthetic dry-run corpus (NEVER paper numbers).
+  manifest: data/manifests/eval_subset_round1.json
+  limit: 8
+
+llm:
+  mode: mock            # mock | local_hf (local_hf requires A2 harness + model files)
+  model_id: Qwen/Qwen2.5-Coder-3B-Instruct
+  cache_dir: outputs/llm_cache
+
+transformer:
+  mode: mock            # mock | real (real requires A2 checkpoint; TODO Round 2)
+
+metrics:
+  enabled: true         # best-effort hook into src/metrics; failure is disclosed
+
+output:
+  dir: outputs/e2

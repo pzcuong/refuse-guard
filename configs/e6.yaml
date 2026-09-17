@@ -1,0 +1,31 @@
+experiment:
+  id: e6
+  description: "Semantic isolation: P1 vs B3 aggressive-removal control (RQ4)."
+  conditions: [C0, C2, C3]
+  defenses: [B3, P1]
+  framing: defensive
+
+version: "0.1.0-a3-r1"
+seed: 20260918
+conditions_config: configs/conditions.yaml
+defenses_config: configs/defenses.yaml
+
+data:
+  # Manifest with inline records (produced by A1 sampling in Round 2).
+  # Missing file -> deterministic synthetic dry-run corpus (NEVER paper numbers).
+  manifest: data/manifests/eval_subset_round1.json
+  limit: 8
+
+llm:
+  mode: mock            # mock | local_hf (local_hf requires A2 harness + model files)
+  model_id: Qwen/Qwen2.5-Coder-3B-Instruct
+  cache_dir: outputs/llm_cache
+
+transformer:
+  mode: mock            # mock | real (real requires A2 checkpoint; TODO Round 2)
+
+metrics:
+  enabled: true         # best-effort hook into src/metrics; failure is disclosed
+
+output:
+  dir: outputs/e6
