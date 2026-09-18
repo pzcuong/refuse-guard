@@ -1,0 +1,55 @@
+# RefuseGuard — E7 fusion/fallback policy (owner: agent A2, Round 3)
+# PRE-REGISTERED 2026-09-18 BEFORE any CodeBERT score was computed on the
+# E3/E5 record texts or the valid-split threshold set (timestamp of this file
+# predates outputs/transformer/fallback_threshold.json and
+# outputs/experiments/round3_e7/*.json). Policy follows PROPOSAL 7.5:
+# "Fusion chi duoc kich hoat theo policy dinh truoc; khong toi uu tren test set."
+#
+# Scope guard (safety): the fallback applies ONLY to vulnerability-analysis
+# records (allowed_conditions below). It is structurally NEVER invoked on
+# safety-contrast records (E8 / orbench / xstest): apply_fusion() raises when
+# a record outside allowed_conditions requests a fallback decision.
+
+policy:
+  name: llm_then_transformer_prior_v1
+  rule: >
+    Record-level: use the LLM verdict when the output is USABLE
+    (src.metrics.metrics.is_usable: parsed verdict vulnerable in {0,1} with the
+    schema-complete fields); otherwise (REFUSAL / PARTIAL / unparsed / SKIPPED-
+    like unusable), substitute the CodeBERT prior: y = 1 iff p_vulnerable >= tau.
+    meta.fallback_source in {"llm","transformer"} records the decision origin.
+  tau_source: valid_split_mcc_max   # NEVER test
+  tau_valid_set:
+    file: outputs/transformer/valid_vul_all_total_10000.jsonl
+    description: >
+      Official PrimeVul valid split subsample used for early stopping during
+      training (593 vulnerable + 9,407 benign, seed 1234). tau = argmax MCC
+      over score grid on this set (src.metrics.metrics.best_mcc_threshold).
+  scope:
+    allowed_conditions: [C0, C1, C2a, C2b, C3]
+    safety_contrast_conditions: [E8_SAFE, E8_UNSAFE, SAFETY_CONTRAST]
+    rule: fallback never fires outside allowed_conditions (hard error if asked)
+
+ablations:
+  - id: b4_only
+    description: pure CodeBERT prior at 0.5 on every record (no LLM)
+  - id: llm_only
+    description: B0 as recorded (unusable verdict counts as wrong/unused)
+  - id: llm_then_fallback
+    description: PRIMARY policy — LLM when usable, else CodeBERT prior at tau
+  - id: score_fusion
+    description: >
+      Optional simple average: when the LLM output is usable AND carries a
+      confidence float, p_fused = mean(p_transformer, confidence), y = 1 iff
+      p_fused >= 0.5; otherwise fall back to the raw transformer score.
+
+evaluation:
+  records: outputs/experiments/pilot_round2_recomputed/0.5b/e3/results.json
+  note: >
+    E3 subset (Qwen2.5-Coder-0.5B pilot, Round 2) — LLM outputs REUSED from the
+    recomputed raw records; NO LLM is called. Records with status==SKIPPED
+    (condition apply failed, no func text exists) are excluded from the fusion
+    universe and disclosed: neither the LLM nor the transformer ever saw text
+    for them.
+  metrics: [uac, recall, f1, mcc, coverage_gain]
+  coverage_gain: UAC(llm_then_fallback) - UAC(llm_only), per condition + overall

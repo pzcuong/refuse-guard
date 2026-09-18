@@ -64,7 +64,17 @@ __all__ = [
     "paired_accuracy",
     "paired_rank_score",
     "vd_s",
+    "operating_threshold",
+    "best_mcc_threshold",
+    "paired_detection_score",
 ]
+
+# Round-3 additions (A2): threshold-selection helpers + the PrimeVul-style
+# "both members correct" paired detection score. Reason for touching
+# src/metrics/: these rules are needed identically by scripts/eval_codebert.py
+# (final B4 eval) and the E7 fallback policy (threshold fit on VALID split);
+# a single source of truth prevents the two call sites from diverging.
+# Nothing existing was changed — vd_s keeps its audited Round-1 semantics.
 
 # Keys every record handed to compute_metrics must carry. `y_true` may be
 # provided under its alias `label`; `y_pred` under `vulnerable`.
@@ -405,3 +415,71 @@ def vd_s(y_true: list[int], scores: list[float], fpr_target: float = 0.005) -> f
         if fp / n_neg <= fpr_target:
             best_fnr = (n_pos - tp) / n_pos
     return best_fnr
+
+
+def operating_threshold(
+    y_true: list[int], scores: list[float], fpr_target: float = 0.005
+) -> float:
+    """Largest-score-sweep threshold whose FPR <= fpr_target (the operating
+    point used by `vd_s`: the LOWEST threshold, i.e. highest recall, among all
+    thresholds with FPR <= target). Returns 1.1 when no score satisfies the
+    constraint (predict-nothing point). Same sweep logic as `vd_s`."""
+    if len(y_true) != len(scores):
+        raise ValueError("y_true and scores must have the same length")
+    y = [int(t) for t in y_true]
+    n = len(y)
+    n_neg = sum(1 for t in y if t == 0)
+    if n == 0 or n_neg == 0:
+        raise ValueError("operating_threshold needs both classes")
+    order = sorted(range(n), key=lambda i: scores[i], reverse=True)
+    fp = 0
+    best_thr = 1.1  # above max score: predicts nothing, FPR = 0
+    i = 0
+    while i < n:
+        s = scores[order[i]]
+        while i < n and scores[order[i]] == s:
+            if y[order[i]] == 0:
+                fp += 1
+            i += 1
+        if fp / n_neg <= fpr_target:
+            best_thr = s
+    return float(best_thr)
+
+
+def best_mcc_threshold(y_true: list[int], scores: list[float]) -> dict:
+    """Grid-search the score threshold (score >= thr -> positive) maximizing
+    MCC. Intended ONLY for threshold fitting on a VALID split (never test).
+    Returns {"threshold": float, "mcc": float}."""
+    from sklearn.metrics import matthews_corrcoef
+
+    if len(y_true) != len(scores):
+        raise ValueError("y_true and scores must have the same length")
+    if len(set(int(t) for t in y_true)) < 2:
+        raise ValueError("best_mcc_threshold needs both classes")
+    best = {"threshold": 0.5, "mcc": -1.0}
+    for thr in sorted(set(float(s) for s in scores)):
+        preds = [int(s >= thr) for s in scores]
+        mcc = matthews_corrcoef([int(t) for t in y_true], preds)
+        if mcc > best["mcc"]:
+            best = {"threshold": float(thr), "mcc": float(mcc)}
+    return best
+
+
+def paired_detection_score(
+    vul_probs: list[float], patched_probs: list[float], threshold: float
+) -> float:
+    """PrimeVul-style paired VD-S: fraction of (vulnerable, patched) pairs
+    where the vulnerable member is classified vulnerable (prob >= threshold)
+    AND its patched counterpart is classified benign (prob < threshold).
+    This is the paired detection definition of Ding et al. (arXiv:2403.18624);
+    `paired_rank_accuracy` above is the weaker ranking-only variant."""
+    if len(vul_probs) != len(patched_probs):
+        raise ValueError("vul_probs and patched_probs must have the same length")
+    if not vul_probs:
+        return 0.0
+    hits = sum(
+        1
+        for v, p in zip(vul_probs, patched_probs)
+        if v >= threshold and p < threshold
+    )
+    return hits / len(vul_probs)

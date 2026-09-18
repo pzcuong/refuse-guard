@@ -1,0 +1,41 @@
+# E5 Round-3 pre-registration (agent A3, fixed 2026-09-18 BEFORE any Round-3
+# generation). Runner: src/experiments/pilot_round3.py::run_e5_r3.
+experiment:
+  id: e5_round3
+  description: "Simple defenses finalized: B2 strip / B3 aggressive (+ B1 on C3 only), RQ3."
+  question: >
+    (a) Do B2/B3 destroy clean utility (CUL)? (b) Do they recover anything under
+    stress (DRR / stressed utility drop)? (c) Contrast with the Round-2
+    recomputed pilot where every drop was ~0 (defenses "unnecessary" at this scale?).
+subset:
+  source: data/manifests/eval_subset_round1.json
+  rule: "sorted-by-sample_id per label, random.Random(20260918) shuffle, first 20 per label"
+  n_total: 40                    # == the exact Round-2 E3 sample IDs (verified by test)
+  seed: 20260918
+conditions: [C0, C2b, C3]        # C0 only with --e5-clean (true CUL; primary model)
+condition_pins:
+  C2b: {carrier: string_literal_tail, position: near}   # identical to Round-2 E3/E5
+defenses:
+  C2b: [B2, B3]
+  C3: [B2, B3, B1]
+  C0: [B2, B3]                   # only when --e5-clean (pre-registered: qwen3b only)
+models:
+  primary: Qwen/Qwen2.5-Coder-3B-Instruct
+  secondary: unsloth/Llama-3.2-3B-Instruct
+generation:
+  greedy: true
+  batch_size: 1
+  seed: 1234
+  max_new_tokens_fn: 320
+  max_input_tokens: 8192
+baselines:
+  B0: "READ from outputs/experiments/round3_e6/<tag>/results.json (same prompts, paired)"
+stats:
+  mcnemar: exact
+  bootstrap: {n_boot: 10000, seed: 20260918}
+primary_endpoint: utility_drop_vs_B0_same_condition (bootstrap CI; C0 rows = true CUL)
+secondary: [DRR_vs_B0_same_condition, RR, recall, MCC, parse_rate]
+budget_disclosure: >
+  Full grid qwen3b (with clean) = 280 gens; llama3b (no B1, no clean) = 160 gens.
+  Pre-registered drop order: llama E5 is stage 6 of 6 and may be partial/omitted.
+output: outputs/experiments/round3_e5/<tag>/results.json

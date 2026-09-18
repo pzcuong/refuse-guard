@@ -81,3 +81,69 @@ def test_pad_batch_right_pads_with_mask(cpu_tb):
     assert enc["input_ids"].shape == (2, 12)
     assert enc["attention_mask"][0].tolist() == [1] * 12
     assert enc["attention_mask"][1].tolist() == [1] * 5 + [0] * 7
+
+
+# ---------------------------------------------------------------------------
+# Round 3: eval-script helpers (scripts/eval_codebert.py), imported by path
+# (scripts/ is not a package). Pure functions, no GPU / no data loading.
+# ---------------------------------------------------------------------------
+import importlib.util as _ilu
+from pathlib import Path
+
+_EVAL_PATH = Path(__file__).resolve().parents[1] / "scripts" / "eval_codebert.py"
+_spec = _ilu.spec_from_file_location("eval_codebert_mod", _EVAL_PATH)
+eval_codebert = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(eval_codebert)
+
+
+class TestClassificationMetrics:
+    def test_perfect_separation(self):
+        m = eval_codebert._classification_metrics([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9])
+        assert m["recall@0.5"] == 1.0
+        assert m["f1@0.5"] == 1.0
+        assert m["mcc@0.5"] == 1.0
+        assert m["auc"] == 1.0
+        assert m["accuracy@0.5"] == 1.0
+        assert m["vd_s"] == 0.0  # FNR=0 at an FPR<=0.5% operating point
+        assert m["n_vulnerable"] == 2 and m["n_benign"] == 2
+
+    def test_all_benign_at_05_but_inverted_ranking(self):
+        # wrong at 0.5 AND a vulnerable scoring BELOW a benign: the FPR<=0.5%
+        # operating point must sit above the top benign score, so every
+        # vulnerable function is missed -> VD-S (FNR) = 1.0.
+        m = eval_codebert._classification_metrics([0, 1, 1], [0.8, 0.3, 0.4])
+        assert m["recall@0.5"] == 0.0
+        assert m["f1@0.5"] == 0.0
+        assert m["vd_s"] == 1.0
+
+    def test_vd_s_is_threshold_free_perfect_rank(self):
+        # all-benign predictions at 0.5 yet perfectly ranked scores: VD-S is
+        # threshold-free, so the FPR-constrained point still recovers FNR=0.
+        m = eval_codebert._classification_metrics([0, 1, 1], [0.2, 0.3, 0.4])
+        assert m["recall@0.5"] == 0.0
+        assert m["vd_s"] == 0.0
+
+    def test_single_class_returns_none_not_crash(self):
+        m = eval_codebert._classification_metrics([1, 1], [0.2, 0.9])
+        assert m["mcc@0.5"] is None and m["auc"] is None and m["vd_s"] is None
+
+
+class TestPairedMetrics:
+    def test_perfect_ranking_both_correct(self):
+        out = eval_codebert._paired_metrics([0.9, 0.8], [0.1, 0.2], threshold=0.6)
+        assert out["n_pairs"] == 2
+        assert out["p_c_both_correct@0.5"] == 1.0
+        assert out["p_v_both_vulnerable@0.5"] == 0.0
+        assert out["p_b_both_benign@0.5"] == 0.0
+        assert out["p_r_inverse@0.5"] == 0.0
+        assert out["paired_rank_accuracy"] == 1.0
+        assert out["paired_detection_score@thr"] == 1.0
+
+    def test_inverse_predictions(self):
+        out = eval_codebert._paired_metrics([0.1], [0.9], threshold=0.5)
+        assert out["p_r_inverse@0.5"] == 1.0
+        assert out["paired_rank_accuracy"] == 0.0
+
+    def test_empty_pairs(self):
+        out = eval_codebert._paired_metrics([], [], threshold=0.5)
+        assert out["n_pairs"] == 0 and out["p_c_both_correct@0.5"] is None

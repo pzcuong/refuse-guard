@@ -5,9 +5,13 @@ Arms
   vd_s   (default): official PrimeVul-style eval — ALL vulnerable of the test
          split + a seeded benign subsample (default 20000) -> VD-S
          (= FNR @ FPR<=0.5%, official definition), plus recall/F1/MCC/AUC @0.5.
+         Additionally predicts ALL of the official test_paired split (435
+         consecutive vulnerable/patched pairs) -> paired detection metrics
+         (both-members-correct rate, the paper's "paired accuracy/VD-S" family).
   pilot: eval-pilot manifest subset (eval_subset_v2.json when present, else
          eval_subset_v1.json), funcs joined from the raw test split by
-         sample_id; same metrics (VD-S caveat: benign n small).
+         sample_id; same metrics (VD-S caveat: benign n small). Paired metrics
+         restricted to the manifest's in-subset pairs (both members present).
 
 Outputs -> outputs/transformer/ : predictions JSONL + parquet, metrics JSON,
 all with full metadata (checkpoint path, config hash, seed, date).
@@ -37,10 +41,48 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.data.primevul import load_primevul  # noqa: E402
-from src.metrics.metrics import vd_s  # noqa: E402
+from src.metrics.metrics import (  # noqa: E402
+    operating_threshold,
+    paired_detection_score,
+    paired_rank_accuracy,
+    vd_s,
+)
 from src.models.transformer_baseline import TransformerBaseline  # noqa: E402
 
 MANIFEST_PRIORITY = ["eval_subset_v2", "eval_subset_v1"]  # v2 when A1 emits it
+
+
+def _paired_metrics(vul_scores: list[float], patched_scores: list[float],
+                    threshold: float) -> dict:
+    """Paired detection metrics over aligned (vulnerable, patched) scores.
+
+    p_c/p_v/p_b/p_r follow the PrimeVul pair-wise outcome definitions
+    (arXiv:2403.18624 Table V): P-C both members correct, P-V both predicted
+    vulnerable, P-B both predicted benign, P-R inverse-predicted."""
+    n = len(vul_scores)
+    pc = sum(1 for v, p in zip(vul_scores, patched_scores)
+             if v >= 0.5 and p < 0.5)
+    pv = sum(1 for v, p in zip(vul_scores, patched_scores)
+             if v >= 0.5 and p >= 0.5)
+    pb = sum(1 for v, p in zip(vul_scores, patched_scores)
+             if v < 0.5 and p < 0.5)
+    pr = sum(1 for v, p in zip(vul_scores, patched_scores)
+             if v < 0.5 and p >= 0.5)
+    r = lambda k: round(k / n, 6) if n else None  # noqa: E731
+    return {
+        "n_pairs": n,
+        "p_c_both_correct@0.5": r(pc),
+        "p_v_both_vulnerable@0.5": r(pv),
+        "p_b_both_benign@0.5": r(pb),
+        "p_r_inverse@0.5": r(pr),
+        "paired_rank_accuracy": round(paired_rank_accuracy(vul_scores, patched_scores), 6) if n else None,
+        "paired_detection_score@thr": (round(paired_detection_score(vul_scores, patched_scores, threshold), 6)
+                                       if n else None),
+        "paired_threshold": round(threshold, 6),
+        "definition": ("pair-wise outcomes per PrimeVul (arXiv:2403.18624): P-C both correct; "
+                       "paired_detection_score = both-correct at the FPR-constrained operating "
+                       "threshold from the main eval set (VD-S family)"),
+    }
 
 
 def _sha16(obj) -> str:
@@ -66,8 +108,12 @@ def _classification_metrics(y_true: list[int], scores: list[float]) -> dict:
     return out
 
 
-def load_pilot_samples(limit: int | None) -> tuple[list[dict], str]:
-    """Pilot manifest records (funcs joined from the raw test split)."""
+def load_pilot_samples(limit: int | None) -> tuple[list[dict], str, list[tuple[str, str]]]:
+    """Pilot manifest records (funcs joined from the raw test split).
+
+    Returns (samples, corpus_desc, manifest_pairs) where manifest_pairs are
+    (vulnerable_id, benign_id) restricted to pairs whose BOTH members are in
+    the returned sample list (paired metrics are computed on those only)."""
     man_name = None
     man = None
     for name in MANIFEST_PRIORITY:
@@ -89,7 +135,11 @@ def load_pilot_samples(limit: int | None) -> tuple[list[dict], str]:
     missing = len(wanted) - len(samples)
     if limit:
         samples = samples[:limit]
-    return samples, f"manifest:{man_name} (joined from raw test split; missing_ids={missing})"
+    kept = {s["sample_id"] for s in samples}
+    pairs = [(str(p["vulnerable"]), str(p["benign"]))
+             for p in man.get("paired", [])
+             if str(p["vulnerable"]) in kept and str(p["benign"]) in kept]
+    return samples, f"manifest:{man_name} (joined from raw test split; missing_ids={missing})", pairs
 
 
 def main() -> int:
@@ -101,6 +151,13 @@ def main() -> int:
     ap.add_argument("--device", default=None, help="override device (e.g. cpu for dry-run)")
     ap.add_argument("--benign-test-n", type=int, default=None,
                     help="override eval.benign_test_subsample")
+    ap.add_argument("--paired-only", action="store_true",
+                    help="S round-3 (V1 bug 4): only re-predict the 870 "
+                         "test_paired rows, PERSIST per-row scores to "
+                         "codebert_predictions_paired.jsonl, and re-verify the "
+                         "paired metrics against the stored vd_s metrics. "
+                         "Light (~1 min); used because the original paired "
+                         "inference was not persisted.")
     args = ap.parse_args()
 
     with (PROJECT_ROOT / args.config).open("r", encoding="utf-8") as f:
@@ -121,8 +178,9 @@ def main() -> int:
 
     # --- build the eval sample list ---------------------------------------
     t0 = time.perf_counter()
+    manifest_pairs: list[tuple[str, str]] = []
     if args.arm == "pilot":
-        samples, corpus = load_pilot_samples(args.limit)
+        samples, corpus, manifest_pairs = load_pilot_samples(args.limit)
         n_benign_used = None
     else:
         test = load_primevul("test")
@@ -141,6 +199,65 @@ def main() -> int:
     print(f"[eval] arm={args.arm} n={len(samples)} corpus={corpus} "
           f"(loaded in {time.perf_counter() - t0:.1f}s)", flush=True)
 
+    # --- S round-3 --paired-only branch (persist what V1 said was missing) --
+    if args.paired_only:
+        if args.arm != "vd_s":
+            print("[abort] --paired-only only implemented for --arm vd_s", flush=True)
+            return 2
+        tb_cfg = dict(cfg["transformer_baseline"])
+        if args.device:
+            tb_cfg["device"] = args.device
+        tb = TransformerBaseline(cfg=tb_cfg)
+        paired_rows = load_primevul("test_paired")
+        t1 = time.perf_counter()
+        p_scores = tb.predict([r["func"] for r in paired_rows])
+        print(f"[eval] predicted {len(paired_rows)} paired rows in "
+              f"{time.perf_counter() - t1:.1f}s", flush=True)
+        pred_path = out_dir / "codebert_predictions_paired.jsonl"
+        with pred_path.open("w", encoding="utf-8") as f:
+            for r, sc in zip(paired_rows, p_scores):
+                f.write(json.dumps({
+                    "sample_id": r["sample_id"], "label": int(r["label"]),
+                    "score_vulnerable": round(float(sc), 6),
+                }, ensure_ascii=False) + "\n")
+        vs = [p_scores[i] for i in range(0, len(paired_rows), 2)
+              if paired_rows[i]["label"] == 1]
+        ps = [p_scores[i] for i in range(1, len(paired_rows), 2)
+              if paired_rows[i - 1]["label"] == 1]
+        stored_path = out_dir / "codebert_eval_vd_s_metrics.json"
+        stored = json.loads(stored_path.read_text(encoding="utf-8")) \
+            if stored_path.exists() else None
+        op_thr = (stored["meta"]["operating_threshold_fpr0.005"]
+                  if stored else 0.5)
+        paired = _paired_metrics(vs, ps, op_thr)
+        result = {
+            "metrics": {"paired": paired},
+            "meta": {
+                "date": datetime.now(timezone.utc).isoformat(),
+                "arm": "vd_s_paired_only",
+                "checkpoint": str(ckpt_dir.relative_to(PROJECT_ROOT)),
+                "n_rows": len(paired_rows),
+                "predictions_file": str(pred_path.relative_to(PROJECT_ROOT)),
+                "op_threshold_source": ("stored codebert_eval_vd_s_metrics.json"
+                                        if stored else "default 0.5"),
+                "note": ("S round-3: per-pair scores persisted after V1 audit "
+                         "found the original paired inference was not saved; "
+                         "metrics recomputed from these scores must match the "
+                         "stored vd_s paired block"),
+            },
+        }
+        (out_dir / "codebert_eval_paired_only_metrics.json").write_text(
+            json.dumps(result, indent=2), encoding="utf-8")
+        if stored:
+            old = stored["metrics"].get("paired", {})
+            diffs = {k: (old.get(k), paired.get(k)) for k in old
+                     if isinstance(old.get(k), float)
+                     and abs((old.get(k) or 0) - (paired.get(k) or 0)) > 1e-6}
+            print(f"[eval] paired recompute vs stored: "
+                  f"{'IDENTICAL' if not diffs else diffs}", flush=True)
+        print(f"[eval] wrote {pred_path}", flush=True)
+        return 0
+
     # --- predict -----------------------------------------------------------
     tb_cfg = dict(cfg["transformer_baseline"])
     if args.device:
@@ -154,6 +271,25 @@ def main() -> int:
 
     metrics = _classification_metrics(y, scores)
     metrics["vd_s_definition"] = "FNR at the operating point with largest FPR <= 0.005"
+
+    # --- paired (vulnerable vs patched) section ---------------------------
+    # Operating threshold from THIS eval set (FPR<=0.5% rule, same sweep as
+    # vd_s); test-only data, nothing is fitted for the model itself.
+    op_thr = operating_threshold(y, scores)
+    if args.arm == "pilot":
+        score_by_id = {s["sample_id"]: sc for s, sc in zip(samples, scores)}
+        vs = [score_by_id[v] for v, b in manifest_pairs if v in score_by_id and b in score_by_id]
+        ps = [score_by_id[b] for v, b in manifest_pairs if v in score_by_id and b in score_by_id]
+        metrics["paired"] = _paired_metrics(vs, ps, op_thr) if vs else {"n_pairs": 0}
+    else:
+        paired_rows = load_primevul("test_paired")
+        print(f"[eval] paired arm: predicting {len(paired_rows)} test_paired rows "
+              f"(official consecutive vulnerable/patched pairs)", flush=True)
+        p_scores = tb.predict([r["func"] for r in paired_rows])
+        vs = [p_scores[i] for i in range(0, len(paired_rows), 2) if paired_rows[i]["label"] == 1]
+        ps = [p_scores[i] for i in range(1, len(paired_rows), 2) if paired_rows[i - 1]["label"] == 1]
+        metrics["paired"] = _paired_metrics(vs, ps, op_thr)
+
     meta = {
         "date": datetime.now(timezone.utc).isoformat(),
         "arm": args.arm,
@@ -167,6 +303,7 @@ def main() -> int:
         "device": tb_cfg["device"],
         "model_name": tb_cfg["model_name"],
         "config_sha16": _sha16(cfg),
+        "operating_threshold_fpr0.005": round(float(op_thr), 6),
         "is_dry_run": bool(args.limit),
     }
     result = {"metrics": metrics, "meta": meta}
