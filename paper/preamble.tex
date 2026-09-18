@@ -1,0 +1,22 @@
+% preamble.tex — RefuseGuard paper (owner: A3, Round 4)
+% Loaded right after \documentclass{acmart}. Keep this file MINIMAL:
+% acmart already loads booktabs, graphicx, amsmath, amsthm, hyperref,
+% xcolor, natbib, cite, microtype-adjacent settings, etc.
+% Only add packages/macros here that are genuinely missing.
+
+% ---- small draft-mode helper (only used when a section file is missing) ----
+\makeatletter
+\newcommand{\missingsection}[1]{%
+  \begin{center}%
+  \fbox{\parbox{0.92\linewidth}{\centering
+    \textbf{[DRAFT PLACEHOLDER]} --- section file
+    \texttt{\detokenize{#1}} was not found at compile time. Section
+    content pending (A2-R4).}}%
+  \end{center}}
+\makeatother
+
+% ---- theorem-like environments used by method/protocol sections ----
+\newtheorem{remark}{Remark}
+
+% ---- convenience inline formatting ----
+\newcommand{\code}[1]{\texttt{\small #1}}

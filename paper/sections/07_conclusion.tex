@@ -1,0 +1,33 @@
+% 07_conclusion.tex — owner: A2 (Round 4).
+\section{Conclusion}
+\label{sec:conclusion}
+
+We asked whether safety-induced blocking interferes with LLM-based
+vulnerability analysis, and designed the study so that the answer --- in
+either direction --- would be informative. A pre-registered reproduction gate
+returned FAIL with effect size exactly 0: all three registered models never
+refuse
+vulnerability-analysis prompts, though they refuse 8--75\% of benign
+probes. The pivot that rule mandated redirected the study to untrusted code
+context, where the real hazard lives: benign security-charged context
+silently biases verdicts, and instruction-like context flips 74\% of paired
+predictions to ``benign'' while every availability metric stays healthy.
+Semantic context isolation cuts that injection success to 48\% (aggregate
+$p=0.0078$; vulnerable-only $p=0.5$) without improving accuracy, a naive
+structured-recovery pipeline suppresses refusal entirely (unsafe compliance
+1.00) and a gate-first redesign restores pipeline-level safety by
+construction, and a CodeBERT fallback supplies honest, refusal-independent
+coverage at realistic difficulty (F1 0.215). The refusal monitor's own
+failure modes --- an over-refusal criterion violation and a recompute that
+retracted a headline claim --- are documented as part of the contribution:
+joint refusal--utility--safety evaluation is only as trustworthy as its
+measurement instruments.
+
+Future work, sized beyond a pilot: scale each cell past power thresholds,
+replace lexical intent gating with model-based gating measured on paraphrase
+adversaries, re-run on the official PrimeVul v1.0 substrate, extend to
+repository-level context where provenance mediation has more structure to
+exploit, and evaluate whether verdict-stability defences can be trained for
+rather than assembled at inference time. All artifacts --- manifests, seeds,
+prompts, cached generations, and per-claim source files --- are released so
+that every number in this paper can be recomputed from its raw outputs.

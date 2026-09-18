@@ -1,0 +1,51 @@
+% tab_defenses.tex — simple defenses (E5), semantic isolation (E6), fusion
+% fallback (E7) and safety preservation (E8, before/after the pipeline fix).
+% All numbers from outputs/ files named per row; verified mechanically by
+% paper/make_figures.py::verify_tables().
+\begin{table}[t]
+\centering
+\caption{Defences at pilot scale (Qwen2.5-Coder-3B unless noted). E5: comment stripping (B2),
+aggressive text removal (B3) and prompt reframing (B1) never remove a refusal because there are
+no refusals to remove (DRR undefined, $n{=}0$ candidates). E6: P1 semantic isolation. E7:
+LLM-then-transformer fallback on the cached 0.5B E3 records (133 in-universe). E8: unsafe
+compliance on 30 unsafe prompts, safe refusal on 30 safe prompts, before (Round-2 pipeline) and
+after (Round-3, gate-first) the P2 redesign, recomputed with the fixed monitor.}
+\label{tab:defenses}
+\small
+\begin{tabular}{@{}llc@{}}
+\toprule
+Experiment & Quantity & Value \\
+\midrule
+% source: outputs/experiments/round3_e5/results.json -> per_condition_defense.*.utility_drop_vs_B0_same_condition = 0.0 (all cells);
+% DRR_vs_B0_same_condition.{DRR,n_candidates} = null/0 in every cell
+E5 (B1/B2/B3) & clean/stressed utility drop (CUL) & 0.000 \\
+E5 (B1/B2/B3) & DRR & n/a ($n{=}0$ refusal candidates) \\
+% source: outputs/experiments/round3_e5/results.json -> per_condition_defense["C3|B2"].classification.recall = 1.0 with precision 0.4516 (all-vulnerable bias)
+E5 (B2/B3) & C3 recall / precision & 1.000 / 0.452 (bias) \\
+\midrule
+% source: outputs/experiments/round3_e6/results.json -> per_condition_defense["C3|B0"] vs ["C3|P1"] classification.mcc = 0.2055 / -0.0293
+E6 (P1) & MCC on C3, B0 vs P1 & $+0.205$ vs $-0.029$ \\
+% source: outputs/experiments/round3_e6/results.json -> paired_usable_delta_P1_minus_B0.*.usable_delta_ci_P1_minus_B0.estimate = 0.0
+E6 (P1) & usable-coverage gain & 0.000 \\
+% source: outputs/experiments/round3_e6/results.json -> metrics.flip_metrics.mcnemar p=0.0078125; stratified from records: 6 benign p=0.031, 2 vul p=0.5
+E6 (P1) & injection success (overall) & 0.742 $\rightarrow$ 0.484, $p=0.0078$ \\
+\midrule
+% source: outputs/experiments/round3_e7/e7_fusion_results.json -> ablations.llm_only.overall (uac 0.985, mcc 0.0789);
+% ablations.llm_then_fallback.overall (uac 1.0, mcc 0.0942, n_fallback_used 2); coverage_gain.overall = 0.015.
+% n_fallback_used = 2 (C0 x1 + C3 x1); per-case fallback correctness is NOT persisted in any output
+% (master disclosure #7) -> only the invocation count is claimable, never "k/N correct".
+E7 (fallback) & UAC, LLM-only vs +fallback & 0.985 vs 1.000 ($+0.015$) \\
+E7 (fallback) & MCC, LLM-only vs +fallback & 0.0789 vs 0.0942 \\
+E7 (fallback) & fallback invocations & 2 of 133 records; per-case correctness not persisted \\
+% source: outputs/experiments/round3_e7/e7_fusion_results.json -> safety_scope_check (both files: n_records 250, scope_blocked 250, reached_fallback 0)
+E7 (safety scope) & unsafe prompts reaching B4 & 0 of 500 (250$+$250) \\
+\midrule
+% source: outputs/experiments/pilot_round2_recomputed/summary_v2.json -> trees["3b_qwen"].experiments.e8.metrics.safety_summary (B0 0.04, P2 1.0; scoring-half corpus disclosed)
+E8 (pre-fix R2) & unsafe compliance, B0 vs P2 & 0.040 vs \textbf{1.000} \\
+% source: outputs/experiments/round3_e8{,_llama3b}/recomputed/recompute_e8_monitor.json -> summary + paired + h6
+E8 (post-fix R3) & unsafe compliance, B0 vs P2 & Qwen 0.000/0.000; Llama 0.033/0.000 \\
+E8 (post-fix R3) & safe refusal, B0$\rightarrow$P1 & Qwen 0.233$\rightarrow$0.000 ($p=0.0156$); Llama 0.033$\rightarrow$0.000 ($p=1.0$) \\
+E8 (post-fix R3) & H6 (pipeline-level, by construction) & met (gate blocked 30/30) \\
+\bottomrule
+\end{tabular}
+\end{table}

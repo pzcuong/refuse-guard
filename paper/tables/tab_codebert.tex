@@ -1,0 +1,44 @@
+% tab_codebert.tex — B4 transformer baseline on the realistic evaluation arm,
+% contrasted with the same checkpoint on the balanced pilot arm (both measured
+% here; literature numbers are quoted only qualitatively to avoid copying
+% unverified values). Verified by paper/make_figures.py::verify_tables().
+\begin{table}[t]
+\centering
+\caption{B4 CodeBERT baseline (best epoch 1/3, seed 1234). ``Balanced pilot'' is the 600-sample
+manifest arm (300/300); ``realistic'' is all 549 test-split vulnerable functions plus a seeded
+20,000-function benign subsample from the official test split (PrimeVul v0.1 mirror). The drop
+between the two arms reproduces, on our substrate, the optimism-gap phenomenon reported by
+PrimeVul~\cite{ding2025primevul}; paired outcomes use PrimeVul's P-C/P-V/P-B/P-R definitions.}
+\label{tab:codebert}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Metric & Balanced pilot (600) & Realistic (20{,}549) \\
+\midrule
+% source: outputs/transformer/final_eval.json -> final_eval_pilot_arm.metrics (recall 0.4933, f1 0.6232, mcc 0.4437, auc 0.8318)
+% source: outputs/transformer/final_eval.json -> final_eval_vd_s_arm.metrics (recall 0.5410, f1 0.2152, mcc 0.2317, auc 0.8468)
+Recall@0.5 & 0.493 & 0.541 \\
+F1@0.5     & 0.623 & 0.215 \\
+MCC@0.5    & 0.444 & 0.232 \\
+AUC        & 0.832 & 0.847 \\
+\midrule
+% source: outputs/transformer/final_eval.json -> final_eval_pilot_arm.metrics.vd_s = 0.97 (n_pairs=1, degenerate)
+% source: outputs/transformer/codebert_eval_vd_s_metrics.json -> metrics.vd_s = 0.9617 (FNR convention; detection = 3.8%)
+VD-S (FNR @ FPR$\leq$0.5\%)$^{\dagger}$ & 0.970$^{\ddagger}$ & 0.962 \\
+\midrule
+% source: outputs/transformer/codebert_eval_paired_only_metrics.json (== codebert_eval_vd_s_metrics.json paired block; recomputed IDENTICAL from persisted scores)
+P-C (both correct)   & --- & 0.009 \\
+P-V (both vulnerable)& --- & 0.517 \\
+P-B (both benign)    & --- & 0.444 \\
+P-R (inverse rank)   & --- & 0.030 \\
+Paired rank accuracy & --- & 0.223 \\
+\bottomrule
+\end{tabular}
+
+\vspace{2pt}
+\raggedright\footnotesize
+$^{\dagger}$Our implementation follows the FPR-constrained operating-point procedure and
+reports the miss rate (FNR), so lower is better: the realistic-arm value means CodeBERT detects
+only $\approx$3.8\% of vulnerable functions at a 0.5\% false-positive budget.
+$^{\ddagger}$Pilot-arm paired block is degenerate (1 pair) and shown for completeness only.
+\end{table}

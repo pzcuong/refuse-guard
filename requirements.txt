@@ -1,0 +1,38 @@
+# RefuseGuard — curated top-level dependencies (owner: A3, Round 4)
+# Python 3.12 (.venv). All versions pinned to the exact versions used to
+# produce every number in the paper (Apple M2 Pro / macOS arm64 / MPS).
+# Full transitive freeze: see requirements-lock.txt.
+#
+# Install:  python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# (project was managed with uv; a lock-level freeze is requirements-lock.txt)
+
+# --- LLM / deep learning stack ---
+torch==2.14.0
+transformers==5.17.0
+datasets==5.0.1
+accelerate==1.15.0
+tokenizers==0.23.2
+safetensors==0.8.0
+huggingface_hub==1.32.0
+
+# --- classical ML / statistics ---
+scikit-learn==1.9.1
+scipy==1.18.1
+statsmodels==0.15.0
+numpy==2.5.3
+pandas==3.0.5
+
+# --- code parsing (B2 comment stripping + semantic-preservation checks) ---
+tree-sitter==0.21.3
+tree-sitter-languages==1.10.2
+
+# --- figures / I/O ---
+matplotlib==3.11.2
+pyarrow==25.0.1
+jsonlines==4.0.0
+PyYAML==6.0.3
+requests==2.34.2
+tqdm==4.70.1
+
+# --- tests ---
+pytest==9.1.1

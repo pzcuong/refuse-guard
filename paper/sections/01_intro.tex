@@ -1,0 +1,87 @@
+% 01_intro.tex — owner: A2 (Round 4).
+\section{Introduction}
+\label{sec:intro}
+
+LLM-based assistants are moving into software-security workflows: vulnerability
+triage, CWE attribution, localization, and patch review. Function-level
+vulnerability detection, however, remains far from solved on realistic
+substrates: PrimeVul showed that results celebrated on legacy benchmarks
+collapse under realistic evaluation, and paired metrics expose models that
+cannot distinguish a vulnerable function from its patched
+counterpart~\cite{ding2025primevul}. Systematic studies of LLMs echo this
+pessimism once precision and realistic distributions are
+considered~\cite{han2023howfar,sun2024llm4vuln}.
+
+At the same time, a separate line of work argues that safety alignment itself
+may interfere with defensive security work. \emph{Defensive Refusal Bias}
+reports that cyber-defence requests containing security-sensitive vocabulary
+are refused far more often than neutral paraphrases~\cite{campbell2026defensive};
+over-refusal is measurable at scale~\cite{cui2025orbench,rottger2024xstest};
+and safety state has been linked to vulnerability-analysis
+utility~\cite{li2026beyondrefusal}. Source code adds a second channel of
+interference: comments, strings, and documentation are model-facing text that
+an attacker can edit, and indirect prompt injection (IPI) through such content
+is a demonstrated attack surface~\cite{yi2023bipia,cheng2026codesentinel}.
+If both phenomena were strong, an LLM vulnerability analyzer could be blocked
+twice: refused by its own safety policy, or subverted by the very code it
+reads.
+
+\textbf{A pre-registered reproduction gate.}
+Which of these threats is real is an empirical question, and our study design
+refuses to assume the answer. Before building any mitigation we registered a
+reproduction gate (E0): if defensive refusal on vulnerability-analysis tasks
+does not replicate under controlled prompt arms, the project must pivot ---
+refusal becomes a secondary outcome and untrusted-context robustness becomes
+primary~\cite{ding2025primevul,campbell2026defensive}. The gate failed, and we
+followed it: across three open-weight models and all prompt arms, refusal rates were
+exactly 0.000, while the same models refused 8--75\% of benign contrast
+probes. Defensive refusal exists in these models, but it is not triggered by
+vulnerability-analysis wording. We report this negative result prominently,
+because it falsifies the transfer of a headline phenomenon to this task
+family and redirects attention to where the damage actually occurs.
+
+\textbf{What we measure instead.}
+We present \emph{RefuseGuard}, a framework and pilot-scale study that measures
+refusal, utility, and safety \emph{simultaneously} for LLM vulnerability
+analysis under untrusted code context. On a semantics-preserving benchmark of
+paired clean/contextualized PrimeVul functions (comments, docstrings, and
+string carriers carrying security-charged but benign content, plus
+instruction-like IPI content), we find that availability metrics barely move:
+usable-answer coverage stays at 0.98--1.00 and context-induced utility drop
+(SIUD) is at most $+0.017$. The material effect is an \emph{integrity} one:
+instruction-like context silently flips verdicts to ``benign'' on 74.2\% of
+paired samples while the model still emits a well-formed answer. Defences
+must therefore target prediction stability, not answer recovery.
+
+\textbf{Contributions.} Scoped honestly to pilot scale (hundreds, not
+thousands, of generations per condition):
+\begin{itemize}
+  \item \textbf{C1 --- A joint evaluation protocol} that separates refusal,
+  partial answers, and correctness for LLM vulnerability analysis, with a
+  calibrated refusal monitor and pre-registered decision rules, including the
+  reproduction gate and its pivot clause (\S\ref{sec:method},
+  \S\ref{sec:setup}).
+  \item \textbf{C2 --- A paired contextual benchmark} on the PrimeVul v0.1
+  mirror (838 materialized variants; AST-unchanged C2/C3 transforms;
+  disclosed confounds), with all manifests, seeds, and prompts published
+  (\S\ref{sec:setup}).
+  \item \textbf{C3 --- Empirical evidence that the dominant failure mode under
+  untrusted context is verdict flipping, not refusal}: injection success
+  0.742 for a raw 3B model; semantic context isolation (P1) reduces the
+  aggregate to 0.484 ($p{=}0.0078$) but does not improve accuracy ---
+  isolation is not accuracy (\S\ref{sec:results}, RQ4).
+  \item \textbf{C4 --- A refusal-suppression warning for structured-recovery
+  pipelines}: a naive refusal-recovery pipeline drove unsafe compliance from
+  0.040 to 1.000 on a model that refuses 96\% of harmful prompts; our revised
+  gate-first pipeline (P2) preserves pipeline-level safety by construction
+  (\S\ref{sec:results}, RQ6).
+  \item \textbf{C5 --- A realistic-difficulty transformer baseline}: CodeBERT
+  reaches F1 0.215 on the realistic arm while scoring F1 0.623 on a balanced
+  pilot arm, reproducing on our substrate the optimism gap of
+  \cite{ding2025primevul}, and serving as an independent fallback channel.
+\end{itemize}
+
+All numbers in this paper are traceable to released output artifacts; where a
+run was partial or a measurement instrument failed validation, we say so and
+keep the result in the threat model of the measurement itself
+(\S\ref{sec:discussion}).

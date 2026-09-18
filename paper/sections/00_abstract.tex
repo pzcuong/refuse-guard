@@ -1,0 +1,18 @@
+% 00_abstract.tex — owner: A2 (Round 4). ~150 words.
+\begin{abstract}
+Large language models (LLMs) are increasingly used for defensive vulnerability
+analysis, yet recent work reports that safety alignment can refuse legitimate
+cyber-defence tasks. Before building mitigation, we pre-registered a
+reproduction gate over this phenomenon on vulnerability-analysis tasks with
+three open-weight instruct models. The gate \emph{failed}: refusal rates were 0.000 in all
+prompt arms, while contrast probes showed the same models refuse frequently but
+arm-independently. Under a semantics-preserving untrusted-context benchmark on
+PrimeVul, availability was likewise unaffected (usable-answer coverage
+$\geq 0.98$); the real threat was \emph{integrity}: instruction-like context
+silently flipped verdicts on 74\% of paired samples. A semantic-isolation
+defence reduced aggregate injection success to 48\% ($p{=}0.008$) without
+helping accuracy, and a naive structured-refusal-recovery pipeline acted as a
+refusal-suppression machine (unsafe compliance 1.00), which our revised
+gate-first pipeline eliminated. We release a joint refusal--utility--safety
+protocol, benchmark, and defences, and discuss negative results as evidence.
+\end{abstract}

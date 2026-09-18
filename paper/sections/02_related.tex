@@ -1,0 +1,67 @@
+% 02_related.tex — owner: A2 (Round 4). All keys verified present in docs/refs.bib.
+\section{Related Work}
+\label{sec:related}
+
+\subsection{LLM-based vulnerability detection}
+PrimeVul~\cite{ding2025primevul} re-anchored function-level vulnerability
+detection on a deduplicated, chronologically split C/C++ corpus with paired
+vulnerable/patched functions, showing large optimism gaps in legacy benchmarks
+and proposing strict paired metrics (including detection at constrained false
+positive rate). Gao et al.~\cite{han2023howfar} reached similar conclusions
+for LLMs specifically, and LLM4Vuln~\cite{sun2024llm4vuln} decouples prompt,
+knowledge, and reasoning factors --- our E0 arms follow its controlled-prompt
+logic. All of these works assume cooperative settings; none manipulates
+refusal state or untrusted textual context on the vulnerability task itself,
+which is the niche RefuseGuard measures.
+
+\subsection{Over-refusal and defensive refusal}
+XSTest~\cite{rottger2024xstest} and OR-Bench~\cite{cui2025orbench} established
+over-refusal as a measurable failure mode and supply our calibration and
+contrast corpora. Campbell et al.~\cite{campbell2026defensive} report that
+cyber-defence requests with security-sensitive wording are refused about
+$2.7\times$ more than neutral equivalents; TabooRAG~\cite{li2026taboorag}
+shows alignment can be exploited to block RAG answers; and
+\cite{li2026beyondrefusal} studies vulnerability-analysis utility of aligned
+versus safety-ablated models. Mitigation work spans query-side gating
+(SCANS~\cite{cao2025scans}), activation steering
+(ACTOR~\cite{dabas2025actor}), and dual-objective alignment
+(DOOR~\cite{zhao2025door}). These studies target generic chat safety; none
+evaluates mitigation \emph{on a security-analysis task with verifiable
+correctness}, and none keeps the unsafe-compliance side of the ledger ---
+exactly the joint evaluation our E8 performs. Our reproduction gate exists
+precisely because \cite{campbell2026defensive}'s effect is measured on
+different tasks (CTF-style defence prompts), and we show it does not transfer
+to vulnerability analysis for the models we test.
+
+\subsection{Indirect prompt injection in code contexts}
+BIPIA~\cite{yi2023bipia} benchmarked IPI through externally sourced content
+and separated informational from instructional text; Liu et
+al.~\cite{liu2024autopi} demonstrated optimized universal injection suffixes;
+CodeSentinel~\cite{cheng2026codesentinel} defends code contexts with a
+three-layer sanitizer targeting comments, strings, and identifiers. Our C3
+condition instantiates the instruction-carrier threat on vulnerability
+analysis, and our P1 defence differs from sanitizer-style work in its
+objective: preserve vulnerability-relevant semantics and stabilize the
+verdict, rather than only block attacks. Our results add the availability
+side of the ledger: in our pilots, injections rarely make outputs unusable
+--- they quietly corrupt them.
+
+\subsection{Safety--utility trade-offs}
+Fine-tuning can silently erode safety alignment~\cite{qi2024finetuning}, and
+cyber-domain fine-tuning trades safety against task
+performance~\cite{cyberllminstruct2025}. Trade-off evaluations in this family
+report aggregate refusal/helpfulness scores. RefuseGuard instead couples both
+sides to \emph{verifiable task correctness} (vulnerable/benign verdicts, CWE,
+localization) and to an inference-time defence with fallback, and treats
+``fixing'' over-refusal by making the model indiscriminately compliant as a
+first-class failure mode --- the refusal-suppression phenomenon we document in
+Section~\ref{sec:results} (RQ6).
+
+\subsection{Positioning}
+We claim neither the observation of defensive refusal
+(\cite{campbell2026defensive} owns it) nor the first IPI-in-code defence
+(\cite{cheng2026codesentinel,yi2023bipia} own that). Our contribution is the
+first (to our verified knowledge) \emph{joint} refusal--utility--safety
+evaluation of LLM-based vulnerability analysis under paired clean vs.\
+security-charged code contexts, together with a reproduction-gate methodology
+that converted an expected phenomenon into an honest negative result.

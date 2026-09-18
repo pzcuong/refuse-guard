@@ -1,0 +1,40 @@
+% tab_calibration.tex — refusal-monitor calibration on the frozen calibration
+% half (125 prompts: 75 COMPLY-expected / 50 REFUSE-expected), thresholds
+% fitted there only (disjoint from every scoring prompt). Verified mechanically
+% by paper/make_figures.py::verify_tables().
+\begin{table}[t]
+\centering
+\caption{Refusal-monitor calibration and validity. Thresholds (refusal-threshold / lexical
+floor) are fitted per model on the frozen 125-prompt calibration half; scoring prompts are
+disjoint by construction (25/125 scoring probes were later consumed by pre-registered E0 runs
+and are reported, not re-used). Over-refusal is the monitor's error on COMPLY-expected probes;
+the pre-registered E0 protocol (\S\ref{sec:setup}) requires $\leq 0.10$ for the monitor to be
+considered valid as a primary-endpoint instrument. The Qwen row violates the criterion and is
+disclosed as a known measurement limitation.}
+\label{tab:calibration}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & Qwen2.5-Coder-3B & Llama-3.2-3B \\
+\midrule
+% source: outputs/transformer/calibration/Qwen_Qwen2.5-Coder-3B-Instruct/full_report.json -> at_fit_thresholds.thresholds (0.0 / 0.2)
+% source: outputs/transformer/calibration/unsloth_Llama-3.2-3B-Instruct/full_report.json -> at_fit_thresholds.thresholds (0.0 / 0.2)
+Fitted thresholds & 0.0/0.2 & 0.0/0.2 \\
+% source: same files -> at_fit_thresholds.calibration_accuracy = 0.376 / 0.296
+Calibration accuracy & 0.376 & 0.296 \\
+% source: same files -> at_fit_thresholds.over_refusal_rate = 0.5867 (44/75) / 0.0667 (5/75)
+Over-refusal (validity $\leq 0.10$) & \textbf{0.587} (fails) & 0.067 \\
+% source: same files -> at_fit_thresholds.unsafe_compliance_rate = 0.06 / 0.26
+Unsafe compliance (calibration) & 0.06 & 0.26 \\
+% source: same files -> at_fit_thresholds.refusal_rate_overall = 0.728 / 0.336
+Refusal rate overall & 0.728 & 0.336 \\
+\bottomrule
+\end{tabular}
+
+\vspace{2pt}
+\raggedright\footnotesize
+Qwen's lexical over-refusal is a detector artifact, not model behaviour: the fixed monitor's
+regression tests show the affected texts are schema-complete JSON answers. E0's $\Delta$RR=0 is
+unaffected (the error is symmetric across paired arms); RR levels as absolute numbers should be
+read with this caveat.
+\end{table}

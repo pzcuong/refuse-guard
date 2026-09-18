@@ -1,0 +1,83 @@
+% 04_setup.tex — owner: A2 (Round 4). Pilot-scale facts disclosed in full.
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{Data: PrimeVul v0.1 mirror}
+We use the official PrimeVul splits~\cite{ding2025primevul} from the
+\texttt{starsofchance/PrimeVul} Hugging Face mirror, whose card states it is
+built on the \textbf{v0.1} release. Load-time validation quantifies the
+deviation from the paper and we report it rather than hide it: 6{,}004
+vulnerable vs.\ $\sim$6{,}968 functions ($-13.8\%$), 218{,}529 vs.\ 229{,}794
+benign ($-4.9\%$), 130 vs.\ $>$140 CWE tags. The test split holds 24{,}788
+functions, of which \textbf{only 549 are vulnerable}; all 435 test pairs are
+used for paired evaluation. Everything below therefore says ``PrimeVul v0.1
+mirror'', and absolute numbers are not comparable to v1.0-based results.
+
+\subsection{Paired contextual benchmark (bench\_v1)}
+From the test split we draw a CWE-stratified, seed-fixed evaluation subset:
+300 vulnerable + 300 benign functions and 238 additional paired-benign
+members (838 unique samples; base seed 20260918 with documented per-stage
+offsets; nothing is fitted on test). Every sample is materialized in advance
+as C0, C2a, C2b, C3 variants plus both C1 prompt arms, each C2/C3 variant
+passing the AST-unchanged semantics gate (\S\ref{sec:conditions}). One
+position confound is disclosed: in 295/838 rows (35.2\%) the C2a ``near'' and
+C2b ``far'' carriers landed at the same byte offset, so the position label
+carries no signal for those rows. Contrast prompts for calibration, probes,
+and safety evaluation are OR-Bench~\cite{cui2025orbench} and
+XSTest~\cite{rottger2024xstest} items (250 ids) split 50/50 into a
+calibration half and a scoring half; the halves are disjoint by construction,
+and 25 pre-registered E0 scoring probes were consumed from the scoring half
+(reported, never re-used for fitting).
+
+\subsection{Models}
+\label{sec:models}
+Three open-weight instruct models were registered: \textbf{Qwen2.5-Coder-3B}
+(rev 488639f1), \textbf{Llama-3.2-3B} via its ungated \texttt{unsloth} mirror
+(rev 006f5dcd; the official Meta repo is license-gated --- same weights, same
+chat template), and \textbf{Granite-3.3-2B} as a third family. Decoding is
+greedy (temperature 0, seed 1234, 8k input truncation) with a resumable
+generation cache; prompts are hashed into cache keys. The per-experiment
+generation budget is 200--320 new tokens (round-3 configs: 200 for the E0/E8
+probe arms, 300 for E0/E2/E3 functions, 320 for E5/E6; harness default 512). A
+0.5B Qwen2.5-Coder model served the earlier pilot round and supplies the
+cached records used by the fusion experiment (RQ5). B4 is
+\texttt{microsoft/codebert-base} fine-tuned for 3 epochs (effective batch 32,
+lr 2e-5, seed 1234) on all 4{,}862 mirror-vulnerable train functions plus a
+seeded 25{,}000-function benign subsample, validated on 10{,}000 functions
+(593 vulnerable); the best checkpoint is selected by validation MCC.
+
+\subsection{Scale, seeds, and pre-registrations}
+\label{sec:scale}
+This is a pilot-scale study on a single M2 Pro machine; we state the exact
+budget. E0: 135 generations per model (20 functions $\times$ 3 arms + 25
+scoring probes per arm); all three registered models completed --- Granite's
+Round-3 run stopped early after an infrastructure fault (disclosed in our
+artifact logs), and its Round-4 completion re-used the fully cached raw
+generations (135/135 cache hits, zero new generations). E2/E3: 300 records
+per model (60 samples $\times$ 5 arms, all three models completed). E5/E6: 40
+C0 and 31 C2b/C3 paired samples per defence cell for Qwen. E7: 133
+in-universe records reusing cached 0.5B E3 outputs (zero additional LLM
+calls). E8: 150 records per model --- B0 60 (30 unsafe + 30 safe), P2 60 (30
+unsafe + 30 safe), P1 30 (safe prompts only; P1 has no intent gate and hence
+no unsafe arm in the round-3 output) --- plus the probe arms. Two
+Granite-specific facts are disclosed with the three-model gate verdict
+(\S\ref{sec:rq1}): (a) Granite's refusal-monitor thresholds are fitted
+\emph{in-sample} on its own 25 scoring probes --- unlike the two main models,
+it has no held-out calibration half; (b) Granite complies with 0.538 of the
+13 refuse-expected probes in the neutral arm, a model-level anomaly against
+our safety sanity floor, which we report as measured rather than filtered.
+All statistics use seed 20260918 with 10{,}000 bootstrap resamples.
+
+Pre-registered decision rules, fixed before the corresponding runs: (i) the
+\textbf{E0 gate}: PASS iff at least 2 of 3 models show
+$\Delta$RR(defensive$-$neutral) $\geq 0.10$, McNemar $p<0.05$, and a
+bootstrap CI excluding 0; otherwise the study pivots to untrusted-context
+robustness with refusal as a secondary outcome. Two registered facts must be
+disclosed: with only 20 paired functions per arm the exact McNemar branch of
+PASS is statistically unattainable unless $\Delta$RR is very large, and the
+verdict we report is FAIL with effect size exactly 0, so neither fact changes
+the outcome. (ii) The monitor-validity criterion (over-refusal $\leq 0.10$)
+and the frozen calibration/scoring split. (iii) The E8 safety rule: the
+pipeline passes iff P2's unsafe compliance does not exceed B0's by more than
+0.05 and stays $\leq 0.10$. (iv) The B4 fusion threshold (argmax-MCC on the
+validation split, $\tau{=}0.548$), fixed before any test inference.

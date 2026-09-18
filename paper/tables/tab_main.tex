@@ -1,0 +1,58 @@
+% tab_main.tex — headline results per model across E0/E3/E6/E8.
+% Every cell is copied from the outputs/ file named in the % source comment for
+% its row; verified mechanically by paper/make_figures.py::verify_tables().
+% Requires: booktabs (no multirow/colortbl needed). All listed runs completed
+% (E0 3 models; E2/E3 3 models x 300 records — the E3 panel shows the two 3B
+% models, Granite in caption; E6/E8 Qwen + E8-Llama recomputed).
+\begin{table*}[t]
+\centering
+\caption{Headline results per model at pilot scale. Top: E0 reproduction gate (RR per prompt arm
+on 20 paired vulnerability-analysis functions per arm) and contrast-probe behaviour
+(over-refusal on 12 COMPLY-expected probes / unsafe compliance on 13 REFUSE-expected probes, per
+arm). Middle: E2/E3 context-stress results on the 60-sample paired benchmark, the two 3B models
+(Granite-3.3-2B replicates the same RR 0.000 / UAC 1.000 pattern with recall 0.033--0.367; released
+artifacts). Bottom: E6 IPI defence and E8 safety preservation (30 unsafe / 30 safe prompts, recomputed with
+the fixed refusal monitor). $\Delta$RR is invariant to the
+Qwen monitor's over-refusal error because it pumps both arms symmetrically (paired McNemar).}
+\label{tab:main}
+\small
+\begin{tabular}{@{}llcccccc@{}}
+\toprule
+Model & Panel & \multicolumn{6}{c}{Values} \\
+\midrule
+% source: outputs/experiments/round3_e0/qwen3b/results.json -> metrics.arms.*.RR = 0.000;
+% gate_per_model.pass_this_model = false; delta_RR mcnemar p = 1.0
+Qwen2.5-Coder-3B & E0 RR (neu/def/sec) & 0.000 & 0.000 & 0.000 & \multicolumn{3}{l}{$\Delta$RR $= 0.000$, McNemar $p=1.0$ $\Rightarrow$ gate FAIL} \\
+% source: outputs/experiments/round3_e0/qwen3b/results.json -> metrics.probes_by_arm.*.over_refusal_rate / unsafe_compliance_rate
+Qwen2.5-Coder-3B & E0 probes over-ref./unsafe & 0.500/0.154 & 0.750/0.077 & 0.667/0.077 & \multicolumn{3}{l}{model refuses, but arm-independently} \\
+% source: outputs/experiments/round3_e0/llama3b/results.json -> metrics.arms.*.RR = 0.000; probes as listed
+Llama-3.2-3B & E0 RR (neu/def/sec) & 0.000 & 0.000 & 0.000 & \multicolumn{3}{l}{$\Delta$RR $= 0.000$, McNemar $p=1.0$ $\Rightarrow$ gate FAIL} \\
+% source: outputs/experiments/round3_e0/llama3b/results.json -> metrics.probes_by_arm.*
+Llama-3.2-3B & E0 probes over-ref./unsafe & 0.167/0.154 & 0.083/0.385 & 0.333/0.231 & \multicolumn{3}{l}{} \\
+% source: outputs/experiments/round3_e0/granite2b/results.json -> metrics.arms.*.RR = 0.000
+% (Round-4 cache-only completion, 135/135 cache hits); gate_per_model: delta_rr 0.0, p 1.0, pass false;
+% monitor thresholds fitted IN-SAMPLE on its own scoring probes (setup disclosure, master disclosure #8)
+Granite-3.3-2B & E0 RR (neu/def/sec) & 0.000 & 0.000 & 0.000 & \multicolumn{3}{l}{$\Delta$RR $= 0.000$, McNemar $p=1.0$ $\Rightarrow$ gate FAIL} \\
+% source: outputs/experiments/round3_e0/granite2b/results.json -> metrics.probes_by_arm.*
+Granite-3.3-2B & E0 probes over-ref./unsafe & 0.333/0.538 & 0.333/0.385 & 0.167/0.462 & \multicolumn{3}{l}{unsafe-comp 0.538 (neu) = model-level anomaly (\S\ref{sec:setup})} \\
+\midrule
+% source: outputs/experiments/round3_e2e3/{qwen3b,llama3b}/results.json -> metrics.groups.* (RR, UAC, recall)
+% SIUD: metrics.SIUD_vs_C0 -> qwen estimates 0.000/0.000/+0.017 (C2b)/0.000; llama 0.000/+0.017 (C2a)/0.000/0.000
+Qwen2.5-Coder-3B & E3 RR (C0/C1/C2/C3) & 0.000 & 0.000 & 0.000 & 0.000 & \multicolumn{2}{l}{} \\
+Qwen2.5-Coder-3B & E3 UAC (C0/C1/C2/C3) & 1.000 & 1.000 & 0.983 & 1.000 & \multicolumn{2}{l}{} \\
+Qwen2.5-Coder-3B & E3 recall (C0/C1/C2/C3) & 0.800 & 0.967 & 0.933 & 0.333 & \multicolumn{2}{l}{SIUD $\approx 0$ (max $+0.017$ C2b)} \\
+% source: outputs/experiments/round3_e2e3/llama3b/results.json (300/300, partial=false)
+Llama-3.2-3B & E3 RR (C0/C1/C2/C3) & 0.000 & 0.000 & 0.000 & 0.000 & \multicolumn{2}{l}{} \\
+Llama-3.2-3B & E3 UAC (C0/C1/C2/C3) & 1.000 & 1.000 & 0.983 & 1.000 & \multicolumn{2}{l}{} \\
+Llama-3.2-3B & E3 recall (C0/C1/C2/C3) & 0.800 & 1.000 & 0.862 & 0.500 & \multicolumn{2}{l}{SIUD $\approx 0$ (max $+0.017$ C2a)} \\
+\midrule
+% source: outputs/experiments/round3_e6/results.json -> metrics.flip_metrics:
+%   IPI_flip_rate_B0.ipi_flip_rate=0.7419, IPI_flip_rate_P1.ipi_flip_rate=0.4839,
+%   mcnemar_flip_C3_B0_vs_P1.p_value=0.0078125 (stratified: 6 benign p=0.031, 2 vul p=0.5)
+Qwen2.5-Coder-3B & E6 injection success & \multicolumn{6}{l}{B0 0.742 $\rightarrow$ P1 0.484 \ (overall McNemar $p=0.0078$; vul-only $p=0.5$, n.s.)} \\
+% source: outputs/experiments/round3_e8/recomputed/recompute_e8_monitor.json (Qwen: 0.0 -> 0.0; safe-refusal 0.233 -> 0.000, p=0.0156)
+% source: outputs/experiments/round3_e8_llama3b/recomputed/recompute_e8_monitor.json (Llama: 0.033 -> 0.0; safe-refusal 0.033 -> 0.000, p=1.0)
+Qwen / Llama & E8 unsafe compliance B0$\rightarrow$P2 & \multicolumn{6}{l}{Qwen 0.000$\rightarrow$0.000 \ (Llama 0.033$\rightarrow$0.000); gate blocked 30/30 unsafe} \\
+\bottomrule
+\end{tabular}
+\end{table*}

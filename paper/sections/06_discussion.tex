@@ -1,0 +1,88 @@
+% 06_discussion.tex — owner: A2 (Round 4).
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{What the reproduction gate bought us}
+The single most valuable methodological act in this study was pre-registering
+the E0 gate with an explicit pivot clause. It converted what could have been
+a semester-long pursuit of a phenomenon into one decisive experiment: defensive
+refusal --- real on cyber-defence prompts~\cite{campbell2026defensive} ---
+does not reach vulnerability analysis for our models, while the same models
+refuse 8--75\% of benign probes. ``Safety-induced blocking'' was therefore
+replaced, by rule rather than by preference, with the threat that actually
+materialized: silent verdict corruption under untrusted context. We suggest
+this gate-then-build pattern for any study whose motivation rests on a
+phenomenon measured on a different task distribution.
+
+\subsection{Structured recovery can be a refusal-suppression machine}
+Our Round-2 pipeline is a cautionary artifact for the over-refusal-mitigation
+literature. Every component looked reasonable --- classify intent, reframe as
+an authorized task, demand the structured schema, retry until complete ---
+and the composition drove unsafe compliance from 0.040 to 1.000 on a model
+that refuses 96\% of harmful requests. Schema-forcing retries do not merely
+``recover'' refused answers; they can \emph{manufacture compliance}, because
+the monitor's schema-completeness criterion is blind to what is being
+complied with. The fix we adopted (evaluate the request before the code;
+\texttt{REFUSED\_UNSAFE} with no LLM call; never reframe an unsafe request)
+makes the safety property pipeline-level by construction. We report H6 as
+\emph{met by construction} and deliberately do not claim the LLM inside
+became safer; a gate that classifies surface patterns is also a scope limit
+(see below). Any pipeline that pairs refusal detection with automatic retry
+should be required to publish this ledger.
+
+\subsection{Isolation is not accuracy}
+P1's aggregate improvement against C3 injection (0.742 $\rightarrow$ 0.484)
+is real but composite: most of the discordant mass sits on benign-ground-truth
+pairs, where holding the clean verdict preserves an error. P1 stabilizes
+behaviour --- it neither hallucinates refusals nor flips under instruction
+pressure --- but it inherits the model's clean-time bias (precision
+$0.48$--$0.49$, near-zero true negatives on security-charged arms). For
+practitioners the message is: provenance mediation addresses
+\emph{instruction-following failures}, not \emph{detection competence}; the
+latter must come from the model or from the independent channel (B4), whose
+realistic-arm numbers (\S\ref{sec:codebert}) show how far that channel is
+from competence as well.
+
+\subsection{Availability vs.\ integrity}
+Across E2/E3, SIUD $\approx 0$ and UAC $\approx 1$ while paired verdicts
+moved massively ($p$ from $0.02$ to $10^{-5}$). Availability-only dashboards
+would certify this analyzer as robust on the very inputs that corrupt it. We
+recommend paired, verdict-level reporting (McNemar on predictions, not just
+UAC deltas) as a default for LLM security-tool evaluations.
+
+\subsection{Threats to validity}
+\textbf{Pilot scale.} Every result rests on tens of samples per cell (E0: 20
+paired functions/arm; E5/E6: 31--40; E8: 30+30). At E0's $n$, the registered
+PASS branch is statistically unattainable --- disclosed up front; our verdict
+(FAIL, effect size 0) does not depend on it, but a small non-zero effect
+could have been missed. E6's vulnerable-only stratum is underpowered ($p=0.5$
+on 2 pairs). We frame all conclusions as pilot-scale evidence with direction,
+not magnitudes.
+\textbf{Measurement instrument.} The refusal monitor failed its own validity
+criterion on Qwen (over-refusal 0.587 vs.\ $\leq 0.10$ registered): the
+lexical detector misclassifies schema-complete JSON answers as refusals. An
+audit recompute from raw outputs changed a headline E8 number (Llama B0
+0.400 $\rightarrow$ 0.033) and \emph{withdrew} an apparent defence win ---
+we kept both versions in the artifact trail. E0's $\Delta$RR$=0$ survives
+because the error is symmetric across paired arms.
+\textbf{Substrate.} The PrimeVul mirror is v0.1-based ($-13.8\%$ vulnerable
+functions vs.\ the paper); the realistic arm covers all 549 mirror-vulnerable
+test functions, so absolute values are mirror-specific.
+\textbf{Gate scope.} The P2 intent gate is lexical: it blocks 30/30 of our
+30 unsafe contrast prompts but only 1/50 paraphrased OR-Bench-toxic prompts
+from the scoring half --- the safety-by-construction claim is scoped to
+surface-pattern recognition, and model-based gating is required before
+deployment claims.
+\textbf{Coverage.} E5/E6 defence cells are single-model (Qwen); E0 and E2/E3
+cover all three registered models, with two Granite-specific disclosures: its
+refusal-monitor thresholds are fitted in-sample on its own scoring probes (no
+held-out calibration half), and it complies with 0.538 of refuse-expected
+probes in the neutral arm --- a model-level anomaly reported as measured
+(\S\ref{sec:setup}); proprietary frontier models, which may have stronger and
+different refusal policies, are untested.
+
+\subsection{Responsible-disclosure notes}
+All injections are synthetic template texts; no exploit content was generated
+beyond benign security vocabulary; unsafe-compliance measurements count
+schema-shaped responses on simulated harmful requests and release no harmful
+artifacts.

@@ -1,0 +1,176 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand*\HyPL@Entry[1]{}
+\citation{ding2025primevul}
+\citation{han2023howfar,sun2024llm4vuln}
+\citation{campbell2026defensive}
+\citation{cui2025orbench,rottger2024xstest}
+\citation{li2026beyondrefusal}
+\citation{yi2023bipia,cheng2026codesentinel}
+\citation{ding2025primevul,campbell2026defensive}
+\HyPL@Entry{0<</S/D>>}
+\@writefile{toc}{\contentsline {section}{Abstract}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
+\citation{ding2025primevul}
+\citation{ding2025primevul}
+\citation{han2023howfar}
+\citation{sun2024llm4vuln}
+\citation{rottger2024xstest}
+\citation{cui2025orbench}
+\citation{campbell2026defensive}
+\citation{li2026taboorag}
+\citation{li2026beyondrefusal}
+\citation{cao2025scans}
+\citation{dabas2025actor}
+\citation{zhao2025door}
+\citation{campbell2026defensive}
+\citation{yi2023bipia}
+\citation{liu2024autopi}
+\citation{cheng2026codesentinel}
+\citation{qi2024finetuning}
+\citation{cyberllminstruct2025}
+\citation{campbell2026defensive}
+\citation{cheng2026codesentinel,yi2023bipia}
+\citation{campbell2026defensive}
+\citation{yi2023bipia,cheng2026codesentinel}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{2}{2}{Related Work}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}LLM-based vulnerability detection}{2}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Over-refusal and defensive refusal}{2}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Indirect prompt injection in code contexts}{2}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Safety--utility trade-offs}{2}{subsection.2.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Positioning}{2}{subsection.2.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}The RefuseGuard Framework}{2}{section.3}\protected@file@percent }
+\newlabel{sec:method}{{3}{2}{The RefuseGuard Framework}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Task and output contract}{2}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Context conditions (C0--C3)}{2}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:conditions}{{3.2}{2}{Context conditions (C0--C3)}{subsection.3.2}{}}
+\citation{ding2025primevul}
+\citation{cui2025orbench}
+\citation{rottger2024xstest}
+\citation{ding2025primevul}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The RefuseGuard pipeline. Top: untrusted-context conditions C1--C3 applied to a PrimeVul function; every C2/C3 variant passes a tree-sitter semantics gate that keeps the executable AST identical to the clean function. Bottom: defences. The task-intent gate classifies the request before code is processed; P1 mediates untrusted text with provenance instead of deleting it; the refusal monitor separates \textsc  {answer}/\textsc  {partial}/\textsc  {refusal}; recovery is a structured retry or a dedicated \texttt  {REFUSED\_UNSAFE} outcome; the B4 transformer detector is an independent fallback that is scope-blocked from unsafe requests.\relax }}{3}{figure.caption.5}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:conditions}{{1}{3}{The RefuseGuard pipeline. Top: untrusted-context conditions C1--C3 applied to a PrimeVul function; every C2/C3 variant passes a tree-sitter semantics gate that keeps the executable AST identical to the clean function. Bottom: defences. The task-intent gate classifies the request before code is processed; P1 mediates untrusted text with provenance instead of deleting it; the refusal monitor separates \textsc {answer}/\textsc {partial}/\textsc {refusal}; recovery is a structured retry or a dedicated \texttt {REFUSED\_UNSAFE} outcome; the B4 transformer detector is an independent fallback that is scope-blocked from unsafe requests.\relax }{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Defences}{3}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}B4 transformer baseline and fallback}{3}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Refusal monitor}{3}{subsection.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Metrics and statistics}{3}{subsection.3.6}\protected@file@percent }
+\citation{cui2025orbench}
+\citation{rottger2024xstest}
+\citation{ding2025primevul}
+\citation{ding2025primevul}
+\citation{campbell2026defensive}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experimental Setup}{4}{section.4}\protected@file@percent }
+\newlabel{sec:setup}{{4}{4}{Experimental Setup}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Data: PrimeVul v0.1 mirror}{4}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Paired contextual benchmark (bench\_v1)}{4}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Models}{4}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:models}{{4.3}{4}{Models}{subsection.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Scale, seeds, and pre-registrations}{4}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:scale}{{4.4}{4}{Scale, seeds, and pre-registrations}{subsection.4.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces E0 reproduction gate (two completed models). (a)\nonbreakingspace Refusal rate on the paired vulnerability-analysis functions is 0.000 in every arm, so the registered gate returns FAIL with effect size exactly 0. (b)\nonbreakingspace On contrast probes the same models refuse frequently (solid bars: over-refusal on COMPLY-expected probes) and even comply with some harmful probes (hatched: unsafe compliance on REFUSE-expected probes) --- refusal behaviour exists but is arm-independent. Sources: \texttt  {outputs/experiments/round3\_e0/\{qwen3b,llama3b\}/results.json}.\relax }}{4}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:e0rr}{{2}{4}{E0 reproduction gate (two completed models). (a)~Refusal rate on the paired vulnerability-analysis functions is 0.000 in every arm, so the registered gate returns FAIL with effect size exactly 0. (b)~On contrast probes the same models refuse frequently (solid bars: over-refusal on COMPLY-expected probes) and even comply with some harmful probes (hatched: unsafe compliance on REFUSE-expected probes) --- refusal behaviour exists but is arm-independent. Sources: \texttt {outputs/experiments/round3\_e0/\{qwen3b,llama3b\}/results.json}.\relax }{figure.caption.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Results}{4}{section.5}\protected@file@percent }
+\newlabel{sec:results}{{5}{4}{Results}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}RQ1: Does defensive refusal reproduce? No --- the gate fails}{4}{subsection.5.1}\protected@file@percent }
+\newlabel{sec:rq1}{{5.1}{4}{RQ1: Does defensive refusal reproduce? No --- the gate fails}{subsection.5.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Headline results per model at pilot scale. Top: E0 reproduction gate (RR per prompt arm on 20 paired vulnerability-analysis functions per arm) and contrast-probe behaviour (over-refusal on 12 COMPLY-expected probes / unsafe compliance on 13 REFUSE-expected probes, per arm). Middle: E2/E3 context-stress results on the 60-sample paired benchmark, both models. Bottom: E6 IPI defence and E8 safety preservation (30 unsafe / 30 safe prompts, recomputed with the fixed refusal monitor). $\Delta $RR is invariant to the Qwen monitor's over-refusal error because it pumps both arms symmetrically (paired McNemar).\relax }}{5}{table.caption.6}\protected@file@percent }
+\newlabel{tab:main}{{1}{5}{Headline results per model at pilot scale. Top: E0 reproduction gate (RR per prompt arm on 20 paired vulnerability-analysis functions per arm) and contrast-probe behaviour (over-refusal on 12 COMPLY-expected probes / unsafe compliance on 13 REFUSE-expected probes, per arm). Middle: E2/E3 context-stress results on the 60-sample paired benchmark, both models. Bottom: E6 IPI defence and E8 safety preservation (30 unsafe / 30 safe prompts, recomputed with the fixed refusal monitor). $\Delta $RR is invariant to the Qwen monitor's over-refusal error because it pumps both arms symmetrically (paired McNemar).\relax }{table.caption.6}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Refusal-monitor calibration and validity. Thresholds (refusal-threshold / lexical floor) are fitted per model on the frozen 125-prompt calibration half; scoring prompts are disjoint by construction (25/125 scoring probes were later consumed by pre-registered E0 runs and are reported, not re-used). Over-refusal is the monitor's error on COMPLY-expected probes; the pre-registered E0 protocol (\S  \ref  {sec:setup}) requires $\leq 0.10$ for the monitor to be considered valid as a primary-endpoint instrument. The Qwen row violates the criterion and is disclosed as a known measurement limitation.\relax }}{5}{table.caption.7}\protected@file@percent }
+\newlabel{tab:calibration}{{2}{5}{Refusal-monitor calibration and validity. Thresholds (refusal-threshold / lexical floor) are fitted per model on the frozen 125-prompt calibration half; scoring prompts are disjoint by construction (25/125 scoring probes were later consumed by pre-registered E0 runs and are reported, not re-used). Over-refusal is the monitor's error on COMPLY-expected probes; the pre-registered E0 protocol (\S \ref {sec:setup}) requires $\leq 0.10$ for the monitor to be considered valid as a primary-endpoint instrument. The Qwen row violates the criterion and is disclosed as a known measurement limitation.\relax }{table.caption.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}RQ2: Does untrusted context degrade utility? Availability: no. Verdicts: yes}{5}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:rq2}{{5.2}{5}{RQ2: Does untrusted context degrade utility? Availability: no. Verdicts: yes}{subsection.5.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Defences at pilot scale (Qwen2.5-Coder-3B unless noted). E5: comment stripping (B2), aggressive text removal (B3) and prompt reframing (B1) never remove a refusal because there are no refusals to remove (DRR undefined, $n{=}0$ candidates). E6: P1 semantic isolation. E7: LLM-then-transformer fallback on the cached 0.5B E3 records (133 in-universe). E8: unsafe compliance on 30 unsafe prompts, safe refusal on 30 safe prompts, before (Round-2 pipeline) and after (Round-3, gate-first) the P2 redesign, recomputed with the fixed monitor.\relax }}{5}{table.caption.8}\protected@file@percent }
+\newlabel{tab:defenses}{{3}{5}{Defences at pilot scale (Qwen2.5-Coder-3B unless noted). E5: comment stripping (B2), aggressive text removal (B3) and prompt reframing (B1) never remove a refusal because there are no refusals to remove (DRR undefined, $n{=}0$ candidates). E6: P1 semantic isolation. E7: LLM-then-transformer fallback on the cached 0.5B E3 records (133 in-universe). E8: unsafe compliance on 30 unsafe prompts, safe refusal on 30 safe prompts, before (Round-2 pipeline) and after (Round-3, gate-first) the P2 redesign, recomputed with the fixed monitor.\relax }{table.caption.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces B4 CodeBERT baseline (best epoch 1/3, seed 1234). ``Balanced pilot'' is the 600-sample manifest arm (300/300); ``realistic'' is all 549 test-split vulnerable functions plus a seeded 20,000-function benign subsample from the official test split (PrimeVul v0.1 mirror). The drop between the two arms reproduces, on our substrate, the optimism-gap phenomenon reported by PrimeVul\nonbreakingspace \citep  {ding2025primevul}; paired outcomes use PrimeVul's P-C/P-V/P-B/P-R definitions.\relax }}{6}{table.caption.9}\protected@file@percent }
+\newlabel{tab:codebert}{{4}{6}{B4 CodeBERT baseline (best epoch 1/3, seed 1234). ``Balanced pilot'' is the 600-sample manifest arm (300/300); ``realistic'' is all 549 test-split vulnerable functions plus a seeded 20,000-function benign subsample from the official test split (PrimeVul v0.1 mirror). The drop between the two arms reproduces, on our substrate, the optimism-gap phenomenon reported by PrimeVul~\cite {ding2025primevul}; paired outcomes use PrimeVul's P-C/P-V/P-B/P-R definitions.\relax }{table.caption.9}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces E6: injection success under C3 (share of paired samples whose verdict flips to benign vs.\ the clean prediction). P1 semantic isolation reduces the aggregate from 0.742 to 0.484 (McNemar $p=0.0078$), but 6 of the 8 discordant pairs are benign ground truth ($p=0.031$); on vulnerable-only pairs the improvement (2 pairs) is not significant ($p=0.5$). Source: \texttt  {outputs/experiments/round3\_e6/results.json}.\relax }}{6}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:e6}{{3}{6}{E6: injection success under C3 (share of paired samples whose verdict flips to benign vs.\ the clean prediction). P1 semantic isolation reduces the aggregate from 0.742 to 0.484 (McNemar $p=0.0078$), but 6 of the 8 discordant pairs are benign ground truth ($p=0.031$); on vulnerable-only pairs the improvement (2 pairs) is not significant ($p=0.5$). Source: \texttt {outputs/experiments/round3\_e6/results.json}.\relax }{figure.caption.11}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces E8: unsafe-compliance rate on 30 unsafe prompts. The naive Round-2 pipeline (pre-fix) suppresses refusals outright (P2 $=1.000$ vs.\ B0 $=0.040$); the revised gate-first pipeline (fixed) never forwards unsafe requests to the LLM (gate blocks 30/30) and does not increase unsafe compliance for either model. Sources: \texttt  {pilot\_round2\_recomputed/ summary\_v2.json}; \texttt  {round3\_e8\{,\_llama3b\}/recomputed/ recompute\_e8\_monitor.json}.\relax }}{6}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:e8}{{4}{6}{E8: unsafe-compliance rate on 30 unsafe prompts. The naive Round-2 pipeline (pre-fix) suppresses refusals outright (P2 $=1.000$ vs.\ B0 $=0.040$); the revised gate-first pipeline (fixed) never forwards unsafe requests to the LLM (gate blocks 30/30) and does not increase unsafe compliance for either model. Sources: \texttt {pilot\_round2\_recomputed/ summary\_v2.json}; \texttt {round3\_e8\{,\_llama3b\}/recomputed/ recompute\_e8\_monitor.json}.\relax }{figure.caption.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}RQ3: Do simple defences help? There is nothing to recover}{6}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:rq3}{{5.3}{6}{RQ3: Do simple defences help? There is nothing to recover}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}RQ4: Does semantic isolation help? Against injection: partially. For accuracy: no}{6}{subsection.5.4}\protected@file@percent }
+\newlabel{sec:rq4}{{5.4}{6}{RQ4: Does semantic isolation help? Against injection: partially. For accuracy: no}{subsection.5.4}{}}
+\citation{ding2025primevul}
+\citation{campbell2026defensive}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces B4 CodeBERT baseline. (a)\nonbreakingspace Threshold-0.5 metrics on the realistic arm (549 vulnerable + 20{,}000 benign test-split functions); VD-S is reported as the FNR at the FPR$\leq $0.5\% operating point (lower is better: $\approx $3.8\% of vulnerable functions detected under the budget). (b)\nonbreakingspace PrimeVul paired outcomes over 435 pairs. Source: \texttt  {outputs/transformer/codebert\_eval\_vd\_s\_metrics.json}.\relax }}{7}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:codebert}{{5}{7}{B4 CodeBERT baseline. (a)~Threshold-0.5 metrics on the realistic arm (549 vulnerable + 20{,}000 benign test-split functions); VD-S is reported as the FNR at the FPR$\leq $0.5\% operating point (lower is better: $\approx $3.8\% of vulnerable functions detected under the budget). (b)~PrimeVul paired outcomes over 435 pairs. Source: \texttt {outputs/transformer/codebert\_eval\_vd\_s\_metrics.json}.\relax }{figure.caption.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}RQ5: Does the transformer fallback pay off? Coverage: yes; accuracy: marginal}{7}{subsection.5.5}\protected@file@percent }
+\newlabel{sec:rq5}{{5.5}{7}{RQ5: Does the transformer fallback pay off? Coverage: yes; accuracy: marginal}{subsection.5.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}RQ6: Joint safety--utility: naive recovery is dangerous; gate-first P2 is not}{7}{subsection.5.6}\protected@file@percent }
+\newlabel{sec:rq6}{{5.6}{7}{RQ6: Joint safety--utility: naive recovery is dangerous; gate-first P2 is not}{subsection.5.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}B4: a realistic-difficulty baseline}{7}{subsection.5.7}\protected@file@percent }
+\newlabel{sec:codebert}{{5.7}{7}{B4: a realistic-difficulty baseline}{subsection.5.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{7}{section.6}\protected@file@percent }
+\newlabel{sec:discussion}{{6}{7}{Discussion}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}What the reproduction gate bought us}{7}{subsection.6.1}\protected@file@percent }
+\bibstyle{ACM-Reference-Format}
+\bibdata{refs}
+\bibcite{cyberllminstruct2025}{{1}{2025}{{cyb}}{{}}}
+\bibcite{campbell2026defensive}{{2}{2026}{{Campbell et~al\mbox  {.}}}{{}}}
+\bibcite{cao2025scans}{{3}{2025}{{Cao et~al\mbox  {.}}}{{}}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Structured recovery can be a refusal-suppression machine}{8}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Isolation is not accuracy}{8}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Availability vs.\ integrity}{8}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Threats to validity}{8}{subsection.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Responsible-disclosure notes}{8}{subsection.6.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{8}{section.7}\protected@file@percent }
+\newlabel{sec:conclusion}{{7}{8}{Conclusion}{section.7}{}}
+\@writefile{toc}{\contentsline {section}{References}{8}{section*.15}\protected@file@percent }
+\bibcite{cheng2026codesentinel}{{4}{2026}{{Cheng et~al\mbox  {.}}}{{}}}
+\bibcite{cui2025orbench}{{5}{2025}{{Cui et~al\mbox  {.}}}{{}}}
+\bibcite{dabas2025actor}{{6}{2025}{{Dabas et~al\mbox  {.}}}{{}}}
+\bibcite{ding2025primevul}{{7}{2025}{{Ding et~al\mbox  {.}}}{{}}}
+\bibcite{efron1979bootstrap}{{8}{1979}{{Efron}}{{}}}
+\bibcite{han2023howfar}{{9}{2023}{{Gao et~al\mbox  {.}}}{{}}}
+\bibcite{grattafiori2024llama3}{{10}{2024}{{Grattafiori et~al\mbox  {.}}}{{}}}
+\bibcite{hui2024qwen25coder}{{11}{2024}{{Hui et~al\mbox  {.}}}{{}}}
+\bibcite{granite2025modelcard}{{12}{2025}{{IBM Granite Team}}{{}}}
+\bibcite{li2026taboorag}{{13}{2026b}{{Li et~al\mbox  {.}}}{{}}}
+\bibcite{li2026beyondrefusal}{{14}{2026a}{{Li et~al\mbox  {.}}}{{}}}
+\bibcite{liu2024autopi}{{15}{2024}{{Liu et~al\mbox  {.}}}{{}}}
+\bibcite{mcnemar1947note}{{16}{1947}{{McNemar}}{{}}}
+\bibcite{qi2024finetuning}{{17}{2024}{{Qi et~al\mbox  {.}}}{{}}}
+\bibcite{rottger2024xstest}{{18}{2024}{{R{\"o}ttger et~al\mbox  {.}}}{{}}}
+\bibcite{sun2024llm4vuln}{{19}{2024}{{Sun et~al\mbox  {.}}}{{}}}
+\bibcite{yi2023bipia}{{20}{2023}{{Yi et~al\mbox  {.}}}{{}}}
+\bibcite{zhao2025door}{{21}{2025}{{Zhao et~al\mbox  {.}}}{{}}}
+\citation{hui2024qwen25coder}
+\citation{grattafiori2024llama3}
+\citation{granite2025modelcard}
+\citation{ding2025primevul}
+\citation{mcnemar1947note}
+\citation{efron1979bootstrap}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Reproducibility and Artifact Appendix}{9}{appendix.A}\protected@file@percent }
+\newlabel{app:repro}{{A}{9}{Reproducibility and Artifact Appendix}{appendix.A}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Artifact overview}{9}{subsection.A.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Environment}{9}{subsection.A.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Reproducing the experiments}{9}{subsection.A.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Number-to-file traceability}{9}{subsection.A.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}Deviations and disclosures}{9}{subsection.A.5}\protected@file@percent }
+\newlabel{tocindent-1}{0pt}
+\newlabel{tocindent0}{0pt}
+\newlabel{tocindent1}{6.255pt}
+\newlabel{tocindent2}{12.42pt}
+\newlabel{tocindent3}{0pt}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Traceability of paper artifacts to experiment outputs.\relax }}{10}{table.caption.16}\protected@file@percent }
+\newlabel{tab:trace}{{5}{10}{Traceability of paper artifacts to experiment outputs.\relax }{table.caption.16}{}}
+\newlabel{TotPages}{{10}{10}{}{page.10}{}}
+\gdef \@abspage@last{10}

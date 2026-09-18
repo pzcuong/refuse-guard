@@ -1,0 +1,330 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{21}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{}, \showDOI{}, and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showDOI}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showDOI #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showDOI      \undefined \def \showDOI       #1{#1}\fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[cyb(2025)]%
+        {cyberllminstruct2025}
+ \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{CyberLLMInstruct}: A Pseudo-Malicious Dataset
+  Revealing Safety-Performance Trade-offs in Cybersecurity {LLM} Fine-tuning}.
+  In \bibinfo{booktitle}{\emph{ACM Annual Computer Security Applications
+  Conference (ACSAC)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3733799.3762968}
+\showDOI{\tempurl}
+\newblock
+\shownote{author list from ACM DL; venue per DOI record}.
+
+
+\bibitem[Campbell et~al\mbox{.}(2026)]%
+        {campbell2026defensive}
+\bibfield{author}{\bibinfo{person}{David Campbell}, \bibinfo{person}{Neil
+  Kale}, \bibinfo{person}{Udari~Madhushani Sehwag}, \bibinfo{person}{Bert
+  Herring}, {et~al\mbox{.}}} \bibinfo{year}{2026}\natexlab{}.
+\newblock \showarticletitle{Defensive Refusal Bias: How Safety Alignment Fails
+  Cyber Defenders}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2603.01246}}
+  (\bibinfo{year}{2026}).
+\newblock
+\newblock
+\shownote{ICLR 2026 Workshop}.
+
+
+\bibitem[Cao et~al\mbox{.}(2025)]%
+        {cao2025scans}
+\bibfield{author}{\bibinfo{person}{Feng Cao} {et~al\mbox{.}}}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{SCANS}: Mitigating the Exaggerated Safety for
+  {LLMs} via Safety-Constrained Activation Steering}. In
+  \bibinfo{booktitle}{\emph{Proceedings of the AAAI Conference on Artificial
+  Intelligence}}.
+\newblock
+\newblock
+\shownote{AAAI-25}.
+
+
+\bibitem[Cheng et~al\mbox{.}(2026)]%
+        {cheng2026codesentinel}
+\bibfield{author}{\bibinfo{person}{Po-Han Cheng}, \bibinfo{person}{Chia-Mu Yu},
+  \bibinfo{person}{Ying-Dar Lin}, \bibinfo{person}{Yu-Sung Wu}, {and}
+  \bibinfo{person}{Wen-Bin Lee}.} \bibinfo{year}{2026}\natexlab{}.
+\newblock \showarticletitle{CodeSentinel: A Three-Layer Defense Against
+  Indirect Prompt Injection in Code Contexts}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2606.19235}}
+  (\bibinfo{year}{2026}).
+\newblock
+
+
+\bibitem[Cui et~al\mbox{.}(2025)]%
+        {cui2025orbench}
+\bibfield{author}{\bibinfo{person}{Justin Cui}, \bibinfo{person}{Wei-Lin
+  Chiang}, \bibinfo{person}{Ion Stoica}, {and} \bibinfo{person}{Cho-Jui
+  Hsieh}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{OR-Bench}: An Over-Refusal Benchmark for Large
+  Language Models}. In \bibinfo{booktitle}{\emph{International Conference on
+  Machine Learning (ICML)}}.
+\newblock
+\newblock
+\shownote{arXiv:2405.20947}.
+
+
+\bibitem[Dabas et~al\mbox{.}(2025)]%
+        {dabas2025actor}
+\bibfield{author}{\bibinfo{person}{Aashish Dabas} {et~al\mbox{.}}}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Just Enough Shifts: Mitigating Over-Refusal in
+  Aligned Language Models ({ACTOR})}. In
+  \bibinfo{booktitle}{\emph{International Conference on Machine Learning
+  (ICML)}}.
+\newblock
+
+
+\bibitem[Ding et~al\mbox{.}(2025)]%
+        {ding2025primevul}
+\bibfield{author}{\bibinfo{person}{Yangruibo Ding}, \bibinfo{person}{Yanjun
+  Fu}, \bibinfo{person}{Omniyyah Ibrahim}, \bibinfo{person}{Chawin Sitawarin},
+  \bibinfo{person}{Xinyun Chen}, \bibinfo{person}{Basel Alomair},
+  \bibinfo{person}{David Wagner}, \bibinfo{person}{Baishakhi Ray}, {and}
+  \bibinfo{person}{Yizheng Chen}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Vulnerability Detection with Code Language Models:
+  How Far Are We?}. In \bibinfo{booktitle}{\emph{47th IEEE/ACM International
+  Conference on Software Engineering (ICSE)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/ICSE55347.2025.00038}
+\showDOI{\tempurl}
+\newblock
+\shownote{arXiv:2403.18624}.
+
+
+\bibitem[Efron(1979)]%
+        {efron1979bootstrap}
+\bibfield{author}{\bibinfo{person}{Bradley Efron}.}
+  \bibinfo{year}{1979}\natexlab{}.
+\newblock \showarticletitle{Bootstrap Methods: Another Look at the Jackknife}.
+\newblock \bibinfo{journal}{\emph{The Annals of Statistics}}
+  \bibinfo{volume}{7}, \bibinfo{number}{1} (\bibinfo{year}{1979}),
+  \bibinfo{pages}{1--26}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1214/aos/1176344552}
+\showDOI{\tempurl}
+
+
+\bibitem[Gao et~al\mbox{.}(2023)]%
+        {han2023howfar}
+\bibfield{author}{\bibinfo{person}{Zeyu Gao}, \bibinfo{person}{Hao Wang},
+  \bibinfo{person}{Yuchen Zhou}, \bibinfo{person}{Wenyu Zhu}, {and}
+  \bibinfo{person}{Chao Zhang}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{How Far Have We Gone in Vulnerability Detection
+  Using Large Language Models}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2311.12420}}
+  (\bibinfo{year}{2023}).
+\newblock
+\newblock
+\shownote{[CORRECTED 2026-09-18] author list re-verified via arXiv API (was
+  mis-attributed to Han et al.)}.
+
+
+\bibitem[Grattafiori et~al\mbox{.}(2024)]%
+        {grattafiori2024llama3}
+\bibfield{author}{\bibinfo{person}{Aaron Grattafiori},
+  \bibinfo{person}{Abhimanyu Dubey}, \bibinfo{person}{Abhinav Jauhri},
+  \bibinfo{person}{Abhinav Pandey}, \bibinfo{person}{Abhishek Kadian},
+  \bibinfo{person}{Ahmad Al-Dahle}, \bibinfo{person}{Aiesha Letman},
+  \bibinfo{person}{Akhil Mathur}, \bibinfo{person}{Alan Schelten},
+  {et~al\mbox{.}}} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{The {Llama 3} Herd of Models}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2407.21783}}
+  (\bibinfo{year}{2024}).
+\newblock
+
+
+\bibitem[Hui et~al\mbox{.}(2024)]%
+        {hui2024qwen25coder}
+\bibfield{author}{\bibinfo{person}{Binyuan Hui}, \bibinfo{person}{Jian Yang},
+  \bibinfo{person}{Zeyu Cui}, \bibinfo{person}{Jiaxi Yang},
+  \bibinfo{person}{Dayiheng Liu}, \bibinfo{person}{Lei Zhang},
+  \bibinfo{person}{Tianyu Liu}, \bibinfo{person}{Jiajun Zhang},
+  \bibinfo{person}{Bowen Yu}, \bibinfo{person}{Keming Lu}, {et~al\mbox{.}}}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{Qwen2.5-Coder} Technical Report}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2409.12186}}
+  (\bibinfo{year}{2024}).
+\newblock
+
+
+\bibitem[{IBM Granite Team}(2025)]%
+        {granite2025modelcard}
+\bibfield{author}{\bibinfo{person}{{IBM Granite Team}}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{granite-3.3-2b-instruct Model Card}.
+\newblock \bibinfo{howpublished}{Hugging Face,
+  \url{https://huggingface.co/ibm-granite/granite-3.3-2b-instruct}}.
+\newblock
+\newblock
+\shownote{Open-weight instruct model used for E0/E2/E3 in this work}.
+
+
+\bibitem[Li et~al\mbox{.}(2026b)]%
+        {li2026taboorag}
+\bibfield{author}{\bibinfo{person}{Junchen Li}, \bibinfo{person}{Liang Xu},
+  \bibinfo{person}{Qizhi Chen}, \bibinfo{person}{Rongzheng Wang},
+  {et~al\mbox{.}}} \bibinfo{year}{2026}\natexlab{b}.
+\newblock \showarticletitle{When Safety Becomes a Vulnerability: Exploiting
+  {LLM} Alignment Homogeneity for Transferable Blocking in {RAG}}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2603.03919}}
+  (\bibinfo{year}{2026}).
+\newblock
+
+
+\bibitem[Li et~al\mbox{.}(2026a)]%
+        {li2026beyondrefusal}
+\bibfield{author}{\bibinfo{person}{Mingchen Li}, \bibinfo{person}{Meikang Qiu},
+  \bibinfo{person}{Zifan Peng}, {and} \bibinfo{person}{Heng Fan}.}
+  \bibinfo{year}{2026}\natexlab{a}.
+\newblock \showarticletitle{Beyond Refusal: A Same-Lineage Study of Aligned and
+  Abliterated LLMs for Vulnerability Analysis}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2607.05842}}
+  (\bibinfo{year}{2026}).
+\newblock
+
+
+\bibitem[Liu et~al\mbox{.}(2024)]%
+        {liu2024autopi}
+\bibfield{author}{\bibinfo{person}{Xiaogeng Liu}, \bibinfo{person}{Zhiyuan Yu},
+  \bibinfo{person}{Yizhe Zhang}, \bibinfo{person}{Ning Zhang}, {and}
+  \bibinfo{person}{Chaowei Xiao}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Automatic and Universal Prompt Injection Attacks
+  against Large Language Models}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2403.04957}}
+  (\bibinfo{year}{2024}).
+\newblock
+\newblock
+\shownote{[CORRECTED 2026-09-18] author list re-verified via arXiv API (was
+  mis-attributed)}.
+
+
+\bibitem[McNemar(1947)]%
+        {mcnemar1947note}
+\bibfield{author}{\bibinfo{person}{Quinn McNemar}.}
+  \bibinfo{year}{1947}\natexlab{}.
+\newblock \showarticletitle{Note on the Sampling Error of the Difference
+  Between Correlated Proportions or Percentages}.
+\newblock \bibinfo{journal}{\emph{Psychometrika}} \bibinfo{volume}{12},
+  \bibinfo{number}{2} (\bibinfo{year}{1947}), \bibinfo{pages}{153--157}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/BF02295996}
+\showDOI{\tempurl}
+
+
+\bibitem[Qi et~al\mbox{.}(2024)]%
+        {qi2024finetuning}
+\bibfield{author}{\bibinfo{person}{Xiangyu Qi}, \bibinfo{person}{Yi Zeng},
+  \bibinfo{person}{Tinghao Xie}, \bibinfo{person}{Pin-Yu Chen},
+  \bibinfo{person}{Ruoxi Jia}, \bibinfo{person}{Prateek Mittal}, {and}
+  \bibinfo{person}{Peter Henderson}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Fine-tuning Aligned Language Models Compromises
+  Safety, Even When Users Do Not Intend To!}. In
+  \bibinfo{booktitle}{\emph{International Conference on Learning
+  Representations (ICLR)}}.
+\newblock
+\newblock
+\shownote{arXiv:2310.03693; [CORRECTED 2026-09-18] author names fixed via arXiv
+  API}.
+
+
+\bibitem[R{\"o}ttger et~al\mbox{.}(2024)]%
+        {rottger2024xstest}
+\bibfield{author}{\bibinfo{person}{Paul R{\"o}ttger},
+  \bibinfo{person}{Hannah~Rose Kirk}, \bibinfo{person}{Bertie Vidgen},
+  \bibinfo{person}{Giuseppe Attanasio}, \bibinfo{person}{Federico Bianchi},
+  {and} \bibinfo{person}{Dirk Hovy}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{XSTest}: A Test Suite for Identifying Exaggerated
+  Safety Behaviours in Large Language Models}. In
+  \bibinfo{booktitle}{\emph{Proceedings of NAACL}}.
+\newblock
+\newblock
+\shownote{arXiv:2308.01263}.
+
+
+\bibitem[Sun et~al\mbox{.}(2024)]%
+        {sun2024llm4vuln}
+\bibfield{author}{\bibinfo{person}{Yuqiang Sun}, \bibinfo{person}{Daoyuan Wu},
+  \bibinfo{person}{Yue Xue}, \bibinfo{person}{Han Liu}, \bibinfo{person}{Wei
+  Ma}, \bibinfo{person}{Lyuye Zhang}, \bibinfo{person}{Yang Liu}, {and}
+  \bibinfo{person}{Yingjiu Li}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{LLM4Vuln}: A Unified Evaluation Framework for
+  Decoupling and Enhancing {LLMs}' Vulnerability Reasoning}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2401.16185}}
+  (\bibinfo{year}{2024}).
+\newblock
+\newblock
+\shownote{[CORRECTED 2026-09-18] 4 author names fixed via arXiv API}.
+
+
+\bibitem[Yi et~al\mbox{.}(2023)]%
+        {yi2023bipia}
+\bibfield{author}{\bibinfo{person}{Jingwei Yi}, \bibinfo{person}{Yueqi Xie},
+  \bibinfo{person}{Bin Zhu}, \bibinfo{person}{Emre Kiciman},
+  \bibinfo{person}{Guangzhong Sun}, \bibinfo{person}{Xing Xie}, {and}
+  \bibinfo{person}{Fangzhao Wu}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Benchmarking and Defending Against Indirect Prompt
+  Injection Attacks on Large Language Models}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2312.14197}}
+  (\bibinfo{year}{2023}).
+\newblock
+
+
+\bibitem[Zhao et~al\mbox{.}(2025)]%
+        {zhao2025door}
+\bibfield{author}{\bibinfo{person}{Xuandong Zhao} {et~al\mbox{.}}}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Improving {LLM} Safety Alignment with
+  Dual-Objective Optimization}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2503.03710}}
+  (\bibinfo{year}{2025}).
+\newblock
+\newblock
+\shownote{ICML 2025; [CORRECTED 2026-09-18] first author fixed via arXiv API
+  (was "Zhao, Xin")}.
+
+
+\end{thebibliography}

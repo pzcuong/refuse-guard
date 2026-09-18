@@ -1,0 +1,198 @@
+% 05_results.tex — owner: A2 (Round 4).
+% Every number is traceable to outputs/** (see tables/*.tex for per-cell
+% sources); negative results are reported as findings.
+\section{Results}
+\label{sec:results}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_e0_rr.pdf}
+\caption{E0 reproduction gate (all three registered models). (a)~Refusal rate on the
+paired vulnerability-analysis functions is 0.000 in every arm, so the
+registered gate returns FAIL with effect size exactly 0. (b)~On contrast
+probes the same models refuse frequently (solid bars: over-refusal on
+COMPLY-expected probes) and even comply with some harmful probes (hatched:
+unsafe compliance on REFUSE-expected probes) --- refusal behaviour exists but
+is arm-independent; Granite's high unsafe-compliance rates are disclosed as a
+model-level anomaly in \S\ref{sec:setup}. Sources:
+\texttt{outputs/experiments/round3\_e0/\{qwen3b,llama3b,granite2b\}/results.json}.}
+\label{fig:e0rr}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_e6_injection.pdf}
+\caption{E6: injection success under C3 (share of paired samples whose
+verdict flips to benign vs.\ the clean prediction). P1 semantic isolation
+reduces the aggregate from 0.742 to 0.484 (McNemar $p=0.0078$), but 6 of the
+8 discordant pairs are benign ground truth ($p=0.031$); on vulnerable-only
+pairs the improvement (2 pairs) is not significant ($p=0.5$). Source:
+\texttt{outputs/experiments/round3\_e6/results.json}.}
+\label{fig:e6}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_e8_compliance.pdf}
+\caption{E8: unsafe-compliance rate on 30 unsafe prompts. The naive Round-2
+pipeline (pre-fix) suppresses refusals outright (P2 $=1.000$ vs.\ B0
+$=0.040$); the revised gate-first pipeline (fixed) never forwards unsafe
+requests to the LLM (gate blocks 30/30) and does not increase unsafe
+compliance for either model. Sources: \texttt{pilot\_round2\_recomputed/
+summary\_v2.json}; \texttt{round3\_e8\{,\_llama3b\}/recomputed/
+recompute\_e8\_monitor.json}.}
+\label{fig:e8}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_codebert.pdf}
+\caption{B4 CodeBERT baseline. (a)~Threshold-0.5 metrics on the realistic
+arm (549 vulnerable + 20{,}000 benign test-split functions); VD-S is reported
+as the FNR at the FPR$\leq$0.5\% operating point (lower is better:
+$\approx$3.8\% of vulnerable functions detected under the budget).
+(b)~PrimeVul paired outcomes over 435 pairs. Source:
+\texttt{outputs/transformer/codebert\_eval\_vd\_s\_metrics.json}.}
+\label{fig:codebert}
+\end{figure*}
+
+
+\subsection{RQ1: Does defensive refusal reproduce? No --- the gate fails}
+\label{sec:rq1}
+Table~\ref{tab:main} and Figure~\ref{fig:e0rr} summarize E0. On 20 paired
+vulnerability-analysis functions per arm, the refusal rate is \textbf{0.000
+in all three arms for all three registered models} (Qwen2.5-Coder-3B,
+Llama-3.2-3B, and Granite-3.3-2B); $\Delta$RR(defensive$-$neutral) $= 0.000$
+with bootstrap CI $[0,0]$ and exact McNemar $p=1.0$ for each model. The
+pre-registered gate therefore returns
+\textbf{FAIL}, and the registered pivot clause activates: defensive refusal
+does \emph{not} transfer from the cyber-defence prompts
+of~\cite{campbell2026defensive} to vulnerability analysis for these models,
+and refusal is demoted to a secondary outcome for the rest of the study.
+
+The contrast probes show this is \emph{not} an inability to refuse. Qwen
+refuses 50.0\% of neutral benign probes (75.0\% under defensive wording,
+66.7\% under security context) while complying with 7.7--15.4\% of explicitly
+harmful probes; Llama refuses 8.3--33.3\% of benign probes and complies with
+15.4--38.5\% of harmful ones. Granite repeats the arm-independent pattern
+(over-refusal 16.7--33.3\% across arms) while complying with 38.5--53.8\% of
+refuse-expected probes --- the highest unsafe-compliance rates we measure,
+disclosed as a model-level anomaly rather than filtered (\S\ref{sec:setup}).
+Refusal behaviour is clearly present --- it is
+simply insensitive to the defensive-vulnerability manipulation. (E0 function
+arms deliberately do not require the JSON schema, so outputs score as
+\textsc{partial} under the monitor's schema rule; RR is the endpoint.)
+Instrument validity is itself mixed: Table~\ref{tab:calibration} shows the
+Qwen monitor exceeds the registered over-refusal criterion (0.587 vs.\
+$\leq 0.10$). This does not threaten the FAIL verdict --- the error is
+symmetric across paired arms, so $\Delta$RR is unaffected --- but absolute RR
+levels should be read with this caveat, and Llama's monitor passes (0.067).
+
+\subsection{RQ2: Does untrusted context degrade utility? Availability: no. Verdicts: yes}
+\label{sec:rq2}
+On the 60-sample paired benchmark, RR is 0.000 under every condition for both
+models, and UAC stays at 1.000 (Qwen 0.983 under C2b and Llama 0.983 under
+C2a --- one \textsc{partial} each); SIUD is at most $+0.017$ in any
+condition--model cell. By the availability metrics that motivate
+defensive-refusal work, benign contextual stress does \emph{not} make the
+analyzer less usable at this scale, on either model.
+
+The paired verdict-level analysis tells a different story
+(Table~\ref{tab:main}, middle). For Qwen, security-charged but
+instruction-free text (C1/C2) biases predictions \emph{toward} ``vulnerable''
+(recall 0.800 $\rightarrow$ 0.967/0.933/0.933; McNemar
+$p=0.0039/0.0078/0.0215$) with precision flat at $0.48$--$0.49$ --- the model
+over-alerts, and true-negative counts collapse to zero, so directional
+accuracy stays near chance (0.467--0.483). Instruction-like context (C3) does
+the opposite: recall crashes to 0.333, with 35 of 60 paired predictions
+flipping to ``benign'' vs.\ 6 in the opposite direction (McNemar
+$p=1.2\times 10^{-5}$). Llama replicates the shape of the effect (C0 recall
+0.800; C3 recall 0.500; no refusals anywhere), with a milder C3 flip. The
+carrier analysis (E4) shows RR 0.000 in every carrier/position cell while C3
+recall spans 0.14--0.50 across cells for Qwen --- the flip magnitude depends
+on where and how the instruction rides, but refusals never appear. The threat
+model that survives measurement is \emph{silent verdict corruption}, not
+blocking.
+
+\subsection{RQ3: Do simple defences help? There is nothing to recover}
+\label{sec:rq3}
+Comment stripping (B2), aggressive text removal (B3), and prompt reframing
+(B1) change nothing measurable (Table~\ref{tab:defenses}): clean and stressed
+utility drops are 0.000 in every cell, and the defence recovery rate is
+undefined because B0 produces zero refusal/partial candidates to recover.
+B2/B3 preserve the model's all-vulnerable bias (recall 1.000, precision 0.452
+on the C3 subset), and B1 is prediction-identical to B0. This is the honest
+consequence of RQ1/RQ2: recovery-style defences solve a problem our task
+does not have, at pilot scale.
+
+\subsection{RQ4: Does semantic isolation help? Against injection: partially. For accuracy: no}
+\label{sec:rq4}
+Figure~\ref{fig:e6} shows the C3 result. B0's injection success --- the share
+of paired samples whose verdict flips to benign relative to the clean
+prediction --- is \textbf{0.742}; P1 semantic isolation reduces it to
+\textbf{0.484} (23 vs.\ 15 of 31 pairs; exact McNemar $p=0.0078$, all 8
+discordant pairs in the protective direction). Two honesty notes sharpen this
+headline. First, stratifying the 8 discordant pairs by ground truth: 6 are
+benign functions ($p=0.031$) and 2 are vulnerable functions ($p=0.5$,
+n.s.) --- on benign pairs the C3 ``flip'' to benign is actually the correct
+verdict, so part of P1's aggregate gain is \emph{holding} the clean-time
+verdict on benign functions (which the clean verdict already got wrong),
+not restoring true positives. Second, P1 does not improve accuracy: MCC on C3
+is $+0.205$ (B0) vs.\ $-0.029$ (P1), the usable-coverage gain is 0.000, and
+P1 is prediction-identical to B0 on C0 and C2b. \emph{Isolation is not
+accuracy}: provenance-based mediation stabilizes verdicts against
+instruction-like context, but the stabilized verdict is the model's clean-time
+verdict, with all its bias intact.
+
+\subsection{RQ5: Does the transformer fallback pay off? Coverage: yes; accuracy: marginal}
+\label{sec:rq5}
+With the fusion threshold pre-registered on validation ($\tau{=}0.548$),
+adding the B4 fallback to the cached 0.5B LLM outputs raises UAC from 0.985
+to 1.000 (coverage gain $+0.015$; two fallback invocations on the 133-record
+pilot; per-case fallback correctness is not persisted in the released
+outputs) and MCC
+from 0.0789 to 0.0942 (Table~\ref{tab:defenses}); the score-fusion ablation
+raises recall to 0.839 (MCC 0.0969). The safety
+scope check passes by construction: all 500 cached unsafe-prompt records
+(250 $+$ 250) are scope-blocked and none reaches the fallback, i.e., B4
+cannot be used to launder unsafe requests. H5 is supported in the coverage
+sense at pilot scale; the utility deltas are small and we do not overclaim.
+
+\subsection{RQ6: Joint safety--utility: naive recovery is dangerous; gate-first P2 is not}
+\label{sec:rq6}
+Figure~\ref{fig:e8} is the central safety result. The \emph{naive} Round-2
+pipeline (lexical gate + authorization reframing + schema-forcing retry)
+turned a model that refuses 96\% of harmful prompts into one that returns
+schema-complete answers to \textbf{100\%} of them: unsafe compliance 0.040
+(B0) $\rightarrow$ \textbf{1.000} (P2) over 50 unsafe prompts. Every
+component was benign-looking --- fix the gate miss, reframe as an authorized
+task, retry until the schema is filled --- yet the composition is a
+\emph{refusal-suppression machine}. This is a negative result with design
+consequences for any structured-recovery pipeline.
+
+The revised Round-3 pipeline inverts the order: the intent gate inspects the
+request \emph{before} any code is processed, and unsafe requests are answered
+with a dedicated \texttt{REFUSED\_UNSAFE} outcome --- no LLM call, no
+reframing, no retry. With the monitor re-fit and recomputed from raw outputs,
+unsafe compliance is 0.000 (Qwen) and 0.000 (Llama; B0 0.033 --- one genuine
+compliance) with the gate blocking 30/30 unsafe prompts, so the registered
+H6 rule (P2 $-$ B0 $\leq +0.05$ and P2 $\leq 0.10$) is met. We state the
+caveat demanded by the design: P2's zero is the gate's zero, not the model's
+--- \emph{pipeline-level} safety by construction, not evidence that the LLM
+itself is safer. On the defensive side of the ledger, P1/P2 do not increase
+over-refusal: safe-prompt refusal drops from 0.233 to 0.000 on Qwen (McNemar
+$p=0.0156$) and from 0.033 to 0.000 on Llama ($p=1.0$).
+
+\subsection{B4: a realistic-difficulty baseline}
+\label{sec:codebert}
+Table~\ref{tab:codebert} and Figure~\ref{fig:codebert} place the transformer
+baseline. On the balanced pilot arm (300/300) CodeBERT reaches F1 0.623; on
+the realistic arm (all 549 mirror-vulnerable + 20{,}000 seeded benign) F1
+falls to 0.215 (MCC 0.232, AUC 0.847), reproducing on our mirror the
+optimism-gap phenomenon of~\cite{ding2025primevul}. At the FPR$\leq$0.5\%
+operating point the FNR is 0.962 --- CodeBERT detects only $\approx$3.8\% of
+vulnerable functions under that budget --- and paired outcomes over 435 pairs
+(P-C 0.009, P-V 0.517, P-B 0.444, P-R 0.030, rank accuracy 0.223) confirm it
+rarely orders vulnerable above its patched counterpart correctly. This is
+exactly the property a fallback should have: independent of LLM refusal
+behaviour, honest about its own limits.

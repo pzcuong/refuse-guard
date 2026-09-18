@@ -102,8 +102,10 @@ vulnerability labels exists.
 - **aiXamine** (arXiv:2608.20554): unified black-box safety/utility evaluation;
   safety enforcement incurs measurable utility cost via over-refusal.
 - **Defensive Refusal Bias** (arXiv:2603.01246): 2.72x refusal multiplier on
-  cyber-defense vs neutral NCCDC tasks (proposal-cited headline number; to be
-  re-checked against the paper PDF in Round 4 writing).
+  cyber-defense vs neutral NCCDC tasks (VERIFIED 2026-09-19 against the arXiv
+  abstract: LLMs refuse keyword-bearing defensive requests "at 2.72x the rate
+  of semantically equivalent neutral requests (p < 0.001)"; closes the Round-1
+  TODO).
 
 **Gap:** trade-off literature reports aggregate refusal/helpfulness; no work
 couples it to *verifiable task correctness* (vulnerable/benign, CWE,

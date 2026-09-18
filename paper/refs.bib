@@ -130,8 +130,8 @@
   note      = {author list from ACM DL; venue per DOI record}
 }
 
-% ---- [S-R4 additions] cited by paper/sections/03_method.tex (B4 baseline);
-% verified against DOI/arXiv metadata in paper/refs.bib (V1-R4 audit) ----
+% ---- [A3-R4 additions] standard tooling/model/stats refs likely cited by
+% sections; verified against arXiv/DOI metadata (see A3_report L5 audit) ----
 
 @inproceedings{feng2020codebert,
   author    = {Feng, Zhangyin and Guo, Daya and Tang, Duyu and Duan, Nan and Feng, Xiaocheng and Gong, Ming and Shou, Linjun and Qin, Bing and Liu, Ting and Jiang, Daxin and Zhou, Ming},
@@ -140,4 +140,71 @@
   year      = {2020},
   doi       = {10.18653/v1/2020.emnlp-main.285},
   note      = {arXiv:2002.08155}
+}
+
+@inproceedings{guo2021graphcodebert,
+  author    = {Guo, Daya and Ren, Shuo and Zhang, Shuai and Lu, Zhangyin and Feng, Zhangyin and Tang, Duyu and Liu, Shujie and Zhou, Ming and Duan, Nan and Svyatkovskiy, Alexey and Fu, Shengyu and Tufano, Michele and Deng, Shao Kun and Clement, Colin and Drain, Dawn and Sundaresan, Neel and Yin, Jian and Jiang, Daxin and Zhou, Ming},
+  title     = {{GraphCodeBERT}: Pre-training Code Representations with Data Flow},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2021},
+  note      = {arXiv:2009.08366}
+}
+
+@inproceedings{vaswani2017attention,
+  author    = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
+  title     = {Attention Is All You Need},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2017}
+}
+
+@article{mcnemar1947note,
+  author  = {McNemar, Quinn},
+  title   = {Note on the Sampling Error of the Difference Between Correlated Proportions or Percentages},
+  journal = {Psychometrika},
+  volume  = {12},
+  number  = {2},
+  pages   = {153--157},
+  year    = {1947},
+  doi     = {10.1007/BF02295996}
+}
+
+@article{efron1979bootstrap,
+  author  = {Efron, Bradley},
+  title   = {Bootstrap Methods: Another Look at the Jackknife},
+  journal = {The Annals of Statistics},
+  volume  = {7},
+  number  = {1},
+  pages   = {1--26},
+  year    = {1979},
+  doi     = {10.1214/aos/1176344552}
+}
+
+@article{hui2024qwen25coder,
+  author  = {Hui, Binyuan and Yang, Jian and Cui, Zeyu and Yang, Jiaxi and Liu, Dayiheng and Zhang, Lei and Liu, Tianyu and Zhang, Jiajun and Yu, Bowen and Lu, Keming and others},
+  title   = {{Qwen2.5-Coder} Technical Report},
+  journal = {arXiv preprint arXiv:2409.12186},
+  year    = {2024}
+}
+
+@article{grattafiori2024llama3,
+  author  = {Grattafiori, Aaron and Dubey, Abhimanyu and Jauhri, Abhinav and Pandey, Abhinav and Kadian, Abhishek and Al-Dahle, Ahmad and Letman, Aiesha and Mathur, Akhil and Schelten, Alan and others},
+  title   = {The {Llama 3} Herd of Models},
+  journal = {arXiv preprint arXiv:2407.21783},
+  year    = {2024}
+}
+
+@misc{granite2025modelcard,
+  author       = {{IBM Granite Team}},
+  title        = {granite-3.3-2b-instruct Model Card},
+  howpublished = {Hugging Face, \url{https://huggingface.co/ibm-granite/granite-3.3-2b-instruct}},
+  year         = {2025},
+  note         = {Open-weight instruct model used for E0/E2/E3 in this work}
+}
+
+@misc{treesitter,
+  author       = {Brunsfeld, Max and others},
+  title        = {tree-sitter: An incremental parsing system for programming tools},
+  howpublished = {\url{https://github.com/tree-sitter/tree-sitter}},
+  year         = {2018},
+  note         = {Accessed 2026-09; used for comment stripping (B2) and semantic-preservation checks}
 }

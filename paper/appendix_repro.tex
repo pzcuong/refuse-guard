@@ -1,0 +1,111 @@
+% appendix_repro.tex — owner: A3 (Round 4). Artifact/reproducibility appendix.
+% Factual structural content only: commands, file paths, verification results.
+\appendix
+
+\section{Reproducibility and Artifact Appendix}
+\label{app:repro}
+
+\subsection{Artifact overview}
+The complete implementation, experiment outputs, and this paper's sources live
+in a single repository. Code layout:
+\code{src/data} (PrimeVul loading/validation, seeded stratified sampling,
+benchmark build, safety-contrast set),
+\code{src/conditions} (C0--C3 generators with tree-sitter
+semantic-preservation checks),
+\code{src/defenses} (B1 reframe, B2 comment stripping, B3 aggressive
+removal, P1 semantic context isolation, P2 gate-first pipeline),
+\code{src/models} (cached/resumable LLM harness, refusal monitor, CodeBERT
+baseline, fusion policy),
+\code{src/metrics} (RR/UAC/SIUD/DRR/CUL/MCC, McNemar and bootstrap),
+\code{src/experiments} (runners), and \code{scripts} (training, evaluation,
+calibration, audit recomputes). Pre-registrations are frozen in
+\code{configs/e*\_round3.yaml} and \code{docs/e0\_protocol.md}; every output
+records model id, revision, seed, config hash, and date.
+
+\subsection{Environment}
+All experiments ran on Apple silicon (M2 Pro, 32\,GB) with the MPS backend,
+Python 3.12, pinned dependencies (\code{requirements.txt},
+\code{requirements-lock.txt}; torch 2.14, transformers 5.17). No paid API is
+used: the three study models are open-weight
+(Qwen2.5-Coder-3B-Instruct~\cite{hui2024qwen25coder},
+Llama-3.2-3B-Instruct~\cite{grattafiori2024llama3},
+granite-3.3-2b-instruct~\cite{granite2025modelcard}) and run locally.
+The paper PDF builds with \code{tectonic paper/main.tex}.
+
+\subsection{Reproducing the experiments}
+In order: (1)~\code{scripts/download\_data.py} downloads the PrimeVul mirror
+(Hugging Face \code{starsofchance/PrimeVul}) and the OR-Bench/XSTest contrast
+corpora into \code{data/raw/}, after which \code{python -m src.data.primevul}
+validates the counts against the PrimeVul paper~\cite{ding2025primevul};
+(2)~\code{src.data.sampling} builds the seeded
+subsets; (3)~\code{src.data.bench\_build} materializes the paired benchmark,
+the E8 contrast set, and the E0 prompts; (4)~\code{scripts/train\_codebert.py}
+and \code{scripts/eval\_codebert.py} train/evaluate B4; (5)~
+\code{scripts/calibrate\_refusal\_monitor.py} fits monitor thresholds on the
+disjoint calibration half only; (6)~the round-3 runners execute
+E0/E2/E3/E4 (\code{src.experiments.round3\_scaleup}, stages
+\code{e0}/\code{e2e3}/\code{e4}/\code{gate}) and
+E5/E6/E8 (\code{src.experiments.pilot\_round3}); (7)~
+\code{scripts/run\_e7\_fusion.py} evaluates the fusion policy without any LLM
+call; (8)~\code{scripts/final\_eval\_summary.py} aggregates master results.
+All LLM calls are content-addressed and cached in \code{outputs/llm\_cache/};
+any rerun resumes from cache. A smoke verification without training or
+generation (\code{bash scripts/verify\_repro.sh}) checks the test suite
+(strict ``$N$ passed, zero failed''), a dry-run of the E2 runner, existence
+and parseability of every artifact the paper cites, decision-critical values
+(gate verdict, recomputed E8, master-row count), the SHA256 artifact manifest
+(\code{scripts/make\_manifest.py}), and the PDF build; at submission time it
+reports 27/27 checks passed with 353 unit tests green.
+
+\subsection{Number-to-file traceability}
+Every table cell and plotted point is generated from the listed output file;
+\code{paper/make\_figures.py} re-reads the same files and fails loudly if a
+number in \code{paper/tables/*.tex} diverges. Table~\ref{tab:trace} maps each
+paper artifact to its source file.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}p{0.30\columnwidth}p{0.62\columnwidth}@{}}
+\toprule
+\textbf{Paper item} & \textbf{Source file (under \code{outputs/})} \\
+\midrule
+Table~\ref{tab:main} (E0/E3/E6/E8 headline) &
+\code{experiments/round3\_e0/*/results.json},
+\code{experiments/round3\_e2e3/*/results.json},
+\code{experiments/round3\_e6/results.json},
+\code{experiments/round3\_e8*/recomputed/} \\
+Table~\ref{tab:calibration} & \code{transformer/calibration/*/full\_report.json} \\
+Table~\ref{tab:defenses} (E5/E6/E7/E8) &
+\code{experiments/round3\_e5/results.json},
+\code{experiments/round3\_e6/results.json},
+\code{experiments/round3\_e7/e7\_fusion\_results.json},
+\code{experiments/round3\_e8*/recomputed/} \\
+Table~\ref{tab:codebert} &
+\code{transformer/codebert\_eval\_*\_metrics.json} \\
+Figure~\ref{fig:conditions} & benchmark provenance metadata \\
+Figure~\ref{fig:e0rr} & \code{experiments/round3\_e0/*/results.json} \\
+Figure~\ref{fig:e6} & \code{experiments/round3\_e6/results.json} \\
+Figure~\ref{fig:e8} & \code{experiments/round3\_e8*/recomputed/} \\
+Figure~\ref{fig:codebert} & \code{transformer/codebert\_eval\_vd\_s\_metrics.json} \\
+\bottomrule
+\end{tabular}
+\caption{Traceability of paper artifacts to experiment outputs.}
+\label{tab:trace}
+\end{table}
+
+Corrected E8 numbers (after the refusal-monitor fix described in
+Section~\ref{sec:rq6}) are read from the \code{recomputed/} subdirectories,
+which reclassify the raw transcripts from scratch; the original
+\code{results.json} files are retained unmodified for audit.
+
+\subsection{Deviations and disclosures}
+Round-3 deviations are disclosed in the reports shipped with the artifact:
+the E0 gate's PASS branch is unattainable at the registered $n=20$ paired
+functions (a $\Delta$RR of $\geq 0.30$ would be required for McNemar
+significance at this $n$~\cite{mcnemar1947note}), so the observed verdict is a
+fail with effect size exactly zero; the Qwen monitor's over-refusal on
+calibration probes (0.587) violates the registered monitor-validity criterion
+and is carried as an explicit detector-error caveat on all monitor-derived
+refusal rates; and the bootstrap confidence intervals use
+$10{,}000$~resamples~\cite{efron1979bootstrap} with the seed published in each
+results file.
