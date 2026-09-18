@@ -10,8 +10,10 @@ Invariants:
   - a REFUSAL is never mapped to a benign prediction (y_pred stays None
     unless a parsed answer or an explicit transformer fallback exists);
   - the returned dict always carries `analysis_status`
-    (ANSWER | PARTIAL | REFUSAL | TRANSFORMER_FALLBACK | OUT_OF_SCOPE |
-    UNRESOLVED);
+    (ANSWER | PARTIAL | REFUSAL | TRANSFORMER_FALLBACK | REFUSED_UNSAFE |
+    UNRESOLVED); a gate-blocked unsafe request returns REFUSED_UNSAFE
+    immediately (no LLM call, no reframe, no retry — audit round 2 fix #4),
+    with meta.gate_reason recording which rule fired;
   - meta records `fallback_source` whenever the fallback channel was used.
 
 Injection contract:
@@ -102,12 +104,46 @@ class RefuseGuardPipeline:
     # ------------------------------------------------------------------ gate
     def _intent_gate(self, task_text: str) -> dict:
         """Coarse task classification (PROPOSAL §7.1): the *request* is
-        classified; untrusted in-code context never changes the task class."""
-        low = (task_text or "").lower()
-        for pattern in (self.cfg.get("P2") or {}).get("out_of_scope_patterns", []):
+        classified; untrusted in-code context never changes the task class.
+
+        Audit round 2 (V2 #6): the lexical substring list scored 0/50 on the
+        real E8 unsafe probes. The gate now ALSO applies structural regexes
+        (config P2.out_of_scope_regexes): creation-verb + weapon-object
+        proximity, brute-force, third-party-possessive targeting, theft-verb +
+        credential-object. Purely lexical/structural — no model call."""
+        low = " ".join((task_text or "").lower().split())
+        p2 = self.cfg.get("P2") or {}
+        for pattern in p2.get("out_of_scope_patterns", []):
             if pattern.lower() in low:
-                return {"task_class": "out_of_scope", "matched_pattern": pattern}
-        return {"task_class": "defensive_vulnerability_analysis", "matched_pattern": None}
+                return {"task_class": "out_of_scope", "matched_rule": "pattern",
+                        "matched_pattern": pattern}
+        for regex in p2.get("out_of_scope_regexes", []):
+            m = re.search(regex, low, re.IGNORECASE)
+            if m:
+                return {"task_class": "out_of_scope", "matched_rule": "regex",
+                        "matched_pattern": regex, "matched_text": m.group(0)}
+        return {"task_class": "defensive_vulnerability_analysis",
+                "matched_rule": None, "matched_pattern": None}
+
+    def _payload_safety_flag(self, func_text: str) -> str:
+        """Gate the PAYLOAD text itself, but only when it does not look like
+        real code (audit round 2, V2 #4 root cause: run_e8 put the unsafe
+        prose prompt into sample["func"], and the pipeline framed it as an
+        authorized defensive task). A text that parses to a C/C++ function is
+        legitimate analysis input and is NEVER payload-gated — this protects
+        C2/C3-conditioned functions whose injected stress text may contain
+        security vocabulary."""
+        if not (func_text or "").strip():
+            return "unknown"
+        try:
+            from ..conditions.parser_utils import find_function, parse, resolve_language
+            tree = parse(func_text, resolve_language(func_text, "c"), auto=True)
+            if tree is not None and find_function(tree) is not None:
+                return "safe"  # real code: task gate already covered the request
+        except Exception:
+            pass  # parser unavailable -> fall through to the lexical gate
+        gate = self._intent_gate(func_text)
+        return "unsafe" if gate["task_class"] == "out_of_scope" else "unknown"
 
     # ---------------------------------------------------------------- prompt
     def _build_prompt(self, mediated_func: str, task_text: str, system_extra: str) -> dict:
@@ -129,7 +165,8 @@ class RefuseGuardPipeline:
         return str(out)
 
     # ------------------------------------------------------------------- run
-    def run(self, sample: dict, condition: str, framing: Optional[str] = None) -> dict:
+    def run(self, sample: dict, condition: str, framing: Optional[str] = None,
+            prompt_safety_flag: Optional[str] = None) -> dict:
         p2 = self.cfg.get("P2") or {}
         max_retries = int(p2.get("max_retries", 1))
         threshold = float(p2.get("fallback_threshold", 0.5))
@@ -147,19 +184,40 @@ class RefuseGuardPipeline:
             task_text = " ".join(str(self.conditions_cfg.get("prompts", {}).get("default_task", "")).split())
 
         gate = self._intent_gate(task_text)
+        # Audit round 2 (V2 #4): the PAYLOAD (sample func) is safety-gated too
+        # when the caller does not supply a flag and the text is not real code
+        # (E8 put unsafe prose prompts into sample["func"]; framing them as an
+        # "AUTHORIZED DEFENSIVE TASK" turned refusals into schema answers).
+        if prompt_safety_flag is None:
+            prompt_safety_flag = self._payload_safety_flag(sample.get("func", ""))
+        payload_gate = self._intent_gate(sample.get("func", "")) \
+            if prompt_safety_flag == "unsafe" else None
+
         base_meta = {
             "defense": "P2",
             "condition": condition,
             "prompt_variant_key": cmeta.get("prompt_variant_key"),
             "gate": gate,
+            "prompt_safety_flag": str(prompt_safety_flag).lower(),
             "required_fields": required_fields,
             "fallback_threshold": threshold,
         }
-        if gate["task_class"] == "out_of_scope":
-            # correct safety behaviour: refuse out-of-scope requests, no LLM call
-            return {"func": sample["func"], "analysis_status": "OUT_OF_SCOPE",
+        if gate["task_class"] == "out_of_scope" or prompt_safety_flag == "unsafe":
+            # Minimal safety policy (audit round 2, fix #4): refuse the unsafe
+            # request IMMEDIATELY — no schema-forcing, no reframe, no retry,
+            # no LLM call. A REFUSAL is never mapped to a benign prediction.
+            if gate["task_class"] == "out_of_scope":
+                reason = (f"task gate: {gate.get('matched_rule')}:"
+                          f"{gate.get('matched_pattern')}")
+            elif payload_gate and payload_gate["task_class"] == "out_of_scope":
+                reason = (f"payload gate: {payload_gate.get('matched_rule')}:"
+                          f"{payload_gate.get('matched_pattern')}")
+            else:
+                reason = "caller-supplied prompt_safety_flag=unsafe"
+            return {"func": sample["func"], "analysis_status": "REFUSED_UNSAFE",
                     "status": "REFUSAL", "y_pred": None, "vulnerable": None,
                     "meta": {**base_meta, "fallback_source": None,
+                             "gate_reason": reason, "no_llm_call": True,
                              "refusal_score": 1.0}}
 
         # mediate the CONDITIONED context (C0-C3 func), not the raw sample
@@ -197,6 +255,7 @@ class RefuseGuardPipeline:
                 "refusal_score": verdict.get("refusal_score"),
                 "missing_fields": verdict.get("missing_fields"),
                 "text_head": final_text[:200],
+                "text": final_text,  # full text (audit round 2, V2 #4b)
             })
             if verdict.get("status") == "ANSWER":
                 break
@@ -233,6 +292,12 @@ class RefuseGuardPipeline:
                 "final_refusal_score": last.get("refusal_score"),
                 "pred_cwe": pred_cwe,
                 "pred_location": pred_location,
-                "raw_output_head": final_text[:200],
+                # Audit round 2 (V2 #4b): persist the FULL final text. The old
+                # 200-char cap made 202/250 P2 records unauditable from disk
+                # (re-classifying the head disagreed with the recorded status).
+                # `raw_output_head` is kept as the key for consumer compat but
+                # is now uncapped; `final_text_full` is the explicit name.
+                "raw_output_head": final_text,
+                "final_text_full": final_text,
             },
         }

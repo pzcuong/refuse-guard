@@ -183,3 +183,71 @@ def test_generate_applies_truncation_before_cache(tmp_path):
     assert r2[0]["meta"]["cache_hit"] is True
     lines = [json.loads(l) for l in open(next(h.cache_dir.glob("*.jsonl")))]
     assert len(lines) == 1
+
+
+# ---------------------------------------------------------------------------
+# Audit round 2 (V2 #5)
+# ---------------------------------------------------------------------------
+# Audit round 2 (V2 #5): accelerator-recovery path — retry once, then CPU
+# fallback, recovery provenance surfaced in meta (no more silent SKIPPED).
+# ---------------------------------------------------------------------------
+def _fake_ok(prompts, cfg):
+    return {"texts": ['{"vulnerable": 0}'] * len(prompts),
+            "metas": [{"prompt_tokens": 1, "completion_tokens": 1, "latency_s": 0.01}
+                      for _ in prompts]}
+
+
+def test_generate_retries_transient_accelerator_error(tmp_path, monkeypatch):
+    harness = FakeHarness("fake/model-x", device="cpu", cache_dir=str(tmp_path / "c"))
+    state = {"n": 0}
+
+    def flaky(prompts, cfg):
+        state["n"] += 1
+        if state["n"] == 1:
+            raise RuntimeError("Index out of bounds for dimension with size 151936")
+        return _fake_ok(prompts, cfg)
+
+    monkeypatch.setattr(harness, "_generate_batch", flaky)
+    monkeypatch.setattr("src.models.llm_harness.time.sleep", lambda _s: None)
+    out = harness.generate([build_prompt("int a(){}")], {"max_new_tokens": 8})
+    assert state["n"] == 2  # one failure, one successful retry
+    assert out[0]["meta"]["gen_retries"] == 1
+    assert out[0]["meta"]["fallback_device"] is None
+    assert "Index out of bounds" in out[0]["meta"]["gen_errors"][0]
+    # recovered generation is cached like any other
+    out2 = harness.generate([build_prompt("int a(){}")], {"max_new_tokens": 8})
+    assert out2[0]["meta"]["cache_hit"] is True
+    assert out2[0]["meta"]["gen_retries"] == 1  # provenance survives the cache
+
+
+def test_generate_cpu_fallback_when_device_error_persists(tmp_path, monkeypatch):
+    harness = FakeHarness("fake/model-x", device="cpu", cache_dir=str(tmp_path / "c"))
+    state = {"n": 0}
+
+    def fails_on_device_then_cpu_succeeds(prompts, cfg):
+        # attempt + same-device retry fail (accelerator flake), the CPU-fallback
+        # call succeeds — mirrors the round-2 MPS profile.
+        state["n"] += 1
+        if state["n"] <= 2:
+            raise RuntimeError("Metal kIOGPUCommandBufferCallbackErrorInnocentVictim")
+        return _fake_ok(prompts, cfg)
+
+    monkeypatch.setattr(harness, "_generate_batch", fails_on_device_then_cpu_succeeds)
+    monkeypatch.setattr("src.models.llm_harness.time.sleep", lambda _s: None)
+    out = harness.generate([build_prompt("int b(){}")], {"max_new_tokens": 8})
+    assert state["n"] == 3  # attempt, retry, cpu-fallback
+    assert out[0]["meta"]["fallback_device"] == "cpu"
+    assert out[0]["meta"]["gen_retries"] == 1
+    assert len(out[0]["meta"]["gen_errors"]) == 2  # attempt1 + retry both failed
+
+
+def test_generate_raises_only_after_retry_and_cpu_both_fail(tmp_path, monkeypatch):
+    harness = FakeHarness("fake/model-x", device="cpu", cache_dir=str(tmp_path / "c"))
+
+    def always_fails(prompts, cfg):
+        raise RuntimeError("hard failure")
+
+    monkeypatch.setattr(harness, "_generate_batch", always_fails)
+    monkeypatch.setattr("src.models.llm_harness.time.sleep", lambda _s: None)
+    with pytest.raises(RuntimeError, match="retry \+ CPU fallback"):
+        harness.generate([build_prompt("int c(){}")], {"max_new_tokens": 8})

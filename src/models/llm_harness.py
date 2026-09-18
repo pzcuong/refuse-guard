@@ -344,7 +344,8 @@ class LLMHarness:
             batch_size = max(1, int(cfg.get("batch_size", 1)))
             for bstart in range(0, len(misses), batch_size):
                 batch = misses[bstart : bstart + batch_size]
-                outs = self._generate_batch([p for _, p, _ in batch], cfg)
+                outs, recovery = self._generate_batch_recovered(
+                    [p for _, p, _ in batch], cfg)
                 for (i, p, k), text, meta in zip(batch, outs["texts"], outs["metas"]):
                     record = {
                         "text": text,
@@ -362,6 +363,12 @@ class LLMHarness:
                             "completion_tokens": meta["completion_tokens"],
                             "latency_s": meta["latency_s"],
                             "cache_hit": False,
+                            # accelerator-recovery provenance (audit round 2,
+                            # V2 #5): retries + CPU fallback are counted, never
+                            # silently dropped as SKIPPED
+                            "gen_retries": recovery["retries"],
+                            "fallback_device": recovery["fallback_device"],
+                            "gen_errors": recovery["errors"][:3],
                         },
                     }
                     self._cache_put(k, record)
@@ -379,10 +386,59 @@ class LLMHarness:
             return build_prompt(p["func"], p.get("language", "c"), template)
         raise ValueError(f"prompt entry must have system/user or func; got keys {sorted(p)}")
 
+    def _generate_batch_recovered(self, prompts: list[dict], cfg: dict) -> tuple[dict, dict]:
+        """Generation with accelerator recovery (audit round 2, V2 #5).
+
+        MPS AcceleratorErrors (embedding-gather out-of-bounds, kIOGPUCommand-
+        BufferCallbackError victims) are transient memory-corruption flakes,
+        NOT deterministic per input: the same prompt succeeds on retry and on
+        the other arm/device. Policy: (1) retry once on the same device after
+        a short sync/sleep, (2) fall back to CPU for this batch, (3) surface
+        every recovery in meta (gen_retries / fallback_device / gen_errors) so
+        runners never have to record a silent SKIPPED for a flake. Raises only
+        when BOTH the retry and the CPU fallback fail.
+        """
+        errors: list[str] = []
+        try:
+            return self._generate_batch(prompts, cfg), {"retries": 0, "fallback_device": None,
+                                                        "errors": errors}
+        except Exception as exc:  # noqa: BLE001 — any accelerator flake is recoverable
+            errors.append(f"attempt1 {type(exc).__name__}: {str(exc)[:200]}")
+        # (1) same-device retry
+        try:
+            torch = importlib.import_module("torch")
+            if hasattr(torch, "mps") and hasattr(torch.mps, "synchronize") \
+                    and torch.backends.mps.is_available():
+                torch.mps.synchronize()
+            time.sleep(0.5)
+            outs = self._generate_batch(prompts, cfg)
+            return outs, {"retries": 1, "fallback_device": None, "errors": errors}
+        except Exception as exc:
+            errors.append(f"retry {type(exc).__name__}: {str(exc)[:200]}")
+        # (2) CPU fallback for this batch only
+        original_device = self.device
+        try:
+            self.device = "cpu"
+            if self._model is not None:
+                self._model.to("cpu")
+            outs = self._generate_batch(prompts, cfg)
+            return outs, {"retries": 1, "fallback_device": "cpu", "errors": errors}
+        except Exception as exc:
+            errors.append(f"cpu {type(exc).__name__}: {str(exc)[:200]}")
+            raise RuntimeError(
+                f"generation failed after retry + CPU fallback: {errors}") from exc
+        finally:
+            self.device = original_device
+            if self._model is not None and original_device != "cpu":
+                try:  # move the weights back; generation self-heals if this fails
+                    self._model.to(original_device)
+                except Exception:
+                    pass
+
     def _generate_batch(self, prompts: list[dict], cfg: dict) -> dict:
         torch = importlib.import_module("torch")
         tok = self.tokenizer
-        model = self.model
+        model = self.model.to(self.device)  # self-healing: no-op when already there
         texts = [
             tok.apply_chat_template(
                 [{"role": "system", "content": p["system"]}, {"role": "user", "content": p["user"]}],

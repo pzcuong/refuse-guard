@@ -8,6 +8,7 @@ from src.metrics.metrics import (
     compute_group_metrics,
     compute_metrics,
     defense_recovery_rate,
+    extract_verdict_fields,
     is_usable,
     paired_accuracy,
     paired_rank_score,
@@ -47,6 +48,70 @@ def test_usable_definition():
     assert not is_usable({"vulnerable": 1, "cwe": "CWE-120", "location": None})
     assert not is_usable({"vulnerable": None, "cwe": "CWE-120", "location": "x"})
     assert is_usable({"vulnerable": "0"})  # string prediction from parser
+
+
+# ---------------------------------------------------------------------------
+# Regression for audit round 2 (V2 #3): the pilot runner stores the parsed
+# verdict under meta.pred_cwe / meta.pred_location while is_usable used to
+# read only top-level cwe/location -> every vulnerable=1 verdict was counted
+# unusable, manufacturing a fake SIUD +0.258. extract_verdict_fields must
+# read BOTH layouts.
+# ---------------------------------------------------------------------------
+def pilot_layout_record(sample_id, y_true, y_pred, cwe, location):
+    """Exact layout written by src/experiments/pilot_round2.py (pre-fix)."""
+    return {"sample_id": sample_id, "condition": "C2a", "defense": "B0",
+            "y_true": y_true, "y_pred": y_pred, "status": "ANSWER",
+            "analysis_status": "ANSWER", "raw_output_path": "raw/x.txt",
+            "meta": {"pred_cwe": cwe, "pred_location": location}}
+
+
+def test_extract_verdict_fields_reads_both_layouts():
+    top = {"y_pred": 1, "cwe": "CWE-120", "location": "line 3", "meta": {}}
+    assert extract_verdict_fields(top) == {"vulnerable": 1, "cwe": "CWE-120",
+                                           "location": "line 3"}
+    meta = pilot_layout_record("s1", 1, 1, "CWE-120", "line 3")
+    assert extract_verdict_fields(meta) == {"vulnerable": 1, "cwe": "CWE-120",
+                                            "location": "line 3"}
+    # top-level wins when both are present
+    both = dict(meta, cwe="CWE-999", location="top")
+    assert extract_verdict_fields(both)["cwe"] == "CWE-999"
+    # missing everywhere -> None (never a crash)
+    assert extract_verdict_fields({"y_pred": 1, "meta": {}}) == {
+        "vulnerable": 1, "cwe": None, "location": None}
+    # no meta dict at all
+    assert extract_verdict_fields({"vulnerable": 0}) == {
+        "vulnerable": 0, "cwe": None, "location": None}
+
+
+def test_is_usable_pilot_meta_layout_regression_v2_3():
+    # The exact false-negative case from the round-2 pilot: verdict
+    # vulnerable=1 WITH complete cwe+location stored under meta.pred_* was
+    # counted NOT usable (SIUD artifact). Must be usable now.
+    r = pilot_layout_record("s1", 1, 1, "CWE-120", "strcpy at line 14")
+    assert is_usable(r) is True
+    # incomplete meta layout is still not usable
+    assert is_usable(pilot_layout_record("s2", 1, 1, "CWE-120", None)) is False
+    assert is_usable(pilot_layout_record("s3", 1, 1, None, "line 1")) is False
+    # benign verdict in meta layout: usable
+    assert is_usable(pilot_layout_record("s4", 0, 0, None, None)) is True
+    # refusal in meta layout: never usable
+    refusal = pilot_layout_record("s5", 1, None, None, None)
+    refusal["status"] = "REFUSAL"
+    assert is_usable(refusal) is False
+
+
+def test_group_metrics_pilot_layout_uac_regression_v2_3():
+    # 4 pilot-layout records, 3 verdicts vulnerable=1 with full meta cwe+loc,
+    # 1 benign -> UAC must be 1.0 (was 0.25 under the top-level-only reader).
+    recs = [
+        pilot_layout_record("a", 1, 1, "CWE-120", "line 1"),
+        pilot_layout_record("b", 1, 1, "CWE-78", "line 2"),
+        pilot_layout_record("c", 0, 1, "CWE-89", "line 3"),
+        pilot_layout_record("d", 0, 0, None, None),
+    ]
+    m = compute_group_metrics(recs)
+    assert m["uac"] == pytest.approx(1.0)
+    assert m["n_usable"] == 4
 
 
 def test_counts_and_rates():

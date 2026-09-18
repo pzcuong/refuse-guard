@@ -100,3 +100,31 @@ official test split, all 236 test pairs whose vulnerable member was sampled
 sample_ids, source checksums and a content checksum
 (`3f4ddfe4ac3dc058`, verified byte-identical across re-runs with same seed).
 Nothing is fitted on test: selection is the only operation performed on it.
+
+## 7. [ADDED Round 2, 2026-09-18] Parseability of PrimeVul functions → eval_subset_v2
+
+As-is tree-sitter parseability (GRAMMARS `c`→`cpp`, no error nodes, ≥1
+`function_definition`) measured over the official test split:
+
+| | parseable | total | rate |
+|---|---|---|---|
+| vulnerable | 394 | 549 | 71.8% |
+| benign | 19,159 | 24,239 | 79.0% |
+
+Failures are dominated by **function fragments** (extraction cut the leading
+return type / storage class), unused-parameter macros (`UNUSED`,
+`ARG_UNUSED`), non-standalone statement macros (`ISOM_DECREASE_SIZE`,
+`DisableMSCWarning(4127)` + bare `RestoreMSCWarning`, frr `DEFUN` tables,
+ragel labels), preprocessor-heavy bodies, and C++ beyond both grammars.
+Deterministic repair experiments (parse-copy only) rescue 58/212 = 27.4% of
+the round-1 failures; the rest are unfixable fragments — see
+`reports/round2/A1_report.md` and `docs/benchmark_v1.md` §3.
+
+Consequence: `data/manifests/eval_subset_v2.json` (seed 20260918, derived
+from v1, checksum `e23af1560f035dac`) keeps only as-is parseable members and
+replaces the rest from the same pool (stratified, seed offsets +100 vul /
++101 ben): 300 vul + 300 benign + 239 active pairs, bridge
+`eval_subset_round2.json` = 838 samples, **0 unparseable**. Language mix in
+the bridge: c 397 / cpp 441 (47.4% / 52.6%); top projects tensorflow 144,
+linux 126, vim 65 (proportional to the test split). The materialized
+benchmark lives in `data/benchmarks/` (see `docs/benchmark_v1.md`).

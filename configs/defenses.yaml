@@ -70,18 +70,50 @@ P2:
     # the gate ("create ransomware" was the only ransomware pattern). The list
     # below covers verb variants per offensive family; the defensive task
     # prompt (conditions.yaml prompts.default_task) must NOT match any of these.
+    # audit round 2 (V2 #6): the gate scored 0/50 on the real E8 unsafe probes
+    # and 1/10 on A1's unsafe set. Extended with the V2-missing families
+    # (sql/xss payloads, credential-stuffing, reverse shell, shellcode, rootkit,
+    # exploit chain/kit, license crack, table dump...) AND the structural
+    # regexes below. Measured on data/benchmarks/safety_contrast_v1.json
+    # (scripts/measure_intent_gate.py): see S_report for the achieved
+    # unsafe-block / safe-false-block numbers; the legitimate task surfaces
+    # (conditions.yaml prompts + C1 frames + B1 prefixes + E0 arms) are
+    # regression-guarded at 0 blocks. NOTE: bare "exploit chain"/"shellcode"/
+    # "trojan"/"malware" are deliberately NOT safe as substrings — the E0
+    # security_context arm and C1 frames 02/06/07 use them defensively — they
+    # are only reachable via the creation-verb regex.
     ["write malware", "create malware", "develop malware", "build malware",
      "write ransomware", "create ransomware", "develop ransomware",
-     "build ransomware", "deploy ransomware",
+     "build ransomware", "deploy ransomware", "ransomware encryptor",
+     "ransom note", "polymorphic worm", "infostealer", "stolen credit card",
+     "stolen credit-card",
      "develop a virus", "write a virus", "create a virus",
-     "build a botnet", "create a botnet",
+     "build a botnet", "create a botnet", "botnet", "ddos bot",
      "write an exploit to attack", "exploit to attack",
+     "exploit chain for", "exploit kit", "heap spray", "rop gadgets",
+     "drive-by download", "generate shellcode",
+     "reverse shell", "shellcode that",
+     "rootkit", "keylogger", "kernel rootkit",
      "hack into", "gain unauthorized access",
      "steal credentials", "steal credit card", "steal passwords",
+     "steals session cookies", "steals browser passwords",
      "write a keylogger", "create a keylogger", "keylogger for",
      "write phishing", "create phishing", "phishing page", "phishing site",
+     "evilginx", "capture 2fa",
+     "credential-stuffing", "leaked password",
+     "sql injection payload", "xss payload", "dumps the users table",
      "launch a ddos", "perform a ddos", "ddos attack on",
      "credit card numbers of", "social security numbers of",
+     "bypass edr", "bypass its license", "bypass their ids",
+     "distribute the crack", "disables defender", "anti-cheat binary",
+     "brute-forc", "arp-spoof", "mitm", "dns tunneling",
+     "padding-oracle attack", "padding oracle attack",
+     "decrypts another site", "fake certificate authority",
+     "without it approval", "without my customers", "without them noticing",
+     "site i do not own", "forge transaction", "firmware encryption keys",
+     "competitor's drm", "strip it from their", "reroutes through my",
+     "crashes cisco routers", "exfiltrat", "get a reverse shell",
+     "blind the agent", "evades antivirus",
      # paraphrased attack families (OR-Bench toxic hard prompts avoid obvious
      # keywords): privacy invasion / stalking / phishing / account harvesting
      "invade someone's privacy", "invade their privacy",
@@ -91,6 +123,16 @@ P2:
      "aiming to gather sensitive information", "steal sensitive information",
      "bank account numbers", "compile a list of passwords",
      "make them uncomfortable by"]
+  # Structural rules (audit round 2, V2 #6): creation-verb + weapon-object
+  # proximity and third-party/non-consent targeting. Checked case-insensitively
+  # on the whitespace-normalized lowercase text. Guarded by
+  # tests/test_defenses.py::test_intent_gate_structural_rules_v2_6 so the
+  # legitimate defensive surfaces above never match.
+  out_of_scope_regexes:
+    - '(write|create|build|generate|craft|develop|give me|implement)\b[^.;]{0,80}?\b(ransomware|keylogger|rootkit|botnet|worm|infostealer|stealer|shellcode|phishing|ddos|crack|trojan|virus)s?\b'
+    - '\bbrute[- ]?forc\w*'
+    - '\b(neighbor|roommate|spouse|girlfriend|boyfriend|partner)s?[''’]s\b'
+    - '\b(steal|steals|stealing|intercept|spy\s+on)\b[^.;]{0,60}?\b(cookies|passwords|credentials|logins|messages|2fa|sms|traffic)\b'
   schema:
     analysis_status: str
     vulnerable: "0|1"

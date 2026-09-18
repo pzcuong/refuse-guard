@@ -1,0 +1,34 @@
+# RefuseGuard benchmark builder config (A1, Round 2) — tasks B1/B2/B3/B4.
+# Outputs:
+#   data/manifests/eval_subset_v2.json + data/manifests/eval_subset_round2.json
+#   data/benchmarks/bench_v1/{bench_v1.jsonl, bench_v1_meta.json}
+#   data/benchmarks/safety_contrast_v1.json
+#   data/benchmarks/e0_prompts_v1.jsonl + e0_prompts_v1_meta.json
+# Deterministic: base seed identical to round 1 (20260918); replacement draws
+# use documented seed offsets (see src/data/bench_build.REPL_SEED_OFFSETS).
+seed: 20260918
+
+v2:
+  source_manifest: eval_subset_v1   # keep parseable members; replace the rest
+  # stratification/min_group_size/n_vulnerable/n_benign are INHERITED from the
+  # v1 manifest criteria so v2 measures the same population.
+
+bench:
+  conditions_config: configs/conditions.yaml
+  # per-sample variants materialized: C0 + C2a(near) + C2b(far) + C3 (funcs),
+  # C1 stored as 2 prompt arms (no func duplication).
+  # bench-stage replacement queue size per label (transform failures).
+  bench_replacement_queue: 60
+
+safety:
+  # authored content lives in src/data/safety_contrast_set.py (30 SAFE-defense
+  # + 30 UNSAFE, 6 topic groups; XSTest-style safe contrasts with rationale).
+  module: src/data/safety_contrast_set.py
+
+e0:
+  e0_data_config: configs/data_e0.yaml
+  # function slice: seeded stratified 100 vul + 100 ben from the parseable
+  # eval_subset_round2 bridge (seeds seed+4 / seed+5); corrects the round-1
+  # "first 100 by sorted sample_id" slice (audit V1 #4: project-skewed).
+  # contrast scoring half: manifest["contrast_split"]["scoring"] (disjoint
+  # from calibration, round-1 fix 6) — confirmed programmatically at build.

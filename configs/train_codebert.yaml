@@ -1,0 +1,66 @@
+# RefuseGuard — CodeBERT fine-tune config (owner: agent A2, Round 2)
+# Task: B4 transformer baseline on PrimeVul OFFICIAL train split.
+# Subsampling is disclosed here + hashed into outputs/transformer/train_meta.json.
+#
+# Imbalance choice (disclosed): PrimeVul train is ~4.5k vulnerable vs ~213k
+# benign. We keep the REAL ratio (all vulnerable + 40k benign subsample) and
+# upweight the positive class via weighted cross-entropy
+# (pos_weight = n_benign/n_vulnerable, computed on the actual subsample at
+# runtime) instead of oversampling: no duplicated functions, majority gradients
+# keep the true prior, one transparent hyperparameter.
+#
+# Downgrade rule (pre-registered): if measured sec/step projects full train
+# > 6 h, n_benign_train is reduced to 25000 and the change is disclosed in
+# reports/round2/A2_report.md.
+transformer_baseline:
+  model_name: microsoft/codebert-base
+  num_labels: 2
+  max_seq_len: 512            # head+tail truncation (audit round 1)
+  fallback_seq_len: 256       # automatic on MPS OOM
+  # [batch 8x4 -> 4x8 2026-09-18, DISCLOSED] same effective batch 32; halved
+  # per-batch activations. Reason: with another agent's pilot jobs sharing the
+  # MPS GPU (system near swap capacity), batch 8 runs produced NaN from ~batch
+  # 8 onward (params poisoned after 1-2 optimizer steps) while batch 4 ran
+  # clean for 30/30 steps at 4.79 s/step vs 4.02. CPU 24-step control run of
+  # the same code+data+seed was clean -> MPS memory-pressure artifact, not a
+  # code bug. NaN skip policy (max 2% steps) is active as a safety net.
+  batch_size: 4
+  grad_accum_steps: 8         # effective batch 32
+  lr: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  epochs: 3
+  scheduler: cosine           # linear decay was round 1; cosine per task spec
+  # [dtype: bf16 -> float32 2026-09-18, DISCLOSED DEVIATION]
+  # bf16 autocast on MPS produced NaN loss in 2/2 real attempts (steps ~30-50,
+  # LR still ~3e-6; reproducible flake, not LR divergence). fp32 is also FASTER
+  # here (4.02 vs 6.19 s/optimizer step measured on the same data/GPU) because
+  # MPS autocast overhead is removed. NaN fail-fast guard added to the trainer.
+  dtype: float32              # no autocast; weights/loss all fp32
+  pos_weight: auto            # n_benign/n_vulnerable of the train subsample
+  seed: 1234
+  early_stopping_patience: 2  # on val MCC
+  ckpt_every_steps: 200       # optimizer steps between mid-epoch checkpoints
+  output_dir: models_dir/transformer_baseline
+  resume: true                # step-level resume (model/optim/sched/epoch/batch)
+  device: mps
+
+data:
+  train_split: train          # OFFICIAL PrimeVul train split only
+  valid_split: valid          # official valid split -> early-stop val
+  # [DOWNGRADED 40000 -> 25000 2026-09-18, pre-registered rule applied]
+  # 20-step speed test on the real data measured 4.739 s/optimizer step
+  # (bf16 autocast, effective batch 32 @ seq 512) -> 40k-benign ETA was
+  # 5.54 h compute + ~0.4 h per-epoch validation ~= 5.9 h SOLO, which exceeds
+  # the 6 h budget once the GPU is shared with the mandated concurrent
+  # E0-calibration LLM runs. 25k benign -> ~2800 steps ~= 3.7 h compute.
+  n_benign_train: 25000       # subsample (seeded); all vulnerable always kept
+  n_val_total: 10000          # all vulnerable of valid + seeded benign fill
+  seed: 1234                  # sampling seed (also used for shuffle via cfg.seed)
+  out_dir: outputs/transformer
+
+eval:                         # scripts/eval_codebert.py (T2); run AFTER training
+  benign_test_subsample: 20000  # + ALL vulnerable test -> VD-S = FNR@FPR<=0.5%
+  seed: 1234
+  out_dir: outputs/transformer
+  # pilot arm manifest priority: eval_subset_v2.json (A1 Round 2) else v1.
