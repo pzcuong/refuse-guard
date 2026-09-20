@@ -17,7 +17,10 @@ $0.100\rightarrow 0.733/0.767$. Stronger still, \emph{the defence is the risk}:
 a provenance-based safety wrapper collapses Llama's vulnerable recall from
 $1.000$ to $0.367/0.333$ (39/60 paired flips, McNemar
 $p\leq 3.8\times10^{-6}$), with audited raw outputs confirming genuine
-verdicts, not parse failures. Semantic isolation reduces instruction-injection
+verdicts, not parse failures; a pre-registered component ablation
+localizes the harm --- boundary labelling alone is harmless, and the
+system task-intent reassertion carries 28 of the 34 net flips (exact
+$p=7.45{\times}10^{-9}$). Semantic isolation reduces instruction-injection
 success $0.742\rightarrow 0.484$ ($p{=}0.0078$) without improving accuracy, and
 ungated refusal-recovery can manufacture full unsafe compliance. We release a
 query-relevant, anti-leakage benchmark and argue that at open-model scale the

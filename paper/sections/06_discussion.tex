@@ -38,7 +38,23 @@ C0$\times$P3 control was not run, $n{=}30$, and Llama's raw baseline
 over-triggers (it calls every C5-armed benign function vulnerable), so the
 harm is ``the wrapper pulls an over-triggering model's verdicts toward
 benign'' --- real, replicated across both C5 arms on audited raw outputs, but
-mechanistically unresolved until a component ablation isolates the culprit.
+at Round-5 level mechanistically unresolved. The pre-registered component
+ladder of RQ7b (\S\ref{sec:rq7b}) was designed to close exactly this gap
+before any component-level sentence is written; its verdicts are
+H-M1 SUPPORTED and H-M2 SUPPORTED, and the localized
+mechanism reads: the boundary-label machinery is harmless (A1: 1/60 flips, $p=1.0$), the header and generic-wrap steps add a small, individually non-significant share (5 and 3 further flips), string mediation recovers 3 verdicts ($p=0.25$), and the system task-intent reassertion carries the rest --- 28 of the 34 net B0$\to$P3-full flips (82\%), exact $p=7.45{\times}10^{-9}$, replicated on C5\_far (36/59); the 82\% is a share of net flips and is valid under the saturated B0 baseline (recall 1.000), not an additive component decomposition (the ladder recovers 3 flips at A4)
+
+\subsection{Actionable guidance: minimal provenance vs.\ the full bundle}
+\label{sec:guidance}
+Whatever the component verdict, the study already supports one design rule:
+a mitigation that only \emph{labels} what it cannot verify (provenance
+headers, boundary annotations) is a different intervention from one that
+\emph{re-frames the task} around the label (system reassertion, retry
+loops), and the two should be evaluated --- and shipped --- separately. The
+Round-6 ladder operationalizes that split into a keep/drop decision made by
+rule, not taste (\texttt{docs/round6\_ablation\_prereg.md}, frozen before
+the ablation ran). The branch that fires is G1: \emph{keep the minimal
+wrapper, drop the rest}. Boundary labelling alone did not reproduce the harm (1/60 flips, $p=1.0$; the same holds on the Qwen spot check), while the system task-intent reassertion --- the component that reframes the task rather than labelling the input --- carries 28 of the 34 net B0$\to$P3-full flips (exact $p=7.45{\times}10^{-9}$; replicated on C5\_far at 36/59). Ship provenance labels; keep reassertion off for verdict-critical analysis, re-measure it per model, and re-run the paired flip ledger whenever the wrapper changes.
 
 \subsection{Blocking fears are premature at open scale; corruption is the actionable channel}
 Across every generation we have collected on this task --- neutral wording,
@@ -118,12 +134,15 @@ and differently triggered. Granite's round-5 monitor uses disclosed fallback
 thresholds (no calibration fit); the risk is bounded by its 240/240
 schema-complete records and the 0.5B smoke probe that shows genuine refusals
 are catchable.
-\textbf{Defence attribution.} P3 is a bundle ($\geq$5 components); effects
-are attributed at defence level only, the C0$\times$P3 control and component
-ablation were not run, and the round-5 defence cells are partial by budget
-guard (Qwen 293/360, Llama 180/360 records) with the Llama benign half
-absent --- the recall-collapse claim rests on paired vulnerable verdicts
-only.
+\textbf{Defence attribution.} P3 is a bundle ($\geq$5 components); at the
+Round-5 result, effects were attributable at defence level only. The
+pre-registered Round-6 ladder (\S\ref{sec:rq7b}) now carries component
+attribution, but it is a \emph{cumulative} design --- it cannot separate
+interactions between components, only steps --- the C0$\times$P3 control
+remains unrun (so ``P3 harms only when an advisory is present'' stays
+untested), and the round-5 defence cells are partial by budget guard
+(Qwen 293/360, Llama 180/360 records) with the Llama benign half absent ---
+the recall-collapse claim rests on paired vulnerable verdicts only.
 \textbf{Measurement instrument.} The refusal monitor failed its own validity
 criterion on Qwen (over-refusal 0.587 vs.\ $\leq 0.10$ registered): the
 lexical detector misclassifies schema-complete JSON answers as refusals. An

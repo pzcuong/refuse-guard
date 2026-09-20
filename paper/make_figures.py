@@ -481,6 +481,98 @@ def fig_round5() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Figure 7 (Round 6, optional): P3 component-ablation ladder ("Which component
+# corrupts?").  FAIL-SAFE by contract (A3-R6): until A2-R6's GPU run produces
+# outputs/master/round6_ablation.json, this figure is SKIPPED with a warning
+# instead of crashing — the paper (05_results.tex) guards the float with
+# \IfFileExists and compiles without it.  Once the file exists, the structural
+# asserts below are strict, like every other figure in this script.
+# Frozen design + decision rules: docs/round6_ablation_prereg.md
+# ---------------------------------------------------------------------------
+R6_STEPS = ["A0", "A1", "A2", "A3", "A4", "A5"]
+R6_STEP_LABELS = ["A0\nraw", "A1\n+boundary", "A2\n+header", "A3\n+generic\nwrap",
+                  "A4\n+string\nmediat.", "A5\n+reassert.\n(= P3)"]
+
+
+def fig_round6() -> None:
+    rel = "outputs/master/round6_ablation.json"
+    path = ROOT / rel
+    if not path.exists():
+        print(f"[skip] fig_round6: {rel} not present (round-6 ablation pending); "
+              f"paper compiles without this figure")
+        return
+    r6 = json.loads(path.read_text())
+    val: dict[str, object] = {}
+    for r in r6["results"]:
+        assert r.get("experiment") == "ABLATION", r
+        val[r["metric"]] = r["value"]
+
+    # primary-arm ladder (C5_near): strict structural check on the recall grid;
+    # C5_far is an optional confirmation arm in the executed design — plotted
+    # only if its full grid is present.
+    def _grid(arm: str) -> dict[tuple[str, str], float] | None:
+        g: dict[tuple[str, str], float] = {}
+        for step in R6_STEPS:
+            key = f"ablation.llama3b.{arm}.{step}.recall_vul"
+            if key not in val:
+                return None
+            v = float(val[key])  # type: ignore[arg-type]
+            assert 0.0 <= v <= 1.0, (key, v)
+            g[(arm, step)] = v
+        return g
+
+    recall: dict[tuple[str, str], float] = {}
+    near = _grid("C5_near")
+    assert near is not None, "round-6 master missing C5_near recall grid (primary arm)"
+    recall.update(near)
+    far = _grid("C5_far")
+    arms: dict[str, tuple[str, float]] = {"C5_near": (C_DEF, -0.5)}
+    if far is not None:
+        recall.update(far)
+        arms["C5_far"] = (C_MID, 0.5)
+    # prompt-identity guard must have held for A5 (== round-5 P3)
+    ident = val.get("ablation.llama3b.prompt_identity.A5_vs_round5_P3")
+    if ident is not None:
+        assert ident in (True, "PASS", "pass"), ident
+
+    # optional per-rung significance vs previous rung (soft presence: a
+    # mid-round master file may not carry p rows yet)
+    def _p(arm: str, step: str) -> float | None:
+        v = val.get(f"ablation.llama3b.{arm}.{step}.mcnemar_p_vs_prev")
+        return float(v) if isinstance(v, (int, float)) else None  # type: ignore[arg-type]
+
+    fig, ax = plt.subplots(figsize=(3.35, 2.3))
+    x = list(range(len(R6_STEPS)))
+    w = 0.36 if far is not None else 0.5
+    for arm, (color, off) in arms.items():
+        vals = [recall[(arm, s)] for s in R6_STEPS]
+        ax.bar([xi + off * w for xi in x], vals, width=w, color=color,
+               label="C5 near" if arm == "C5_near" else "C5 far")
+        for xi, v in zip(x, vals):
+            ax.text(xi + off * w, v + 0.02, f"{v:.2f}", ha="center", fontsize=5.6,
+                    rotation=90)
+    # mark pre-registered harm: delta >= 0.20 vs previous rung AND p < 0.05
+    for i, step in enumerate(R6_STEPS[1:], start=1):
+        for arm, (color, off) in arms.items():
+            delta = recall[(arm, R6_STEPS[i - 1])] - recall[(arm, step)]
+            pv = _p(arm, step)
+            if delta >= 0.20 and pv is not None and pv < 0.05:
+                ax.text(i + off * w, -0.16, "*", ha="center", fontsize=9,
+                        color=color, clip_on=False)
+    ax.set_xticks(x)
+    ax.set_xticklabels(R6_STEP_LABELS, fontsize=5.8)
+    ax.set_ylim(0, 1.18)
+    ax.set_ylabel("Vulnerable recall (Llama-3.2-3B)")
+    ax.legend(loc="lower left", frameon=False, fontsize=6.2)
+    ax.set_title("P3 ablation ladder: rungwise recall\n"
+                 "(* = pre-registered harm: $\\Delta \\geq 0.20$, $p<0.05$)",
+                 fontsize=7.2)
+    fig.tight_layout()
+    fig.savefig(FIG / "fig_round6.pdf")
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Table verification: every number typed in paper/tables/*.tex must appear in
 # (or be derived from) the source files loaded above.
 # ---------------------------------------------------------------------------
@@ -681,6 +773,7 @@ if __name__ == "__main__":
     fig_e8_compliance()
     fig_codebert()
     fig_round5()
+    fig_round6()   # fail-safe: skips with a warning until round6_ablation.json exists
     verify_tables()
     check_citations()
     for p in sorted(FIG.glob("*.pdf")):

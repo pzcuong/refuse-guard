@@ -28,15 +28,18 @@ coverage at realistic difficulty (F1 0.215).
 For builders of LLM security tooling the guidance is concrete: do not
 engineer against refusal on analysis tasks at this scale --- engineer against
 verdict corruption, and require a paired flip ledger from every safety
-wrapper before it ships. For researchers, two scoped firsts invite
+wrapper before it ships --- and, per the Round-6 ablation, ship the
+wrapper's labelling half while keeping its task-reframing half off for
+verdict-critical analysis. For researchers, two scoped firsts invite
 replication: the first systematic test of query-relevant safety-blocking
 transfer to source-code vulnerability analysis at open-model scale, and the
-first evidence of defence-induced verdict corruption in this setting; the
-frontier-model transfer question and the component-level mechanism behind
-P3's harm are the two highest-value open problems.
+first evidence of defence-induced verdict corruption in this setting, now
+with a pre-registered component ablation that localizes the harm to the
+system task-intent reassertion while the provenance-labelling machinery
+proves harmless; the frontier-model transfer question is the highest-value
+open problem.
 
-Future work, sized beyond a pilot: a component ablation of P3 to convert the
-defence-risk observation into a mechanism; frontier-model API runs to test
+Future work, sized beyond a pilot: frontier-model API runs to test
 blocking and bias transfer at scale; extending the C5 advisory generator
 beyond its 26-sink inventory to further CWE families and repository-level
 context; scaling each cell past power thresholds; replacing lexical intent

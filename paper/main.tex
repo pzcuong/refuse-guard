@@ -49,6 +49,10 @@
 \InputIfFileExists{tables/tab_codebert}{}{\missingsection{tables/tab_codebert}}
 \InputIfFileExists{tables/tab_round5}{}{\missingsection{tables/tab_round5}}
 \InputIfFileExists{tables/tab_round5_defense}{}{\missingsection{tables/tab_round5_defense}}
+% Round 6: P3 component-ablation ladder — cells filled by S-R6 from
+% outputs/master/round6_ablation.json (scripts/collect_master_round6.py)
+% placeholders until S-R6 fills them from outputs/master/round6_ablation.json.
+\InputIfFileExists{tables/tab_round6_ablation}{}{\missingsection{tables/tab_round6_ablation}}
 
 \InputIfFileExists{sections/05_results}{}{\missingsection{sections/05_results}}
 \InputIfFileExists{sections/06_discussion}{}{\missingsection{sections/06_discussion}}

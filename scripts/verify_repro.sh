@@ -73,6 +73,9 @@ ARTIFACTS=(
   "outputs/transformer/codebert_predictions_paired.jsonl"
   "outputs/transformer/fallback_threshold.json"
   "outputs/transformer/final_eval.json"
+  "outputs/master/round5_master.json"
+  "outputs/master/round6_bias.json"
+  "outputs/master/round6_ablation.json"
 )
 for a in "${ARTIFACTS[@]}"; do
   if [ ! -f "$ROOT/$a" ]; then bad "missing: $a"; continue; fi

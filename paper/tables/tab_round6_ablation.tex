@@ -1,0 +1,95 @@
+% tab_round6_ablation.tex — RQ7b / Round 6: P3 component-ablation ladder
+% ("Which component corrupts?").  FILLED BY S-R6: every numeric cell below is
+% generated from outputs/master/round6_ablation.json (rows keyed
+% ablation.llama3b.C5_near.<step>.<metric>; primary arm C5_near, n=60 vul +
+% 30 benign, Llama-3.2-3B) via scripts/collect_master_round6.py (re-read
+% verified; LaTeX strings from outputs/master/round6_token_map.json).
+% Design authority (pre-registered BEFORE the first generation):
+% configs/round6_ablation.yaml (execution) reconciled with
+% docs/round6_ablation_prereg.md (hypotheses H-M1/H-M2 + guidance table).
+% NO NUMBER MAY BE TYPED BY HAND.
+% Requires: booktabs.
+\begin{table}[t]
+\centering
+\caption{RQ7b (Round 6, pre-registered): which component of the P3 bundle
+corrupts vulnerable verdicts? Cumulative ladder on Llama-3.2-3B, C5\_near
+(the arm with the Round-5 collapse), 60 vulnerable + 30 benign paired
+functions (seed 20260923). Each rung adds exactly one prompt change on top
+of the previous one: A1 boundary label on the flagged advisory only
+(``minimal provenance''), A2 provenance header, A3 generic wrap of the
+remaining comments, A4 P1-style string mediation (func $=$ full-P3 func),
+A5 system task-intent reassertion ($=$ full P3 of Round 5; byte-identical
+prompts are sha-verified and reused where possible). A0 $=$ raw B0.
+$\Delta$ vs.\ A0 is the recall change relative to raw B0; $p$ is the
+two-sided exact binomial McNemar test of each rung against the previous
+rung (the pre-registered stats module returns a continuity-corrected
+$\chi^2$ approximation when the discordant count is $\geq 25$; both
+variants are stored in the artifact, the $\chi^2$ value is the conservative
+one, and no verdict changes). A3/A4 recall uses 59/60 parsed records (one
+unparseable \textsc{partial}); $\Delta$ and $p$ are computed on parsed
+pairs. Pre-registered thresholds: component-attributable harm $=$
+$\Delta$(rung$\to$rung) $\geq 0.20$ with $p<0.05$ (H-M1); minimal variant
+safe $=$ $\Delta$(A0$\to$A1) $\leq 0.05$ vs.\ B0 (H-M2); if no rung
+qualifies but A0$\to$A5 does, the harm is bundle-synergy by rule. A second
+pre-registered framing (concentration: the rung with the largest single-step
+flip count; ``distributed'' if no rung holds $\geq$50\% of the total
+A5-vs-A0 flips) is reported alongside.}
+\label{tab:round6ablation}
+\small
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Rung & Added component & recall (vul) & FP-rate (benign) & $\Delta$ vs.\ A0 & $p$ (vs.\ prev.) \\
+\midrule
+% source: outputs/master/round6_ablation.json -> ablation.llama3b.C5_near.A0.* (cache-reuse of round-5 B0, sha-gated 90/90)
+A0 & none (B0 raw)
+  & 1.000 & 1.000 & --- & --- \\
+% source: outputs/master/round6_ablation.json -> ablation.llama3b.C5_near.A1.* (new generations)
+A1 & boundary label only
+  & 0.983 & 0.967
+  & $-0.017$
+  & $1.0$ \\
+% source: outputs/master/round6_ablation.json -> ablation.llama3b.C5_near.A2.*
+A2 & + provenance header
+  & 0.900 & 0.833
+  & $-0.100$
+  & $0.0625$ \\
+% source: outputs/master/round6_ablation.json -> ablation.llama3b.C5_near.A3.*
+A3 & + generic comment wrap
+  & 0.848 & 0.767
+  & $-0.152$
+  & $0.25$ \\
+% source: outputs/master/round6_ablation.json -> ablation.llama3b.C5_near.A4.*
+A4 & + string mediation
+  & 0.898 & 0.867
+  & $-0.102$
+  & $0.25$ \\
+% source: outputs/master/round6_ablation.json -> ablation.llama3b.C5_near.A5.* (30 vul reused from round-5 P3, sha-gated 30/30)
+A5 & + reassertion ($=$ full P3)
+  & 0.433 & 0.267
+  & $-0.567$
+  & $7.45{\times}10^{-9}$ \\
+\midrule
+% source: outputs/master/round6_ablation.json -> verdict.* rows (rule-computed, both pre-registered framings)
+\multicolumn{6}{@{}l@{}}{Pre-registered verdicts: H-M1 SUPPORTED $\cdot$
+H-M2 SUPPORTED $\cdot$ concentration framing:
+the reassertion rung (A5) holds 28/34 = 82\% of the net A5-vs-A0 flips
+$\cdot$ guidance
+G1 (H-M1 supported, H-M2 supported: keep the minimal wrapper, drop the rest)} \\
+% source: verdict.concentration.share_of_net_flips + note; valid under the saturated B0 baseline (recall 1.000), not an additive decomposition
+\multicolumn{6}{@{}l@{}}{\footnotesize The 82\% is a share of \emph{net} flips, valid because A0 is
+saturated (recall 1.000); not an additive component decomposition (A4
+recovers 3 flips). At A5 the $\chi^2$-continuity variant of the same tests
+gives $3.35{\times}10^{-7}$ (vs.\ A4) and $1.52{\times}10^{-8}$ (vs.\ A0).} \\
+% source: ablation.llama3b.C5_far.* rows (C5_far re-run of the culprit rung only, pre-reg conditional)
+\multicolumn{6}{@{}l@{}}{C5\_far confirmation of the culprit rung:
+re-running A5 alone on C5\_far gives recall 0.390 (59/60 parsed) with
+36/59 paired vulnerable 1$\to$0 flips against B0 in the same arm --- the
+harm is not advisory-proximity-dependent} \\
+% source: ablation.qwen3b.* rows (A1-vs-A5 spot check, clean re-run after the cross-model-reuse quarantine)
+\multicolumn{6}{@{}l@{}}{Qwen spot-check (A1 vs A5, model-specificity):
+recall stays 1.000 at both A1 and A5 with 0/60 paired vulnerable flips
+($p=1.0$) --- Qwen2.5-Coder-3B is inert at this scale on its saturated
+baseline} \\
+\bottomrule
+\end{tabular}
+\end{table}

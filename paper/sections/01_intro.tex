@@ -116,7 +116,11 @@ thousand new generations per study round, tens of samples per cell):
 To our verified knowledge, this is the first systematic test of
 query-relevant safety-blocking transfer to source-code vulnerability analysis
 at open-model scale, and the first evidence of defence-induced verdict
-corruption in this setting (\S\ref{sec:related} scopes both claims).
+corruption in this setting (\S\ref{sec:related} scopes both claims). A
+pre-registered component ablation further localizes that defence-induced
+harm to a single wrapper component --- the system task-intent reassertion
+--- rather than the provenance-labelling machinery
+(\S\ref{sec:rq7b}).
 
 All numbers in this paper are traceable to released output artifacts; where a
 run was partial or a measurement instrument failed validation, we say so and

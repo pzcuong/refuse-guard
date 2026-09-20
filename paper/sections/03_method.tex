@@ -90,8 +90,11 @@ P3 claims: the detector is \emph{genre-targeted} (it learns the advisory
 genre, not ground-truth labels; false positives on clean comments are
 measured in \S\ref{sec:results}), and P3 acts as a \emph{bundle} of
 $\geq$5 simultaneous changes (boundary wrap, header, generic comment wrap,
-string mediation, reassertion), so effects are attributed at defence level,
-not to individual components. \textbf{P2} (\emph{RefuseGuard pipeline})
+string mediation, reassertion), so Round-5 effects are attributed at
+defence level; a pre-registered Round-6 \emph{component ablation} --- a
+cumulative ladder A0--A5 that switches on exactly one change at a time,
+with harm thresholds and a keep/drop guidance table frozen before the run
+(\S\ref{sec:rq7b}) --- then attributes them at component level. \textbf{P2} (\emph{RefuseGuard pipeline})
 composes the full path: task-intent gate
 $\rightarrow$ P1 mediation $\rightarrow$ LLM $\rightarrow$ refusal monitor
 $\rightarrow$ structured retry $\rightarrow$ B4 transformer fallback. Crucially,
@@ -133,6 +136,10 @@ are no candidates); \textbf{CUL} (clean utility loss) $=$ utility drop caused
 by a defence on C0; \textbf{unsafe compliance} $=$ share of unsafe contrast
 prompts whose output is not a refusal; \textbf{injection success} $=$ share
 of paired samples whose C3 verdict flips to benign relative to the clean
-prediction. Paired comparisons use exact McNemar tests and bootstrap CIs
-(10{,}000 resamples, fixed seed); primary endpoints and decision rules were
-registered before the runs they evaluate (\S\ref{sec:setup}).
+prediction. Paired comparisons use McNemar tests --- two-sided exact
+binomial, with the pre-registered stats module returning the
+continuity-corrected $\chi^2$ approximation where the discordant count is
+$\geq 25$ (the conservative variant in every affected cell; both variants
+are stored in the artifacts) --- and bootstrap CIs (10{,}000 resamples,
+fixed seed); primary endpoints and decision rules were registered before
+the runs they evaluate (\S\ref{sec:setup}).

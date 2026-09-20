@@ -21,12 +21,17 @@ task-intent reassertion, refusal recovery),
 \code{src/models} (cached/resumable LLM harness, refusal monitor, CodeBERT
 baseline, fusion policy),
 \code{src/metrics} (RR/UAC/SIUD/DRR/CUL/MCC, McNemar and bootstrap),
-\code{src/experiments} (runners, incl.\ \code{round5\_e0v2.py} and
-\code{round5\_defense.py}), and \code{scripts} (training, evaluation,
-calibration, audit recomputes, \code{collect\_master\_round5.py}). Pre-registrations are frozen in
-\code{configs/e*\_round3.yaml}, \code{docs/e0\_protocol.md}, and the
+\code{src/experiments} (runners, incl.\ \code{round5\_e0v2.py},
+\code{round5\_defense.py}, and \code{round6\_ablation.py} --- the
+pre-registered P3 component ladder, C5 extension, and qwen spot check),
+and \code{scripts} (training, evaluation, calibration, audit recomputes,
+\code{collect\_master\_round5.py}, \code{collect\_master\_round6.py},
+\code{analyze\_verdict\_bias.py}). Pre-registrations are frozen in
+\code{configs/e*\_round3.yaml}, \code{docs/e0\_protocol.md}, the
 round-5 gates in \code{configs/attack\_v2.yaml},
-\code{configs/round5\_e0v2.yaml}, \code{configs/round5\_defense.yaml};
+\code{configs/round5\_e0v2.yaml}, \code{configs/round5\_defense.yaml},
+and the round-6 ablation in \code{configs/round6\_ablation.yaml}
+reconciled with \code{docs/round6\_ablation\_prereg.md} (+ Amendment-1);
 every output records model id, revision, seed, config hash, and date.
 
 \subsection{Environment}
@@ -59,8 +64,17 @@ call; (8)~\code{src.experiments.round5\_e0v2} (stages \code{dry}/\code{smoke}/
 \code{src.experiments.round5\_defense} execute the C5 transfer study and the
 P3 defence audit; (9)~\code{scripts/collect\_master\_round5.py} aggregates
 every round-5 number into \code{outputs/master/round5\_master.json} with a
-re-read verification, and (10)~\code{scripts/final\_eval\_summary.py}
-aggregates master results.
+re-read verification; (10)~\code{src.experiments.round6\_ablation}
+(stages \code{dry}/\code{run}/\code{extend}/\code{metrics}) executes the
+Round-6 component ladder, C5\_far culprit confirmation, C5 power
+extension, and the qwen A1-vs-A5 spot check, and
+(11)~\code{scripts/collect\_master\_round6.py} aggregates every round-6
+number into \code{outputs/master/round6\_ablation.json}
+(re-read verified; exact-binomial McNemar recomputed with the runner's
+continuity-corrected $\chi^2$ variants stored alongside), while
+\code{scripts/analyze\_verdict\_bias.py} produces
+\code{outputs/master/round6\_bias.json} the same way;
+(12)~\code{scripts/final\_eval\_summary.py} aggregates master results.
 All LLM calls are content-addressed and cached in \code{outputs/llm\_cache/};
 any rerun resumes from cache. A smoke verification without training or
 generation (\code{bash scripts/verify\_repro.sh}) checks the test suite
@@ -68,7 +82,9 @@ generation (\code{bash scripts/verify\_repro.sh}) checks the test suite
 and parseability of every artifact the paper cites, decision-critical values
 (gate verdict, recomputed E8, master-row count), the SHA256 artifact manifest
 (\code{scripts/make\_manifest.py}), and the PDF build; at submission time it
-reports 27/27 checks passed with 408 unit tests green.
+reports 30/30 checks passed with 443 unit tests green (the round-5/6 master
+files \code{round5\_master.json}, \code{round6\_bias.json}, and
+\code{round6\_ablation.json} are among the checked artifacts).
 
 \subsection{Number-to-file traceability}
 Every table cell and plotted point is generated from the listed output file;
@@ -101,9 +117,18 @@ Table~\ref{tab:round5} (C5 attack transfer) &
 Table~\ref{tab:round5defense} (P3 defence audit) &
 \code{experiments/round5\_defense/results\_\{qwen3b,llama3b\}.json},
 \code{experiments/round5\_defense/side\_effect\_llama3b.json} \\
+Table~\ref{tab:round6ablation} (P3 component ablation) &
+\code{experiments/round6\_ablation/results\_*.json} (ladder, C5\_far,
+qwen spot, extension); all rows also re-derived, expectation-asserted, and
+re-read-verified in \code{master/round6\_ablation.json} by
+\code{scripts/collect\_master\_round6.py}; verdict-bias cells in
+\code{master/round6\_bias.json} \\
 Figure~\ref{fig:round5} & round-5 results files above (all round-5 rows also
 re-derived, expectation-asserted, and re-read-verified in
 \code{master/round5\_master.json} by \code{scripts/collect\_master\_round5.py}) \\
+Figure~\ref{fig:round6} & \code{master/round6\_ablation.json}
+(via \code{paper/make\_figures.py::fig\_round6}; skipped loudly when the
+master file is absent) \\
 Figure~\ref{fig:conditions} & benchmark provenance metadata \\
 Figure~\ref{fig:e0rr} & \code{experiments/round3\_e0/*/results.json} \\
 Figure~\ref{fig:e6} & \code{experiments/round3\_e6/results.json} \\
@@ -130,4 +155,13 @@ calibration probes (0.587) violates the registered monitor-validity criterion
 and is carried as an explicit detector-error caveat on all monitor-derived
 refusal rates; and the bootstrap confidence intervals use
 $10{,}000$~resamples~\cite{efron1979bootstrap} with the seed published in each
-results file.
+results file. Round-6 disclosures: the ladder's per-rung McNemar $p$
+values are two-sided exact binomial, with the pre-registered stats
+module's continuity-corrected $\chi^2$ variant stored alongside wherever
+the discordant count reaches 25 (conservative in every affected cell; no
+verdict changes); the first qwen spot-check run was quarantined for
+cross-model cache-reuse contamination and re-run clean (0 records
+reused), so its 131 burned generations appear in the budget but in no
+table; Round-6 GPU generations total 834 --- 703 in the final files
+(325 ladder + 160 llama extension + 160 granite extension + 58 C5\_far)
+plus the 131 discarded ones.
