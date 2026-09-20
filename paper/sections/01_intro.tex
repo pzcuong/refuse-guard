@@ -1,4 +1,4 @@
-% 01_intro.tex — owner: A2 (Round 4).
+% 01_intro.tex — owner: S (Round 5 reframe; supersedes the Round-4 version).
 \section{Introduction}
 \label{sec:intro}
 
@@ -17,14 +17,15 @@ may interfere with defensive security work. \emph{Defensive Refusal Bias}
 reports that cyber-defence requests containing security-sensitive vocabulary
 are refused far more often than neutral paraphrases~\cite{campbell2026defensive};
 over-refusal is measurable at scale~\cite{cui2025orbench,rottger2024xstest};
-and safety state has been linked to vulnerability-analysis
-utility~\cite{li2026beyondrefusal}. Source code adds a second channel of
-interference: comments, strings, and documentation are model-facing text that
-an attacker can edit, and indirect prompt injection (IPI) through such content
-is a demonstrated attack surface~\cite{yi2023bipia,cheng2026codesentinel}.
-If both phenomena were strong, an LLM vulnerability analyzer could be blocked
-twice: refused by its own safety policy, or subverted by the very code it
-reads.
+safeguards can even be weaponized into denial-of-service through their own
+false positives~\cite{zhang2024safeguarddos}; and safety state has been linked
+to vulnerability-analysis utility~\cite{li2026beyondrefusal}. Source code adds
+a second channel of interference: comments, strings, and documentation are
+model-facing text that an attacker can edit, and indirect prompt injection
+(IPI) through such content is a demonstrated attack
+surface~\cite{yi2023bipia,cheng2026codesentinel}. If both phenomena were
+strong, an LLM vulnerability analyzer could be blocked twice: refused by its
+own safety policy, or subverted by the very code it reads.
 
 \textbf{A pre-registered reproduction gate.}
 Which of these threats is real is an empirical question, and our study design
@@ -46,40 +47,76 @@ refusal, utility, and safety \emph{simultaneously} for LLM vulnerability
 analysis under untrusted code context. On a semantics-preserving benchmark of
 paired clean/contextualized PrimeVul functions (comments, docstrings, and
 string carriers carrying security-charged but benign content, plus
-instruction-like IPI content), we find that availability metrics barely move:
+instruction-like IPI content), availability metrics barely move:
 usable-answer coverage stays at 0.98--1.00 and context-induced utility drop
 (SIUD) is at most $+0.017$. The material effect is an \emph{integrity} one:
 instruction-like context silently flips verdicts to ``benign'' on 74.2\% of
-paired samples while the model still emits a well-formed answer. Defences
-must therefore target prediction stability, not answer recovery.
+paired samples while the model still emits a well-formed answer.
 
-\textbf{Contributions.} Scoped honestly to pilot scale (hundreds, not
-thousands, of generations per condition):
+\textbf{Escalating the attack --- and auditing the defence.}
+A skeptic could attribute the null gate to weak stimuli: wording is easy to
+see through. We therefore built C5, a content-anchored blocking attack in the
+TabooRAG mould~\cite{li2026taboorag}: a short threat-intelligence advisory
+synthesized from the analyzed function's own risky-sink fingerprint
+(AST-extracted, label-blind) and embedded inside the artifact under analysis,
+with audited anti-leakage (no label, CWE, or CVE leakage across all 400
+renderings; balanced advisory strata within each label). The attack is
+genuinely query-relevant where the naive context was not: 100/100 concrete
+advisories name a real sink of the same function, versus 2/838 (0.2\%) naive
+carriers. Pre-registered transfer gates over three models return
+\textsc{not-supported} everywhere: still zero refusals. But the manipulation
+is demonstrably not ignored --- it silently biases verdicts \emph{toward}
+``vulnerable'' (Llama: 10--11 benign functions flipped per arm, never the
+reverse; Granite: vulnerable recall $0.100\rightarrow0.733/0.767$). The
+false-positive channel, not denial of service, is what a risk-context attack
+actually opens at this scale.
+
+Then we did to our own defence what an auditor should: P3, a provenance-based
+safety wrapper that detects the advisory, labels it as untrusted data, and
+reasserts the task intent, never refuses --- and never gets refused. It
+simply \emph{corrupts the verdict}: Llama's vulnerable recall collapses from
+$1.000$ to $0.367/0.333$ under the C5 arms ($39/60$ paired flips
+vul$\to$benign, McNemar $p\leq3.8\times10^{-6}$), on audited, well-formed
+JSON outputs. The defence, not the attack, is the strongest utility risk we
+measured.
+
+\textbf{Contributions.} Scoped honestly to pilot scale (hundreds to ~1.4
+thousand new generations per study round, tens of samples per cell):
 \begin{itemize}
-  \item \textbf{C1 --- A joint evaluation protocol} that separates refusal,
-  partial answers, and correctness for LLM vulnerability analysis, with a
-  calibrated refusal monitor and pre-registered decision rules, including the
-  reproduction gate and its pivot clause (\S\ref{sec:method},
+  \item \textbf{C1 --- A query-relevant, anti-leakage blocking benchmark
+  (C5)} for LLM vulnerability analysis: advisories synthesized from each
+  function's own risky-sink fingerprint, label-blind by construction,
+  stratum-balanced within each label, with pre-registered transfer gates and
+  published manifests, seeds, and prompts (\S\ref{sec:method},
   \S\ref{sec:setup}).
-  \item \textbf{C2 --- A paired contextual benchmark} on the PrimeVul v0.1
-  mirror (838 materialized variants; AST-unchanged C2/C3 transforms;
-  disclosed confounds), with all manifests, seeds, and prompts published
-  (\S\ref{sec:setup}).
-  \item \textbf{C3 --- Empirical evidence that the dominant failure mode under
-  untrusted context is verdict flipping, not refusal}: injection success
-  0.742 for a raw 3B model; semantic context isolation (P1) reduces the
-  aggregate to 0.484 ($p{=}0.0078$) but does not improve accuracy ---
-  isolation is not accuracy (\S\ref{sec:results}, RQ4).
-  \item \textbf{C4 --- A refusal-suppression warning for structured-recovery
-  pipelines}: a naive refusal-recovery pipeline drove unsafe compliance from
-  0.040 to 1.000 on a model that refuses 96\% of harmful prompts; our revised
-  gate-first pipeline (P2) preserves pipeline-level safety by construction
-  (\S\ref{sec:results}, RQ6).
-  \item \textbf{C5 --- A realistic-difficulty transformer baseline}: CodeBERT
-  reaches F1 0.215 on the realistic arm while scoring F1 0.623 on a balanced
-  pilot arm, reproducing on our substrate the optimism gap of
-  \cite{ding2025primevul}, and serving as an independent fallback channel.
+  \item \textbf{C2 --- A three-model blocking-transfer study whose negative
+  result is designed to be interpretable}: refusal does not transfer (all
+  pre-registered gates \textsc{not-supported}, 0/3 models), and the
+  anti-leakage audit plus an inert-evidence counterexample (the same
+  manipulation moves verdicts) show the null is a property of the blocking
+  mechanism at 2--3B scale --- a model-scale limitation we do not generalize
+  from --- not a measurement artifact. The attack's measurable effect is a
+  verdict bias toward ``vulnerable'' (\S\ref{sec:results}, RQ7).
+  \item \textbf{C3 --- The defence-is-the-risk finding, with a flip-rate
+  ledger}: the provenance wrapper P3 silently flips 39/60 vulnerable verdicts
+  to benign on one model ($p\leq3.8\times10^{-6}$) while passing every
+  availability and refusal metric; attributed at defence level only (P3 is a
+  bundle of $\geq$5 components), and joined by the earlier result that
+  ungated structured recovery manufactures unsafe compliance ($0.040\to
+  1.000$) --- two independent ways a mitigation layer becomes the bug
+  (\S\ref{sec:results}, RQ6--RQ7).
+  \item \textbf{C4 --- Injection resistance with honest limits}: semantic
+  isolation (P1) cuts aggregate instruction-injection success
+  $0.742\rightarrow0.484$ ($p{=}0.0078$; vulnerable-only $p{=}0.5$) but does
+  not improve accuracy --- isolation is not accuracy --- and a fine-tuned
+  CodeBERT channel supplies refusal-independent coverage at realistic
+  difficulty (F1 0.215) (\S\ref{sec:results}, RQ4--RQ5).
 \end{itemize}
+
+To our verified knowledge, this is the first systematic test of
+query-relevant safety-blocking transfer to source-code vulnerability analysis
+at open-model scale, and the first evidence of defence-induced verdict
+corruption in this setting (\S\ref{sec:related} scopes both claims).
 
 All numbers in this paper are traceable to released output artifacts; where a
 run was partial or a measurement instrument failed validation, we say so and

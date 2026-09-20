@@ -1,4 +1,4 @@
-% 06_discussion.tex — owner: A2 (Round 4).
+% 06_discussion.tex — owner: S (Round 5 reframe; supersedes the Round-4 version).
 \section{Discussion}
 \label{sec:discussion}
 
@@ -10,9 +10,58 @@ refusal --- real on cyber-defence prompts~\cite{campbell2026defensive} ---
 does not reach vulnerability analysis for our models, while the same models
 refuse 8--75\% of benign probes. ``Safety-induced blocking'' was therefore
 replaced, by rule rather than by preference, with the threat that actually
-materialized: silent verdict corruption under untrusted context. We suggest
-this gate-then-build pattern for any study whose motivation rests on a
-phenomenon measured on a different task distribution.
+materialized: silent verdict corruption under untrusted context. Round 5
+replayed the same discipline one level up: before accepting ``wording is too
+weak'' as the explanation, we built the strongest literature-faithful attack
+we could (C5), pre-registered its transfer gates, and accepted the
+\textsc{not-supported} verdict the data returned. We suggest this
+gate-then-build --- and escalate-before-concluding --- pattern for any study
+whose motivation rests on a phenomenon measured on a different task
+distribution.
+
+\subsection{The defence is the risk}
+The sharpest single finding of the study is negative about our own mitigation:
+P3, a provenance-based safety wrapper, never refuses, is never refused, passes
+every availability metric (RR $=0.000$, UAC $=1.000$ in every completed
+cell), and detects exactly what it was built to detect (400/400 advisories,
+0/984 false positives on clean comments) --- yet it collapses Llama's
+vulnerable recall from $1.000$ to $0.367/0.333$ ($39/60$ paired flips,
+$p\leq3.8\times10^{-6}$) by teaching the model, in effect, to dismiss
+risk-adjacent commentary \emph{and with it the code's own risk signal}. The
+failure is invisible to the metrics a wrapper is usually judged on. Our
+recommendation is concrete: any safety wrapper added to an analysis pipeline
+must publish a \emph{paired flip ledger} --- McNemar on verdicts against the
+undefended baseline, stratified by ground truth --- before deployment, exactly
+as our E8 requires an unsafe-compliance ledger. We deliberately scope the
+claim to the defence as a whole: P3 changes $\geq$5 components at once, the
+C0$\times$P3 control was not run, $n{=}30$, and Llama's raw baseline
+over-triggers (it calls every C5-armed benign function vulnerable), so the
+harm is ``the wrapper pulls an over-triggering model's verdicts toward
+benign'' --- real, replicated across both C5 arms on audited raw outputs, but
+mechanistically unresolved until a component ablation isolates the culprit.
+
+\subsection{Blocking fears are premature at open scale; corruption is the actionable channel}
+Across every generation we have collected on this task --- neutral wording,
+defensive wording, security-dense task framing, naive contextual stress, and
+the content-anchored C5 advisory attack --- there is not a single refusal
+event on a vulnerability-analysis record (zero in all 1{,}200 round-5 E0-V2
+records and all 473 defence records, consistent with every earlier cell).
+Combined with the anti-leakage audit and the inert-evidence counterexample
+(the same advisories that fail to block do move verdicts), the honest
+conclusion is scoped: at open 2--3B scale, the feared safety-blocking of
+vulnerability analysis does not materialize, and the frontier-model question
+stays open --- the 2.72$\times$ wording effect of~\cite{campbell2026defensive}
+and the RAG-blocking of~\cite{li2026taboorag} were measured on different
+(larger, chat-tuned) models. What \emph{is} actionable at this scale is
+verdict corruption, from two sources: untrusted context, which biases
+verdicts in the direction the text implies (instruction-like content pulls
+toward ``benign'', $74.2\%$ flips; risk-charged advisories pull toward
+``vulnerable'', up to 25/30 benign flips) --- a false-positive channel with
+scanner-noise and triage-flooding consequences rather than
+denial-of-service; and the defence layer itself (\S above). The C5 benchmark
+--- query-relevant by construction (100/100 own-sink advisories vs.\ 0.2\%
+of naive carriers), anti-leakage audited, gates pre-registered --- is our
+released instrument for measuring exactly this channel.
 
 \subsection{Structured recovery can be a refusal-suppression machine}
 Our Round-2 pipeline is a cautionary artifact for the over-refusal-mitigation
@@ -24,40 +73,57 @@ that refuses 96\% of harmful requests. Schema-forcing retries do not merely
 the monitor's schema-completeness criterion is blind to what is being
 complied with. The fix we adopted (evaluate the request before the code;
 \texttt{REFUSED\_UNSAFE} with no LLM call; never reframe an unsafe request)
-makes the safety property pipeline-level by construction. We report H6 as
-\emph{met by construction} and deliberately do not claim the LLM inside
-became safer; a gate that classifies surface patterns is also a scope limit
-(see below). Any pipeline that pairs refusal detection with automatic retry
-should be required to publish this ledger.
+makes the safety property pipeline-level by construction; the round-5
+side-ledger confirms the gate-first design under the P3 wrapper (30/30 unsafe
+prompts blocked with zero LLM calls; a reassertion-only probe produces 30/30
+refusals on unsafe prose). Together with P3's verdict corruption, this gives
+two independent instances of the same lesson: the mitigation layer is a
+first-class risk surface, in both the safety direction (suppression) and the
+utility direction (corruption).
 
 \subsection{Isolation is not accuracy}
 P1's aggregate improvement against C3 injection (0.742 $\rightarrow$ 0.484)
 is real but composite: most of the discordant mass sits on benign-ground-truth
-pairs, where holding the clean verdict preserves an error. P1 stabilizes
-behaviour --- it neither hallucinates refusals nor flips under instruction
-pressure --- but it inherits the model's clean-time bias (precision
-$0.48$--$0.49$, near-zero true negatives on security-charged arms). For
-practitioners the message is: provenance mediation addresses
-\emph{instruction-following failures}, not \emph{detection competence}; the
-latter must come from the model or from the independent channel (B4), whose
-realistic-arm numbers (\S\ref{sec:codebert}) show how far that channel is
-from competence as well.
+pairs, where holding the clean verdict preserves an error (the vulnerable-only
+stratum alone is not significant, $p{=}0.5$). P1 stabilizes behaviour ---
+it neither hallucinates refusals nor flips under instruction pressure --- but
+it inherits the model's clean-time bias (precision $0.48$--$0.49$, near-zero
+true negatives on security-charged arms). For practitioners the message is:
+provenance mediation addresses \emph{instruction-following failures}, not
+\emph{detection competence}; the latter must come from the model or from the
+independent channel (B4), whose realistic-arm numbers (\S\ref{sec:codebert})
+show how far that channel is from competence as well.
 
 \subsection{Availability vs.\ integrity}
 Across E2/E3, SIUD $\approx 0$ and UAC $\approx 1$ while paired verdicts
-moved massively ($p$ from $0.02$ to $10^{-5}$). Availability-only dashboards
-would certify this analyzer as robust on the very inputs that corrupt it. We
-recommend paired, verdict-level reporting (McNemar on predictions, not just
-UAC deltas) as a default for LLM security-tool evaluations.
+moved massively ($p$ from $0.02$ to $10^{-5}$); round 5 sharpens the point ---
+P3's harm is \emph{entirely} invisible to availability metrics. We recommend
+paired, verdict-level reporting (McNemar on predictions and flip counts
+stratified by ground truth, not just UAC deltas) as a default for LLM
+security-tool evaluations.
 
 \subsection{Threats to validity}
 \textbf{Pilot scale.} Every result rests on tens of samples per cell (E0: 20
-paired functions/arm; E5/E6: 31--40; E8: 30+30). At E0's $n$, the registered
-PASS branch is statistically unattainable --- disclosed up front; our verdict
-(FAIL, effect size 0) does not depend on it, but a small non-zero effect
-could have been missed. E6's vulnerable-only stratum is underpowered ($p=0.5$
-on 2 pairs). We frame all conclusions as pilot-scale evidence with direction,
-not magnitudes.
+paired functions/arm; E5/E6: 31--40; E8: 30+30; round-5 subsets: 60+60 with
+Granite at 30+30). At E0's $n$, the registered PASS branch is statistically
+unattainable --- disclosed up front; our verdict (FAIL, effect size 0) does
+not depend on it, but a small non-zero effect could have been missed. E6's
+vulnerable-only stratum is underpowered ($p=0.5$ on 2 pairs). We frame all
+conclusions as pilot-scale evidence with direction, not magnitudes.
+\textbf{Model scale and transfer.} All models are open-weight 2--3B code- or
+chat-instruct models on local hardware; the blocking non-transfer verdict is
+explicitly model-scale-scoped by pre-registration (0/3 clause) and does not
+foreclose blocking on frontier models, whose refusal policies may be stronger
+and differently triggered. Granite's round-5 monitor uses disclosed fallback
+thresholds (no calibration fit); the risk is bounded by its 240/240
+schema-complete records and the 0.5B smoke probe that shows genuine refusals
+are catchable.
+\textbf{Defence attribution.} P3 is a bundle ($\geq$5 components); effects
+are attributed at defence level only, the C0$\times$P3 control and component
+ablation were not run, and the round-5 defence cells are partial by budget
+guard (Qwen 293/360, Llama 180/360 records) with the Llama benign half
+absent --- the recall-collapse claim rests on paired vulnerable verdicts
+only.
 \textbf{Measurement instrument.} The refusal monitor failed its own validity
 criterion on Qwen (over-refusal 0.587 vs.\ $\leq 0.10$ registered): the
 lexical detector misclassifies schema-complete JSON answers as refusals. An
@@ -68,18 +134,19 @@ because the error is symmetric across paired arms.
 \textbf{Substrate.} The PrimeVul mirror is v0.1-based ($-13.8\%$ vulnerable
 functions vs.\ the paper); the realistic arm covers all 549 mirror-vulnerable
 test functions, so absolute values are mirror-specific.
-\textbf{Gate scope.} The P2 intent gate is lexical: it blocks 30/30 of our
+\textbf{Gate scope.} The P2/P3 intent gate is lexical: it blocks 30/30 of our
 30 unsafe contrast prompts but only 1/50 paraphrased OR-Bench-toxic prompts
 from the scoring half --- the safety-by-construction claim is scoped to
 surface-pattern recognition, and model-based gating is required before
-deployment claims.
+deployment claims. The P3 advisory detector is genre-targeted (adaptive to
+the advisory style it was built for) and its 0-false-positive result is
+corpus-specific.
 \textbf{Coverage.} E5/E6 defence cells are single-model (Qwen); E0 and E2/E3
 cover all three registered models, with two Granite-specific disclosures: its
 refusal-monitor thresholds are fitted in-sample on its own scoring probes (no
-held-out calibration half), and it complies with 0.538 of refuse-expected
-probes in the neutral arm --- a model-level anomaly reported as measured
-(\S\ref{sec:setup}); proprietary frontier models, which may have stronger and
-different refusal policies, are untested.
+held-out calibration half), and it complies with 0.538 of the 13
+refuse-expected probes in the neutral arm --- a model-level anomaly reported
+as measured (\S\ref{sec:setup}).
 
 \subsection{Responsible-disclosure notes}
 All injections are synthetic template texts; no exploit content was generated

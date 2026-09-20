@@ -29,6 +29,34 @@ calibration half and a scoring half; the halves are disjoint by construction,
 and 25 pre-registered E0 scoring probes were consumed from the scoring half
 (reported, never re-used for fitting).
 
+\subsection{Content-anchored attack benchmark (bench\_attack\_v1) and defence-audit cells}
+\label{sec:bench5}
+The C5 study (\S\ref{sec:conditions}) materializes its own benchmark: 200
+functions (100 vulnerable + 100 benign, CWE-stratified, drawn from the same
+PrimeVul v0.1 mirror test split under the bench\_v1 bridge), each in 4 arms
+(C0, D2 security-dense task wording, C5\_near, C5\_far) = 800 entries
+(sha256\_16 \texttt{2daa249f7543f8e0}, idempotent across rebuilds), with the
+\texttt{has\_risky\_api} advisory stratum balanced 50/50 within each label
+and every advisory checked against a forbidden-token and no-instruction
+policy. Evaluation subsets are seeded and nested: 60+60 samples for the two
+main models, 30+30 for Granite (seed 20260923), all four arms per sample so
+every comparison is paired per function. The defence audit runs
+$\{$C5\_near, C5\_far$\}\times\{$B0, P3, P3R$\}$ on the 30+30 subset for
+both main models, plus a 30-unsafe-prompt side-effect probe; cells are
+budget-guarded and reported exactly as completed (Qwen 293/360 records,
+Llama 180/360; the C0$\times$P3 control cell did not run, so clean-utility
+loss for P3 is not measured --- disclosed where cited). Pre-registered gate
+rules (thresholds, McNemar $\alpha=0.05$, bootstrap CI exclusion,
+$\geq$2/3-model aggregation, and the 0/3 $\Rightarrow$ model-scale-limitation
+clause) were frozen in \code{configs/attack\_v2.yaml},
+\code{configs/round5\_e0v2.yaml}, and \code{configs/round5\_defense.yaml}
+before the corresponding generation runs. Monitor thresholds come from the
+same per-model configuration as earlier rounds; Granite again uses a
+disclosed fallback (no calibration fit), mitigated by the fact that every
+Granite record is a schema-complete answer and the 0.5B smoke probe shows the
+lexical floor catches genuine refusals when they occur (4/5 REFUSAL on
+mock prose).
+
 \subsection{Models}
 \label{sec:models}
 Three open-weight instruct models were registered: \textbf{Qwen2.5-Coder-3B}
@@ -38,7 +66,8 @@ chat template), and \textbf{Granite-3.3-2B} as a third family. Decoding is
 greedy (temperature 0, seed 1234, 8k input truncation) with a resumable
 generation cache; prompts are hashed into cache keys. The per-experiment
 generation budget is 200--320 new tokens (round-3 configs: 200 for the E0/E8
-probe arms, 300 for E0/E2/E3 functions, 320 for E5/E6; harness default 512). A
+probe arms, 300 for E0/E2/E3 functions, 320 for E5/E6; harness default 512,
+which the C5/defence rounds use). A
 0.5B Qwen2.5-Coder model served the earlier pilot round and supplies the
 cached records used by the fusion experiment (RQ5). B4 is
 \texttt{microsoft/codebert-base} fine-tuned for 3 epochs (effective batch 32,
@@ -81,3 +110,11 @@ and the frozen calibration/scoring split. (iii) The E8 safety rule: the
 pipeline passes iff P2's unsafe compliance does not exceed B0's by more than
 0.05 and stays $\leq 0.10$. (iv) The B4 fusion threshold (argmax-MCC on the
 validation split, $\tau{=}0.548$), fixed before any test inference.
+\emph{Round-5 accounting:} the C5/defence study adds 1{,}673 records
+(E0-V2: 1{,}200 = 480$+$480$+$240; defence: 473), of which \textbf{1{,}378
+are unique new generations} --- E0-V2: 1{,}032 new $+$ 168 cache hits (the
+B0 prompts are byte-identical across the attack and defence runners, so each
+run warms the other's cache through the content-addressed store; the defence
+side contributes 346 new generations including the 30-prompt probe).
+Refusal status across all round-5 records: 0 \textsc{refusal}, 1
+\textsc{partial} (one broken JSON key on a Llama C0 record).

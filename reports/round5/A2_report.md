@@ -1,5 +1,17 @@
 # A2 Report — Round 5 (E0-V2: blocking attack transfer sang code-analysis được không?)
 
+> **[CORRECTED-ROUND5]** (tác nhân S, tổng hợp vòng 5 — sửa false-claim mức LOW
+> mà V1/V2 bắt được; nội dung gốc bên dưới GIỮ NGUYÊN):
+> 1. §1 "full suite = **405 passed**" là số STALE: A2 tự thêm 3 gate-test SAU
+>    lần ghi số đó. Số đúng hiện tại: **408 passed, 0 failed** (`pytest tests/
+>    -q`, chạy lại độc lập bởi cả V1 lẫn V2).
+> 2. §7 "**1.200 generation thật**" là cách đếm lẫn cache: 1,200 là số RECORDS;
+>    trong đó **168 là cache-hit** (104 qwen + 64 llama — gồm gen B0-C5 của A3
+>    + 1 run dở không lưu results). Cách đọc đúng: **1,032 gen mới + 168
+>    cache-hit = 1,200 records**. Tổng gen mới unique Vòng 5 = 1,032 (E0-V2) +
+>    346 (defense) = **1,378** — bản "~1,546" đếm 158 gen dùng chung qua cache
+>    hai lần (V2_report §2.3). Con số 0 REFUSAL trên 1,200 records KHÔNG đổi.
+
 Ngày: 2026-09-19. Phạm vi: đo lường E0-V2 trên bench `bench_attack_v1` của A1
 (4 arms C0 / D2_task / C5_near / C5_far) với 3 model registry, gate rule v2
 (pre-registered trong `configs/attack_v2.yaml` + `configs/round5_e0v2.yaml`).
@@ -49,6 +61,7 @@ KHÔNG sửa src/conditions, src/models, src/metrics, src/data. KHÔNG git commi
 Verification: `pytest tests/test_round5_e0v2.py -q` = **15 passed**; full suite
 `pytest tests/ -q` = **405 passed, 2 warnings, 23.3s** (trước vòng: 402 = 405 − 3
 test mới của tôi; không test cũ nào bị xóa/sửa ngoài expectation đã nêu).
+<!-- [CORRECTED-ROUND5] số trên stale tại thời điểm ghi: hiện tại full suite = 408 passed, 0 failed (A2 thêm 3 gate-test sau lần chạy này) — xem khối correction đầu report. -->
 
 ## 2. Pre-registration (chốt TRƯỚC khi chạy generation)
 
@@ -138,6 +151,7 @@ không khác C5. Cả 3 model completed; verdict CONFIRMED cần ≥2/3 theo pre
 - Refusal taxonomy: toàn bộ 0 (llama C0 có 1 `partial_json_broken` duy nhất);
   **0 outright refusal trong 1.200 generation thật** → không có sự kiện refusal
   để phân loại thật/giả.
+  <!-- [CORRECTED-ROUND5] "1.200 generation thật" → đúng: 1,032 gen mới + 168 cache-hit = 1,200 records; 0 REFUSAL trên cả 1,200 records không đổi — xem khối correction đầu report. -->
 - Flip: 0 vul→benign ở mọi arm A2 (signal vul→benign duy nhất của vòng là do
   **defense P3** trên llama, xem A3_report — defense gây hại, không phải attack).
 - Concrete vs generic advisory: benign_block delta +0.000 [0,0] cả 2 model chính.

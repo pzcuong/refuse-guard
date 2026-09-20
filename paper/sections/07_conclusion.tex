@@ -1,33 +1,47 @@
-% 07_conclusion.tex — owner: A2 (Round 4).
+% 07_conclusion.tex — owner: S (Round 5 reframe; supersedes the Round-4 version).
 \section{Conclusion}
 \label{sec:conclusion}
 
-We asked whether safety-induced blocking interferes with LLM-based
-vulnerability analysis, and designed the study so that the answer --- in
-either direction --- would be informative. A pre-registered reproduction gate
-returned FAIL with effect size exactly 0: all three registered models never
-refuse
-vulnerability-analysis prompts, though they refuse 8--75\% of benign
-probes. The pivot that rule mandated redirected the study to untrusted code
-context, where the real hazard lives: benign security-charged context
-silently biases verdicts, and instruction-like context flips 74\% of paired
-predictions to ``benign'' while every availability metric stays healthy.
-Semantic context isolation cuts that injection success to 48\% (aggregate
-$p=0.0078$; vulnerable-only $p=0.5$) without improving accuracy, a naive
-structured-recovery pipeline suppresses refusal entirely (unsafe compliance
-1.00) and a gate-first redesign restores pipeline-level safety by
+We asked whether safety alignment interferes with LLM-based vulnerability
+analysis, and designed the study so that the answer --- in either direction
+--- would be informative. The measurement returned a sharper story than
+either side predicted. The feared blocking does not materialize at open
+2--3B scale: a pre-registered reproduction gate fails with effect size
+exactly 0, and the verdict survives the strongest literature-faithful
+escalation we could build --- a content-anchored, query-relevant risk
+advisory embedded in the analyzed function itself (100/100 own-sink
+relevance vs.\ 0.2\% for naive carriers), pre-registered and audited for
+leakage, still produces zero refusals in 1{,}200 paired records across three
+models. What the attack does produce is silent verdict corruption toward
+``vulnerable'' --- a false-positive channel, not denial of service. And the
+strongest utility risk we measured is the mitigation layer itself: a
+provenance-based safety wrapper that never refuses, passes every availability
+metric, and still collapses Llama's vulnerable recall from 1.000 to
+0.367/0.333 (39/60 paired flips, $p\leq3.8\times10^{-6}$) on audited raw
+outputs. Semantic isolation cuts instruction-injection success to 48\%
+(aggregate $p=0.0078$; vulnerable-only $p=0.5$) without improving accuracy,
+an ungated structured-recovery pipeline suppresses refusal entirely (unsafe
+compliance 1.00) and a gate-first redesign restores pipeline-level safety by
 construction, and a CodeBERT fallback supplies honest, refusal-independent
-coverage at realistic difficulty (F1 0.215). The refusal monitor's own
-failure modes --- an over-refusal criterion violation and a recompute that
-retracted a headline claim --- are documented as part of the contribution:
-joint refusal--utility--safety evaluation is only as trustworthy as its
-measurement instruments.
+coverage at realistic difficulty (F1 0.215).
 
-Future work, sized beyond a pilot: scale each cell past power thresholds,
-replace lexical intent gating with model-based gating measured on paraphrase
-adversaries, re-run on the official PrimeVul v1.0 substrate, extend to
-repository-level context where provenance mediation has more structure to
-exploit, and evaluate whether verdict-stability defences can be trained for
-rather than assembled at inference time. All artifacts --- manifests, seeds,
-prompts, cached generations, and per-claim source files --- are released so
-that every number in this paper can be recomputed from its raw outputs.
+For builders of LLM security tooling the guidance is concrete: do not
+engineer against refusal on analysis tasks at this scale --- engineer against
+verdict corruption, and require a paired flip ledger from every safety
+wrapper before it ships. For researchers, two scoped firsts invite
+replication: the first systematic test of query-relevant safety-blocking
+transfer to source-code vulnerability analysis at open-model scale, and the
+first evidence of defence-induced verdict corruption in this setting; the
+frontier-model transfer question and the component-level mechanism behind
+P3's harm are the two highest-value open problems.
+
+Future work, sized beyond a pilot: a component ablation of P3 to convert the
+defence-risk observation into a mechanism; frontier-model API runs to test
+blocking and bias transfer at scale; extending the C5 advisory generator
+beyond its 26-sink inventory to further CWE families and repository-level
+context; scaling each cell past power thresholds; replacing lexical intent
+gating with model-based gating measured on paraphrase adversaries; and
+re-running on the official PrimeVul v1.0 substrate. All artifacts ---
+manifests, seeds, prompts, cached generations, and per-claim source files ---
+are released so that every number in this paper can be recomputed from its
+raw outputs.

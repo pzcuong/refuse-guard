@@ -33,7 +33,7 @@ cache key; a verdict \texttt{vulnerable}=0 does not require CWE or location
 fields (benign-aware usability). Refusal is never mapped to ``benign'': a
 missing or refused verdict is missing, not negative.
 
-\subsection{Context conditions (C0--C3)}
+\subsection{Context conditions (C0--C3) and the content-anchored attack (C5)}
 \label{sec:conditions}
 \textbf{C0} is the untouched function with a standardized defensive prompt.
 \textbf{C1} varies only the prompt framing between neutral and
@@ -52,6 +52,23 @@ be identical to C0 (comments ignored; string carriers compared with
 by construction. Candidates that fail the gate fall back to a deterministic
 seeded ladder rather than ad-hoc repair.
 
+\textbf{C5} escalates from wording to content: a short threat-intelligence
+\emph{advisory} in the TabooRAG mould~\cite{li2026taboorag}, synthesized from
+the analyzed function's own risky-sink fingerprint. Sinks are extracted from
+the AST (26 sink APIs; member calls excluded --- conservative); a
+label-blind template (8 advisory patterns plus one zero-API generic, drawn
+by sample-seeded hash, occurrence count capped at 3) renders the advisory,
+which is embedded as a comment \emph{inside} the function body (C5\_near)
+or at the top of the file (C5\_far); a security-dense task wording (D2)
+reproduces the naive, function-independent blocking wording. Anti-leakage is
+designed in, not hoped for: advisories carry no label-derived parameter;
+the \texttt{has\_risky\_api} stratum is balanced 50/50 within each label (so
+advisory presence cannot leak the label); and the C5\_near/C5\_far pair
+differs from C0 only by the advisory (task text and system prompt are
+byte-identical to C0, audited). C5 variants pass the strict semantics gate
+(strings compared), and the materialized benchmark ships with a manifest
+(seed, checksums, strata).
+
 \subsection{Defences}
 \textbf{B1} reframes the prompt to state defensive intent (no code change).
 \textbf{B2} strips comments via tree-sitter. \textbf{B3} aggressively removes
@@ -59,8 +76,23 @@ most textual nodes --- a deliberately destructive bound used to measure clean
 utility loss. \textbf{P1} (\emph{semantic context isolation}) parses the
 function, tags every node with provenance (executable vs.\ comment, string,
 docstring), and mediates untrusted text into structured, non-imperative form
-instead of deleting it; instruction-shaped spans are neutralized. \textbf{P2}
-(\emph{RefuseGuard pipeline}) composes the full path: task-intent gate
+instead of deleting it; instruction-shaped spans are neutralized. \textbf{P3}
+(\emph{semantic boundary defence}) targets the advisory genre rather than
+instructions: (a)~a weighted-regex detector recognizes threat-intel
+morphology (CVE references, verdict phrasing, scanner/attribution vocab),
+label-blind by signature; (b)~flagged spans are wrapped \emph{verbatim} in a
+provenance boundary label marking them as third-party commentary to be read
+as data, with a context-provenance header --- nothing is deleted;
+(c)~a task-intent reassertion is appended to the system prompt; and
+(d)~a refusal-recovery path (structured retry, then the B4 transformer
+fallback) that never maps a refusal to ``benign''. Two disclosures scope all
+P3 claims: the detector is \emph{genre-targeted} (it learns the advisory
+genre, not ground-truth labels; false positives on clean comments are
+measured in \S\ref{sec:results}), and P3 acts as a \emph{bundle} of
+$\geq$5 simultaneous changes (boundary wrap, header, generic comment wrap,
+string mediation, reassertion), so effects are attributed at defence level,
+not to individual components. \textbf{P2} (\emph{RefuseGuard pipeline})
+composes the full path: task-intent gate
 $\rightarrow$ P1 mediation $\rightarrow$ LLM $\rightarrow$ refusal monitor
 $\rightarrow$ structured retry $\rightarrow$ B4 transformer fallback. Crucially,
 the intent gate classifies the \emph{request} before any code is processed;

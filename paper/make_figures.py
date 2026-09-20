@@ -62,6 +62,13 @@ E8_POST = {
 }
 SUM2 = load("outputs/experiments/pilot_round2_recomputed/summary_v2.json")
 CODEBERT = load("outputs/transformer/codebert_eval_vd_s_metrics.json")
+E0V2 = {m: load(f"outputs/experiments/round5_e0v2/results_{m}.json")
+        for m in ("qwen3b", "llama3b", "granite2b")}
+E0V2_VERDICT = load("outputs/experiments/round5_e0v2/verdict.json")
+DEF_LLAMA = load("outputs/experiments/round5_defense/results_llama3b.json")
+DEF_QWEN = load("outputs/experiments/round5_defense/results_qwen3b.json")
+SIDE_EFFECT = load("outputs/experiments/round5_defense/side_effect_llama3b.json")
+R5_MASTER = load("outputs/master/round5_master.json")
 
 # --- structural sanity asserts --------------------------------------------
 for m, d in E0.items():
@@ -75,6 +82,15 @@ assert "IPI_flip_rate_B0" in E6["metrics"]["flip_metrics"]
 assert E8_POST["qwen3b"]["metadata"]["n_status_changed"] == 0
 assert E8_POST["llama3b"]["metadata"]["n_status_changed"] == 11
 assert CODEBERT["meta"]["is_dry_run"] is False and CODEBERT["metrics"]["n_vulnerable"] == 549
+# Round-5 structural sanity (files exist, runs are real, zero refusal anywhere)
+for m, d in E0V2.items():
+    assert d["metadata"]["real"] is True and d["metadata"]["partial"] is False
+    assert all(r["status"] != "REFUSAL" for r in d["records"])
+    assert d["metadata"]["n_records"] == {"qwen3b": 480, "llama3b": 480, "granite2b": 240}[m]
+assert E0V2_VERDICT["aggregate"]["H_A"]["verdict"] == "NOT_SUPPORTED"
+assert E0V2_VERDICT["aggregate"]["H_A"]["models_pass"] == 0
+assert DEF_LLAMA["metadata"]["real"] is True and DEF_QWEN["metadata"]["real"] is True
+assert SIDE_EFFECT["metrics"]["P3_gate_blocked"] == 30
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +380,107 @@ def fig_codebert() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Figure 6 (Round 5): C5 attack + P3 defence — two opposite verdict drifts,
+# zero blocking anywhere. All numbers recomputed from records (asserted).
+# ---------------------------------------------------------------------------
+def _e0v2_flip_benign_to_vul(model: str) -> dict[str, int]:
+    by = {(r["condition"], r["sample_id"]): r for r in E0V2[model]["records"]}
+    c0 = {s: r for (a, s), r in by.items() if a == "C0"}
+    out = {}
+    for arm in ("D2_task", "C5_near", "C5_far"):
+        out[arm] = sum(1 for s, r0 in c0.items()
+                       if r0["y_true"] == 0 and r0["y_pred"] == 0
+                       and by[(arm, s)]["y_pred"] == 1)
+    return out
+
+
+def _def_recall_and_flips(model_data: dict) -> dict[tuple[str, str], tuple[float, int, int]]:
+    """(arm, defense) -> (vul_recall, flip_v2b, flip_b2v) recomputed from records."""
+    by = {(r["condition"], r["defense"], r["sample_id"]): r for r in model_data["records"]}
+    out = {}
+    for arm in ("C5_near", "C5_far"):
+        vul_ids = [s for (c, f, s) in by if c == arm and f == "B0" and by[(c, f, s)]["y_true"] == 1]
+        for dfn in ("B0", "P3", "P3R"):
+            ids = [s for s in vul_ids if (arm, dfn, s) in by]
+            rec = sum(1 for s in ids if by[(arm, dfn, s)]["y_pred"] == 1) / len(ids)
+            v2b = sum(1 for s in ids if dfn != "B0"
+                      and by[(arm, "B0", s)]["y_pred"] == 1 and by[(arm, dfn, s)]["y_pred"] == 0)
+            b2v = sum(1 for s in ids if dfn != "B0"
+                      and by[(arm, "B0", s)]["y_pred"] == 0 and by[(arm, dfn, s)]["y_pred"] == 1)
+            out[(arm, dfn)] = (rec, v2b, b2v)
+    return out
+
+
+def fig_round5() -> None:
+    # audit-anchored expectations (V1/V2 round-5 audits)
+    flips = {m: _e0v2_flip_benign_to_vul(m) for m in E0V2}
+    assert flips["qwen3b"] == {"D2_task": 0, "C5_near": 0, "C5_far": 0}, flips["qwen3b"]
+    assert flips["llama3b"] == {"D2_task": 10, "C5_near": 11, "C5_far": 11}, flips["llama3b"]
+    assert flips["granite2b"] == {"D2_task": 10, "C5_near": 20, "C5_far": 25}, flips["granite2b"]
+    dl = _def_recall_and_flips(DEF_LLAMA)
+    assert dl[("C5_near", "B0")][0] == 1.0 and dl[("C5_far", "B0")][0] == 1.0
+    assert abs(dl[("C5_near", "P3")][0] - 0.3667) < 5e-5 and abs(dl[("C5_far", "P3")][0] - 0.3333) < 5e-5
+    assert dl[("C5_near", "P3")][1] == 19 and dl[("C5_far", "P3")][1] == 20
+    assert dl[("C5_near", "P3")][2] == 0 and dl[("C5_far", "P3")][2] == 0
+    pq = _def_recall_and_flips(DEF_QWEN)
+    assert all(abs(pq[(a, d)][0] - 1.0) < 5e-5 for a in ("C5_near", "C5_far")
+               for d in ("B0", "P3", "P3R")), pq
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6.6, 2.15))
+
+    # (a) attack direction: benign -> vulnerable flips (no blocking anywhere)
+    arms = ["D2_task", "C5_near", "C5_far"]
+    labels = ["D2\n(wording)", "C5 near", "C5 far"]
+    models = ["qwen3b", "llama3b", "granite2b"]
+    name = {"qwen3b": "Qwen-3B", "llama3b": "Llama-3.2-3B", "granite2b": "Granite-3.3-2B"}
+    color = {"qwen3b": C_B0, "llama3b": C_DEF, "granite2b": C_MID}
+    x = list(range(len(arms)))
+    w = 0.26
+    for i, m in enumerate(models):
+        vals = [flips[m][a] for a in arms]
+        ax1.bar([xi + (i - 1) * w for xi in x], vals, width=w, color=color[m],
+                label=name[m])
+        for xi, v in zip(x, vals):
+            ax1.text(xi + (i - 1) * w, v + 0.5, str(v), ha="center", fontsize=6.5)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels)
+    ax1.set_ylim(0, 30)
+    ax1.set_ylabel("Paired benign$\\to$vulnerable flips")
+    ax1.set_title("(a) C5 attack: no blocking (RR = 0.000,\n"
+                  "benign-block = 0.000) but verdicts drift to ``vulnerable''",
+                  fontsize=7.2)
+    ax1.legend(loc="upper left", frameon=False, fontsize=6.0)
+
+    # (b) defense direction: P3 collapses Llama vulnerable recall
+    rec_b0 = [dl[(a, "B0")][0] for a in ("C5_near", "C5_far")]
+    rec_p3 = [dl[(a, "P3")][0] for a in ("C5_near", "C5_far")]
+    xs = [0, 1]
+    wb = 0.34
+    ax2.bar([v - wb / 2 for v in xs], rec_b0, width=wb, color=C_B0, label="B0 (raw)")
+    ax2.bar([v + wb / 2 for v in xs], rec_p3, width=wb, color=C_DEF, label="P3 (boundary)")
+    for v, r0 in zip(xs, rec_b0):
+        ax2.text(v - wb / 2, r0 + 0.02, f"{r0:.3f}", ha="center", fontsize=7)
+    for v, rp in zip(xs, rec_p3):
+        ax2.text(v + wb / 2, rp + 0.02, f"{rp:.3f}", ha="center", fontsize=7)
+    # arrow: the defence pushes verdicts down (vul -> benign), annotate total flips
+    ax2.annotate("", xy=(1.0, 0.40), xytext=(1.0, 0.97),
+                 arrowprops=dict(arrowstyle="-|>", color=C_DEF, linewidth=1.2))
+    ax2.text(1.06, 0.66, "39/60 paired\nvul$\\to$benign flips\n(McNemar $p \\leq 3.8{\\times}10^{-6}$)",
+             fontsize=6.2, color=C_DEF, va="center")
+    ax2.set_xticks(xs)
+    ax2.set_xticklabels(["C5 near", "C5 far"])
+    ax2.set_ylim(0, 1.15)
+    ax2.set_ylabel("Vulnerable recall (Llama-3.2-3B, $n{=}30$/arm)")
+    ax2.set_title("(b) P3 defence: same context, opposite drift\n"
+                  "(Qwen inert; recovery never triggers)", fontsize=7.2)
+    ax2.legend(loc="lower left", frameon=False, fontsize=6.2)
+
+    fig.tight_layout()
+    fig.savefig(FIG / "fig_round5.pdf")
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Table verification: every number typed in paper/tables/*.tex must appear in
 # (or be derived from) the source files loaded above.
 # ---------------------------------------------------------------------------
@@ -458,6 +575,41 @@ def verify_tables() -> None:
     assert f"{cal_l['at_fit_thresholds']['unsafe_compliance_rate']:.2f}" == "0.26"
     print("[verify] all table numbers match source files")
 
+    # ---- Round-5 tables: every number cross-checked against
+    # outputs/master/round5_master.json (whose rows are themselves re-derived
+    # from the result files by scripts/collect_master_round5.py) ----
+    r5 = {(r["experiment"], r["metric"]): r["value"] for r in R5_MASTER["results"]}
+    need("tab_round5.tex",
+         "0.000",                                  # RR / benign-block all arms
+         "0.933", "0.100", "0.733", "0.767",       # C0 llama / granite recalls, granite C5
+         "0 / 0 / 0", "10 / 11 / 11", "10 / 20 / 25",  # benign->vul flips
+         "NOT\\_SUPPORTED (0/3)")
+    need("tab_round5_defense.tex",
+         "0.367", "0.333", "1.000",                # P3 / P3R / B0 recalls
+         "3.8\\times10^{-6}", "1.9\\times10^{-6}",  # McNemar p
+         "30/30", "0.033", "0/30")                 # gate / B0 unsafe / probe
+    # recompute the headline master values the two tables rest on
+    assert r5[("E0V2", "e0v2.llama3b.C0.recall_vul")] == 0.9333
+    assert r5[("E0V2", "e0v2.granite2b.C0.recall_vul")] == 0.1
+    assert r5[("E0V2", "e0v2.granite2b.C5_near.recall_vul")] == 0.7333
+    assert r5[("E0V2", "e0v2.granite2b.C5_far.recall_vul")] == 0.7667
+    assert r5[("E0V2", "e0v2.llama3b.D2_task.flip_benign_to_vul")] == 10
+    assert r5[("E0V2", "e0v2.llama3b.C5_near.flip_benign_to_vul")] == 11
+    assert r5[("E0V2", "e0v2.llama3b.C5_far.flip_benign_to_vul")] == 11
+    assert r5[("E0V2", "e0v2.granite2b.C5_far.flip_benign_to_vul")] == 25
+    assert r5[("E0V2", "e0v2.verdict.H_A")] == "NOT_SUPPORTED"
+    assert r5[("DEFENSE", "defense.llama3b.C5_near.P3.recall_vul")] == 0.3667
+    assert r5[("DEFENSE", "defense.llama3b.C5_far.P3.recall_vul")] == 0.3333
+    assert abs(r5[("DEFENSE", "defense.llama3b.C5_near.B0_vs_P3.mcnemar_p_exact")] - 3.8147e-06) < 1e-9
+    assert abs(r5[("DEFENSE", "defense.llama3b.C5_far.B0_vs_P3.mcnemar_p_exact")] - 1.9073e-06) < 1e-9
+    assert r5[("DEFENSE", "defense.qwen3b.P3_changed_pairs")] == "2/98"
+    assert r5[("DEFENSE", "defense.llama3b.side_effect.P3_gate_blocked")] == 30
+    assert r5[("DEFENSE", "defense.llama3b.side_effect.B0_unsafe_compliance")] == 0.0333
+    assert r5[("BENCH", "c5_query_relevance.concrete_named_own_sink")] == "100/100"
+    assert r5[("BENCH", "c2b_carrier_named_sink")] == "2/838"
+    assert r5[("ACCOUNTING", "round5.unique_new_generations")] == 1378
+    print("[verify] round-5 table numbers match outputs/master/round5_master.json")
+
     # Cross-check against the Round-4 master aggregate (A1) if present.
     master_path = ROOT / "outputs/master/master_results.json"
     if master_path.exists():
@@ -528,6 +680,7 @@ if __name__ == "__main__":
     fig_e6_injection()
     fig_e8_compliance()
     fig_codebert()
+    fig_round5()
     verify_tables()
     check_citations()
     for p in sorted(FIG.glob("*.pdf")):

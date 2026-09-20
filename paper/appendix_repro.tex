@@ -11,16 +11,23 @@ in a single repository. Code layout:
 \code{src/data} (PrimeVul loading/validation, seeded stratified sampling,
 benchmark build, safety-contrast set),
 \code{src/conditions} (C0--C3 generators with tree-sitter
-semantic-preservation checks),
+semantic-preservation checks, plus \code{c5\_risk\_context.py} --- the
+content-anchored C5 advisory attack: AST sink extraction, label-blind
+advisory templates, arm materialization),
 \code{src/defenses} (B1 reframe, B2 comment stripping, B3 aggressive
-removal, P1 semantic context isolation, P2 gate-first pipeline),
+removal, P1 semantic context isolation, P2 gate-first pipeline,
+\code{p3\_boundary.py} --- advisory detection, provenance boundary label,
+task-intent reassertion, refusal recovery),
 \code{src/models} (cached/resumable LLM harness, refusal monitor, CodeBERT
 baseline, fusion policy),
 \code{src/metrics} (RR/UAC/SIUD/DRR/CUL/MCC, McNemar and bootstrap),
-\code{src/experiments} (runners), and \code{scripts} (training, evaluation,
-calibration, audit recomputes). Pre-registrations are frozen in
-\code{configs/e*\_round3.yaml} and \code{docs/e0\_protocol.md}; every output
-records model id, revision, seed, config hash, and date.
+\code{src/experiments} (runners, incl.\ \code{round5\_e0v2.py} and
+\code{round5\_defense.py}), and \code{scripts} (training, evaluation,
+calibration, audit recomputes, \code{collect\_master\_round5.py}). Pre-registrations are frozen in
+\code{configs/e*\_round3.yaml}, \code{docs/e0\_protocol.md}, and the
+round-5 gates in \code{configs/attack\_v2.yaml},
+\code{configs/round5\_e0v2.yaml}, \code{configs/round5\_defense.yaml};
+every output records model id, revision, seed, config hash, and date.
 
 \subsection{Environment}
 All experiments ran on Apple silicon (M2 Pro, 32\,GB) with the MPS backend,
@@ -47,7 +54,13 @@ E0/E2/E3/E4 (\code{src.experiments.round3\_scaleup}, stages
 \code{e0}/\code{e2e3}/\code{e4}/\code{gate}) and
 E5/E6/E8 (\code{src.experiments.pilot\_round3}); (7)~
 \code{scripts/run\_e7\_fusion.py} evaluates the fusion policy without any LLM
-call; (8)~\code{scripts/final\_eval\_summary.py} aggregates master results.
+call; (8)~\code{src.experiments.round5\_e0v2} (stages \code{dry}/\code{smoke}/
+\code{run}/\code{verdict}/\code{summary}) and
+\code{src.experiments.round5\_defense} execute the C5 transfer study and the
+P3 defence audit; (9)~\code{scripts/collect\_master\_round5.py} aggregates
+every round-5 number into \code{outputs/master/round5\_master.json} with a
+re-read verification, and (10)~\code{scripts/final\_eval\_summary.py}
+aggregates master results.
 All LLM calls are content-addressed and cached in \code{outputs/llm\_cache/};
 any rerun resumes from cache. A smoke verification without training or
 generation (\code{bash scripts/verify\_repro.sh}) checks the test suite
@@ -55,7 +68,7 @@ generation (\code{bash scripts/verify\_repro.sh}) checks the test suite
 and parseability of every artifact the paper cites, decision-critical values
 (gate verdict, recomputed E8, master-row count), the SHA256 artifact manifest
 (\code{scripts/make\_manifest.py}), and the PDF build; at submission time it
-reports 27/27 checks passed with 353 unit tests green.
+reports 27/27 checks passed with 408 unit tests green.
 
 \subsection{Number-to-file traceability}
 Every table cell and plotted point is generated from the listed output file;
@@ -82,6 +95,15 @@ Table~\ref{tab:defenses} (E5/E6/E7/E8) &
 \code{experiments/round3\_e8*/recomputed/} \\
 Table~\ref{tab:codebert} &
 \code{transformer/codebert\_eval\_*\_metrics.json} \\
+Table~\ref{tab:round5} (C5 attack transfer) &
+\code{experiments/round5\_e0v2/results\_\{qwen3b,llama3b,granite2b\}.json},
+\code{experiments/round5\_e0v2/verdict.json} \\
+Table~\ref{tab:round5defense} (P3 defence audit) &
+\code{experiments/round5\_defense/results\_\{qwen3b,llama3b\}.json},
+\code{experiments/round5\_defense/side\_effect\_llama3b.json} \\
+Figure~\ref{fig:round5} & round-5 results files above (all round-5 rows also
+re-derived, expectation-asserted, and re-read-verified in
+\code{master/round5\_master.json} by \code{scripts/collect\_master\_round5.py}) \\
 Figure~\ref{fig:conditions} & benchmark provenance metadata \\
 Figure~\ref{fig:e0rr} & \code{experiments/round3\_e0/*/results.json} \\
 Figure~\ref{fig:e6} & \code{experiments/round3\_e6/results.json} \\

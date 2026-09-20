@@ -1,18 +1,26 @@
-% 00_abstract.tex — owner: A2 (Round 4). ~150 words.
+% 00_abstract.tex — owner: S (Round 5 reframe; supersedes the Round-4 version).
+% Every number traces to outputs/** via outputs/master/round5_master.json and
+% outputs/master/master_results.json (see paper/make_figures.py::verify_tables).
 \begin{abstract}
-Large language models (LLMs) are increasingly used for defensive vulnerability
-analysis, yet recent work reports that safety alignment can refuse legitimate
-cyber-defence tasks. Before building mitigation, we pre-registered a
-reproduction gate over this phenomenon on vulnerability-analysis tasks with
-three open-weight instruct models. The gate \emph{failed}: refusal rates were 0.000 in all
-prompt arms, while contrast probes showed the same models refuse frequently but
-arm-independently. Under a semantics-preserving untrusted-context benchmark on
-PrimeVul, availability was likewise unaffected (usable-answer coverage
-$\geq 0.98$); the real threat was \emph{integrity}: instruction-like context
-silently flipped verdicts on 74\% of paired samples. A semantic-isolation
-defence reduced aggregate injection success to 48\% ($p{=}0.008$) without
-helping accuracy, and a naive structured-refusal-recovery pipeline acted as a
-refusal-suppression machine (unsafe compliance 1.00), which our revised
-gate-first pipeline eliminated. We release a joint refusal--utility--safety
-protocol, benchmark, and defences, and discuss negative results as evidence.
+Safety wrappers are being attached to LLM coding assistants faster than their
+side effects are measured. We study LLM-based vulnerability analysis on
+PrimeVul-derived functions under three threats: safety-induced blocking,
+untrusted code context, and the defence layer itself. The blocking fear
+dissolves first under measurement: across three open-weight 2--3B models,
+including a content-anchored ``risk advisory'' attack whose concrete advisories
+name the analyzed function's own sinks in 100\% of cases (vs.\ 0.2\% of naive
+context carriers), not one refusal occurs (RR${}=0.000$ over 1{,}200 paired
+records; zero refusal in every earlier cell as well). The same attack, however,
+silently biases verdicts \emph{toward} ``vulnerable'': Llama flips 10--11 benign
+functions per arm (never the reverse), and Granite's vulnerable recall jumps
+$0.100\rightarrow 0.733/0.767$. Stronger still, \emph{the defence is the risk}:
+a provenance-based safety wrapper collapses Llama's vulnerable recall from
+$1.000$ to $0.367/0.333$ (39/60 paired flips, McNemar
+$p\leq 3.8\times10^{-6}$), with audited raw outputs confirming genuine
+verdicts, not parse failures. Semantic isolation reduces instruction-injection
+success $0.742\rightarrow 0.484$ ($p{=}0.0078$) without improving accuracy, and
+ungated refusal-recovery can manufacture full unsafe compliance. We release a
+query-relevant, anti-leakage benchmark and argue that at open-model scale the
+actionable risk is verdict corruption --- by untrusted context and by the
+defence itself --- not denial of service.
 \end{abstract}

@@ -56,6 +56,23 @@ $\approx$3.8\% of vulnerable functions detected under the budget).
 \label{fig:codebert}
 \end{figure*}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_round5.pdf}
+\caption{Round 5 (RQ7): two opposite verdict drifts, zero blocking anywhere.
+(a)~The C5 attack never blocks (RR and benign-block are 0.000 in every
+model$\times$arm cell) but drifts paired benign verdicts toward
+``vulnerable'' (bars: benign$\to$vulnerable flips vs.\ C0; Llama predicts
+60/60 C5-armed benign functions vulnerable vs.\ 49/60 on C0).
+(b)~The P3 defence pushes the same model's verdicts the opposite way:
+vulnerable recall collapses from 1.000 to 0.367/0.333 with 39/60 paired
+vul$\to$benign flips (exact McNemar $p\leq3.8\times10^{-6}$); Qwen is
+inert and recovery never triggers. Sources:
+\texttt{outputs/experiments/round5\_e0v2/results\_\{qwen3b,llama3b,granite2b\}.json};
+\texttt{outputs/experiments/round5\_defense/results\_\{qwen3b,llama3b\}.json}.}
+\label{fig:round5}
+\end{figure*}
+
 
 \subsection{RQ1: Does defensive refusal reproduce? No --- the gate fails}
 \label{sec:rq1}
@@ -182,6 +199,74 @@ caveat demanded by the design: P2's zero is the gate's zero, not the model's
 itself is safer. On the defensive side of the ledger, P1/P2 do not increase
 over-refusal: safe-prompt refusal drops from 0.233 to 0.000 on Qwen (McNemar
 $p=0.0156$) and from 0.033 to 0.000 on Llama ($p=1.0$).
+
+\subsection{RQ7: Does content-anchored blocking transfer --- and what does the defence do to utility?}
+\label{sec:rq7}
+RQ7 escalates the attack from wording to content (C5, \S\ref{sec:conditions})
+and then audits the defence layer itself; Figure~\ref{fig:round5},
+Table~\ref{tab:round5}, and Table~\ref{tab:round5defense} summarize. The
+attack is verifiably query-relevant where the naive context was not: 100/100
+concrete advisories name a real sink of the very function under analysis
+(extracted from its AST), versus 2/838 (0.2\%) naive round-3 carriers
+containing any sink name; anti-leakage is audited (no label, CWE, or CVE
+content in any of the 400 advisory renderings; advisory strata balanced
+50/50 within each label).
+
+\textbf{Blocking: no, with a designed-in interpretation.} Refusal rate and
+benign-block are 0.000 in every model$\times$arm cell (1{,}200 records; the
+only non-ANSWER is one broken-JSON \textsc{partial}), so all three
+pre-registered transfer gates return \textsc{not-supported} 0/3 models: the
+advisory neither blocks benign analysis (H-A), nor costs vulnerable utility
+(H-B; Llama's recall delta is $+0.067$, $p{=}0.125$, the \emph{opposite}
+direction), nor beats naive wording at blocking (H-C). The pre-registered
+0/3 clause applies: at 2--3B open-model scale, content-anchored
+safety-blocking does not transfer, and we do not claim absence in general.
+Crucially, the null is a property of the \emph{blocking mechanism}, not of
+the stimulus: the same manipulation moves verdicts.
+
+\textbf{Verdicts: the attack biases toward ``vulnerable''.} Paired against
+C0, Llama flips 10 (D2) and 11/11 (C5 near/far) benign functions to
+``vulnerable'' --- and zero in the reverse direction; under C5 arms it
+predicts \emph{every} benign function vulnerable (60/60 vs.\ 49/60 on C0).
+Granite, whose clean-function baseline is recall $0.100$, jumps to
+$0.433$ (D2, $p{=}0.006$) and $0.733/0.767$ under C5 ($p<0.001$,
+$n{=}30$), with up to 25/30 benign$\to$vulnerable flips. The practical
+channel a risk-context attack opens at this scale is therefore
+false-positive corruption --- scanner noise, triage flooding, alert
+fatigue --- not denial of service. Query-relevance leaves no separate
+fingerprint on the blocking endpoint: the concrete-vs-generic advisory
+delta in benign-block is exactly 0.000 for both main models.
+
+\textbf{The defence is the risk.} P3 never refuses and is never refused
+(RR $=0.000$ in every cell), its detector is mechanically sound (400/400
+advisory recall, 0/984 false positives on clean comments), and refusal
+recovery is never triggered (P3R $\equiv$ P3 on every completed pair).
+What P3 does instead is \emph{corrupt vulnerable verdicts} on Llama:
+recall collapses from $1.000$ to $0.367$ (C5\_near) and $0.333$ (C5\_far)
+--- 39/60 paired (function, arm) verdicts flip vul$\to$benign (19$+$20;
+20 unique functions; exact McNemar $p=3.8\times10^{-6}$ and
+$1.9\times10^{-6}$). An audit of the raw outputs confirms these are genuine
+model verdicts, not parse failures: reconstructing the prompts from the
+runners' code path matches the logged prompt hashes 20/20, and every
+flipped P3 output is well-formed JSON announcing
+\texttt{no\_vulnerability} with confidence 0.0 for the same function that
+B0 called vulnerable. On Qwen, P3 is near-inert (2/98 pairs changed ---
+one benign sample, flipped in both arms). Because P3 changes $\geq$5
+things at once (boundary wrap, provenance header, generic comment wrap,
+string mediation, task-intent reassertion), we attribute the effect at
+\emph{defence level only} and do not claim a component-level mechanism;
+isolating the culprit requires an ablation we did not run. The safety
+side-ledger is clean: the intent gate blocks 30/30 unsafe prompts with zero
+LLM calls (unsafe compliance 0.000 vs.\ B0 0.033 on post-fix records), and
+a reassertion-only probe on unsafe prose produces 30/30 refusals ---
+whatever flips verdicts on code does not weaken refusal on unsafe prose.
+
+\textbf{Generation accounting.} Round 5 adds 1{,}673 records (E0-V2
+1{,}200; defence 473) from 1{,}378 unique new generations --- E0-V2's
+1{,}032 new generations plus 168 cache hits of the defence run's
+byte-identical B0 prompts (and vice versa; defence side: 346 new). Across
+all round-5 records there is exactly one \textsc{partial} and zero
+refusals.
 
 \subsection{B4: a realistic-difficulty baseline}
 \label{sec:codebert}

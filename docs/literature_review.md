@@ -63,6 +63,14 @@ measures refusal/over-refusal on the vulnerability task itself.
   harmfulness vs helpfulness incl. XSTest). → Training-time alternative.
 - **MOSR** (arXiv:2511.19009): safety-representation intervention for
   over-refusal. → Same family.
+- **Safeguard-DoS** (Zhang, Xiong, Mao, arXiv:2410.02916; [VERIFIED
+  2026-09-20 via arXiv abstract page: title "LLM Safeguard is a Double-Edged
+  Sword: Exploiting False Positives for Denial-of-Service Attacks", v1
+  2024-10-03]): shows attackers can weaponize safeguard FALSE POSITIVES —
+  ~30-character adversarial prompts or server-side fine-tuning make the
+  guard block benign requests (universal blocking >97% on Llama Guard 3,
+  white-box). → Availability-side attack on the guardrail itself; motivates
+  measuring the defence's own utility cost (our P3 flip-rate ledger).
 - 2026 works (Defensive Refusal Bias; Beyond Refusal; TabooRAG) establish
   that cyber/defense and RAG queries specifically get refused. → Direct
   motivation; see §0.

@@ -1,5 +1,15 @@
 # A3 Report — Round 5 (DEFENSE V2: P3 Semantic Boundary Defense dưới attack C5 + refusal recovery)
 
+> **[CORRECTED-ROUND5]** (tác nhân S, tổng hợp vòng 5 — sửa false-claim mức LOW
+> mà V2 bắt được; nội dung gốc bên dưới GIỮ NGUYÊN):
+> 1. §4.1 "qwen: P3 = inert (không đổi verdict trừ **1/98 pair**)" — đếm đúng là
+>    **2/98 pair** đổi verdict: cùng 1 benign sample (218817) lật ở CẢ HAI arm
+>    (B0=1→P3=0 từng arm); đếm theo sample thì là 1. Các số xung quanh
+>    (19/19, 18/19) đúng (V2_report §4.1).
+> 2. §3/§7 "llama run **16 phút**" — wall_seconds ghi nhận là **661.6 s ≈ 11
+>    phút** (phần được ghi lại; chênh lệch có thể gồm load model, không
+>    load-bearing) (V2_report §1.6). Budget-guard 24'/16' trong config không đổi.
+
 Ngày: 2026-09-19. Phạm vi: [D1] P3 defense (advisory-morphology detection +
 boundary provenance label + task-intent reassertion + refusal recovery),
 [D2] đánh giá subset 30+30 × {C5_near, C5_far} × {B0, P3, P3R} × 2 model,
@@ -123,6 +133,7 @@ GENRE threat-intel, không match GT label/CWE (FP=0 trên comment sạch, flagge
   sample (thiết kế cho budget-guard).
 - Budget thật: qwen run dừng ở 24 phút (budget guard), llama run 16 phút,
   side-effect probe 4 phút. **C0 control KHÔNG kịp chạy** (§7 TODO).
+  <!-- [CORRECTED-ROUND5] "llama run 16 phút" → wall_seconds ghi nhận 661.6 s ≈ 11 phút (phần ghi lại; có thể gồm load model, không load-bearing) — xem khối correction đầu report. -->
 
 ## 4. Kết quả (SỐ THẬT — file: `outputs/experiments/round5_defense/`)
 
@@ -152,6 +163,7 @@ Paired B0 vs P3: refusal p=1.0 (0 discordant, n=19 benign); vul_pred p=1.0
 nên đúng) — cả hai over-trigger, không phải hiệu ứng defense có nghĩa.
 **qwen: P3 = inert** (không đổi verdict trừ 1/98 pair). Gen: cache_hits 97/293,
 gen_seconds (new-token) 1435.6s.
+<!-- [CORRECTED-ROUND5] "trừ 1/98 pair" → đúng là 2/98 pair (cùng 1 benign sample 218817 lật ở cả hai arm; đếm theo sample = 1) — xem khối correction đầu report. -->
 
 ### 4.2 llama3b (PARTIAL: 180/360 = 30/60 sample × đủ 3 defense — 30 mẫu ĐẦU theo thứ tự sid đều là vulnerable; benign llama CHƯA chạy)
 
