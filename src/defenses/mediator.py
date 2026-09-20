@@ -10,12 +10,14 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import b1_reframe, b2_strip, b3_aggressive, p1_sci
+from . import b1_reframe, b2_strip, b3_aggressive, p1_sci, p3_boundary
 from .b1_reframe import load_defenses_config
 
 __all__ = ["mediate", "DEFENSES", "load_defenses_config"]
 
-DEFENSES = ("B1", "B2", "B3", "P1")
+# Round 5: P3 (Semantic Boundary Defense) added — dispatch-only extension;
+# the existing B1/B2/B3/P1 contract is untouched.
+DEFENSES = ("B1", "B2", "B3", "P1", "P3")
 
 
 def mediate(sample: dict, defense: str, cfg: Optional[dict] = None) -> dict:
@@ -32,6 +34,8 @@ def mediate(sample: dict, defense: str, cfg: Optional[dict] = None) -> dict:
         out = b3_aggressive.apply(sample, cfg)
     elif defense == "P1":
         out = p1_sci.apply(sample, cfg)
+    elif defense == "P3":
+        out = p3_boundary.apply(sample, cfg)
     else:
         raise ValueError(f"unknown defense {defense!r}; expected one of {DEFENSES}")
     out["meta"]["defense"] = defense

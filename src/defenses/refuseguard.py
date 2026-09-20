@@ -94,12 +94,17 @@ class RefuseGuardPipeline:
         transformer_prior: Optional[Callable] = None,
         cfg: Optional[dict] = None,
         conditions_cfg: Optional[dict] = None,
+        mediation_fn: Optional[Callable] = None,
     ):
         self.llm_callable = llm_callable
         self.refusal_classify = refusal_classify or _default_refusal_classify
         self.transformer_prior = transformer_prior
         self.cfg = cfg or load_defenses_config()
         self.conditions_cfg = conditions_cfg or load_conditions_config()
+        # Round 5 (P3): optional mediation hook, signature (sample, defense_key,
+        # cfg) -> {"func", "meta"}. None preserves the historical behavior
+        # (mediate(..., "P1", cfg)) exactly — pre-existing callers unchanged.
+        self.mediation_fn = mediation_fn
 
     # ------------------------------------------------------------------ gate
     def _intent_gate(self, task_text: str) -> dict:
@@ -220,10 +225,13 @@ class RefuseGuardPipeline:
                              "gate_reason": reason, "no_llm_call": True,
                              "refusal_score": 1.0}}
 
-        # mediate the CONDITIONED context (C0-C3 func), not the raw sample
+        # mediate the CONDITIONED context (C0-C3/C5 func), not the raw sample
         to_mediate = dict(sample)
         to_mediate["func"] = cond["func"]
-        med = mediate(to_mediate, "P1", self.cfg)
+        if self.mediation_fn is not None:
+            med = self.mediation_fn(to_mediate, "P1", self.cfg)
+        else:
+            med = mediate(to_mediate, "P1", self.cfg)
         base_meta["mediation"] = med["meta"]
         base_meta["conditioned_func"] = True
 
@@ -301,3 +309,50 @@ class RefuseGuardPipeline:
                 "final_text_full": final_text,
             },
         }
+
+
+class P3Pipeline(RefuseGuardPipeline):
+    """Round 5 — Semantic Boundary Defense pipeline (condition C5).
+
+    = RefuseGuard recovery mechanics (task gate -> mediation -> LLM -> refusal
+    monitor -> structured retry -> transformer fallback) with P3 mediation
+    (advisory-morphology detection + boundary provenance label, content
+    preserved) and a task-intent reassertion appended to the system prompt.
+
+    Recovery arms are expressed via constructor args, no code fork:
+      - P3 (no recovery):   max_retries=0 (cfg P2), transformer_prior=None
+      - P3R (recovery):     max_retries=1 + transformer_prior=CodeBERT prior
+    Invariants inherited from RefuseGuardPipeline: a REFUSAL is never mapped
+    to a benign prediction; gate-blocked unsafe requests return
+    REFUSED_UNSAFE with zero LLM calls.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .p3_boundary import SYSTEM_REASSERTION  # local import (no cycle)
+        self.system_reassertion = " ".join(
+            str((self.cfg.get("P3") or {}).get("system_reassertion", SYSTEM_REASSERTION)).split()
+        )
+
+    def _mediation_p3(self, sample: dict, _defense_key: str, cfg: dict) -> dict:
+        from .mediator import mediate
+        return mediate(sample, "P3", cfg)
+
+    def _build_prompt(self, mediated_func: str, task_text: str, system_extra: str) -> dict:
+        prompt = super()._build_prompt(mediated_func, task_text, system_extra)
+        if self.system_reassertion:
+            prompt = {"system": f"{prompt['system']}\n{self.system_reassertion}",
+                      "user": prompt["user"]}
+        return prompt
+
+    def run(self, sample: dict, condition: str, framing: Optional[str] = None,
+            prompt_safety_flag: Optional[str] = None) -> dict:
+        self.mediation_fn = self._mediation_p3  # P3 mediation for this run
+        out = super().run(sample, condition, framing=framing,
+                          prompt_safety_flag=prompt_safety_flag)
+        out["meta"]["defense"] = "P3"
+        out["meta"]["p3_recovery"] = bool(
+            int((self.cfg.get("P2") or {}).get("max_retries", 1)) > 0
+            and self.transformer_prior is not None
+        )
+        return out
