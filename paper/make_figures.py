@@ -573,6 +573,113 @@ def fig_round6() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Round 7 (RQ8 CWE-generalization + RQ9 7-8B replication). Frozen design +
+# decision rules: docs/round7_prereg.md. Fail-safe like fig_round6: skipped
+# with a warning until outputs/master/round7_master.json exists; strict
+# structural asserts once it does (RQ8 needs fp_rate_C0/fp_rate_C5_near per
+# family; RQ9 needs the full A0/A1/A5 recall set; verdicts parsed by rule).
+# ---------------------------------------------------------------------------
+RQ9_RUNGS = ["A0", "A1", "A5"]
+
+
+def fig_round7() -> None:
+    rel = "outputs/master/round7_master.json"
+    path = ROOT / rel
+    if not path.exists():
+        print(f"[skip] fig_round7: {rel} not present (round-7 RQ8/RQ9 "
+              f"pending); paper compiles without this figure")
+        return
+    r7 = json.loads(path.read_text())
+    val: dict[str, object] = {}
+    for r in r7["results"]:
+        assert r.get("experiment") in ("RQ8", "RQ9"), r
+        val[r["metric"]] = r["value"]
+    models_rq8 = sorted({m.split(".")[1] for m in val
+                         if m.startswith("cwe.")})
+    models_rq9 = sorted({m.split(".")[1] for m in val
+                         if m.startswith("scale.")})
+    if not models_rq8 and not models_rq9:
+        raise AssertionError("round-7 master present but has neither RQ8 "
+                             "cwe.* nor RQ9 scale.* rows")
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.5),
+                             gridspec_kw={"width_ratios":
+                                          [max(1, len(models_rq8)), 1.2]})
+    drew = False
+
+    # ---- panel (a): RQ8 per-family FP-rate, C0 vs C5_near --------------
+    ax = axes[0] if models_rq8 else None
+    if ax is not None:
+        fams = sorted({m.split(".")[2] for m in val
+                       if m.startswith(f"cwe.{models_rq8[0]}.")
+                       and m.endswith(".fp_rate_C0")
+                       and not m.startswith(f"cwe.{models_rq8[0]}.POOLED")})
+        assert fams, "RQ8 rows present but no per-family fp_rate_C0"
+        x = list(range(len(fams)))
+        w = 0.38
+        for model_i, model in enumerate(models_rq8):
+            c0 = [float(val[f"cwe.{model}.{f}.fp_rate_C0"]) for f in fams]  # type: ignore[arg-type]
+            c5 = [float(val[f"cwe.{model}.{f}.fp_rate_C5_near"]) for f in fams]  # type: ignore[arg-type]
+            off = -w / 2 if model_i == 0 else w / 2
+            ax.bar([xi + off for xi in x], c0, width=w, color=C_MID,
+                   label=f"{model}: C0" if model_i == 0 else None)
+            ax.bar([xi + off for xi in x], c5, width=w, color=C_B0,
+                   label=f"{model}: C5_near" if model_i == 0 else None)
+            for xi, (a, b) in enumerate(zip(c0, c5)):
+                star = "*" if val.get(f"cwe.{model}.{fams[xi]}.family_pass") \
+                    else ""
+                ax.text(xi + off, max(a, b) + 0.02, f"{b:.2f}{star}",
+                        ha="center", fontsize=5.6, rotation=90)
+        ax.set_xticks(x)
+        ax.set_xticklabels(fams, fontsize=6)
+        ax.set_ylim(0, 1.18)
+        ax.set_ylabel("Benign FP-rate")
+        ax.set_title("RQ8: verdict-bias across new CWE families\n"
+                     "(* = family-level exact McNemar $p<0.05$, FP direction)",
+                     fontsize=7.2)
+        ax.legend(loc="upper left", frameon=False, fontsize=6)
+        drew = True
+
+    # ---- panel (b): RQ9 minimal replication ladder ----------------------
+    if models_rq9:
+        ax = axes[1] if models_rq8 else axes[0]
+        x = list(range(len(RQ9_RUNGS)))
+        w = 0.7 / len(models_rq9)
+        for model_i, model in enumerate(models_rq9):
+            vals = []
+            for rung in RQ9_RUNGS:
+                key = f"scale.{model}.{rung}.recall_vul"
+                assert key in val, f"round-7 master missing {key} (strict)"
+                v = float(val[key])  # type: ignore[arg-type]
+                assert 0.0 <= v <= 1.0, (key, v)
+                vals.append(v)
+            off = (model_i - (len(models_rq9) - 1) / 2) * w
+            ax.bar([xi + off for xi in x], vals, width=w,
+                   color=C_DEF if model_i == 0 else C_MID, label=model)
+            for xi, v in zip(x, vals):
+                ax.text(xi + off, v + 0.02, f"{v:.2f}", ha="center",
+                        fontsize=5.6, rotation=90)
+            if str(val.get(f"verdict.RQ9.{model}.H_R1")) == "SUPPORTED":
+                ax.text(x[-1] + off, -0.16, "*", ha="center", fontsize=9,
+                        color=C_DEF if model_i == 0 else C_MID, clip_on=False)
+        ax.set_xticks(x)
+        ax.set_xticklabels(["A0\nB0 raw", "A1\nboundary only",
+                            "A5\nreassertion\n(= P3)"], fontsize=6)
+        ax.set_ylim(0, 1.18)
+        ax.set_ylabel("Vulnerable recall (Qwen-7B)")
+        ax.set_title("RQ9: reassertion harm at 7B\n"
+                     "(* = H-R1 harm: $\\Delta \\geq 0.20$, $p<0.05$)",
+                     fontsize=7.2)
+        ax.legend(loc="lower left", frameon=False, fontsize=6)
+        drew = True
+
+    if not drew:
+        raise AssertionError("fig_round7 drew no panel (unreachable)")
+    fig.tight_layout()
+    fig.savefig(FIG / "fig_round7.pdf")
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Table verification: every number typed in paper/tables/*.tex must appear in
 # (or be derived from) the source files loaded above.
 # ---------------------------------------------------------------------------
@@ -774,6 +881,7 @@ if __name__ == "__main__":
     fig_codebert()
     fig_round5()
     fig_round6()   # fail-safe: skips with a warning until round6_ablation.json exists
+    fig_round7()   # fail-safe: skips with a warning until round7_master.json exists
     verify_tables()
     check_citations()
     for p in sorted(FIG.glob("*.pdf")):

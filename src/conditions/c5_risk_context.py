@@ -50,7 +50,9 @@ __all__ = [
     "apply_attack",
     "build_advisory",
     "build_attack_prompt",
+    "extract_family_signals",
     "extract_risky_apis",
+    "family_signal_classes",
     "load_attack_config",
     "materialize",
     "check_semantics",
@@ -134,17 +136,160 @@ def _sites_phrase(raw: int, cap: int) -> str:
     return f"{raw} call site" + ("" if raw == 1 else "s")
 
 
+# ---------------------------------------------------------------------------
+# (a2) family-feature signals — ADDED round 7 (bench_attack_v2, CWE-family
+# extension).  Classic sink APIs (a1) do not exist in families like NULL
+# deref / UAF / integer overflow / info exposure; these signals anchor the
+# advisory on STRUCTURAL features of the function instead (pointer parameter
+# surface, heap-lifecycle call sites, multiply sites, log/output channels,
+# static shared state, external input channels).  Label-blind by
+# construction (no label parameter); thresholds live in the config
+# (advisory.family_signals) and are calibrated on pooled label-blind
+# distributions BEFORE materialization (see configs/attack_v2_cwe.yaml).
+# Old configs (attack_v2.yaml) have no `family_signals` key, so every
+# pre-existing code path keeps byte-identical behavior.
+# ---------------------------------------------------------------------------
+def _count_pointer_params(root) -> int:
+    """Parameter declarations whose declarator subtree carries a pointer or
+    array declarator (whole-tree count; PrimeVul rows are single-function
+    units, so this equals the function's pointer parameters)."""
+    n = 0
+    for node in iter_nodes(root):
+        if node.type != "parameter_declaration":
+            continue
+        if any(c.type in ("pointer_declarator", "array_declarator")
+               for c in iter_nodes(node)):
+            n += 1
+    return n
+
+
+def _structural_counts(root) -> dict[str, int]:
+    """AST counts used by family signals: '*' derefs, '->' accesses, static
+    local declarations, multiply operations, integer casts."""
+    n_deref = n_arrow = n_static = n_mul = n_cast = 0
+    for node in iter_nodes(root):
+        t = node.type
+        if t == "pointer_expression":
+            ops = [c.text.decode("utf-8", "replace") for c in node.children
+                   if not c.is_named]
+            if "*" in ops:
+                n_deref += 1
+        elif t == "field_expression":
+            if any(c.text.decode("utf-8", "replace") == "->" for c in node.children):
+                n_arrow += 1
+        elif t == "declaration":
+            if any(c.type == "storage_class_specifier"
+                   and c.text.decode("utf-8", "replace") == "static"
+                   for c in node.children):
+                n_static += 1
+        elif t == "binary_expression":
+            ops = [c.text.decode("utf-8", "replace") for c in node.children
+                   if not c.is_named]
+            if "*" in ops:
+                n_mul += 1
+        elif t == "cast_expression":
+            n_cast += 1
+    return {"n_deref": n_deref, "n_arrow": n_arrow, "n_static": n_static,
+            "n_mul": n_mul, "n_cast": n_cast}
+
+
+def extract_family_signals(func: str, language: str = "c",
+                           cfg: Optional[dict] = None,
+                           auto: bool = True) -> dict[str, int]:
+    """Count family-relevant FEATURE signals in `func` via the tree-sitter AST.
+
+    Config (advisory.family_signals) maps signal name -> {kind, min_count,
+    description, ...}: kind "api" counts call sites of `apis`; kind
+    "pointer_surface" counts '*' derefs + '->' accesses (gated on >=
+    min_pointer_params pointer parameters); kind "static_shared" counts static
+    local declarations + `apis` call sites (shared-state / lock surface);
+    kind "mul_sites" counts multiply operations (size-arithmetic surface).
+
+    Returns {signal_name: raw_count} for signals passing min_count, sorted by
+    (-count, name).  Label-blind by construction; total (no regex fallback for
+    structural kinds — unparseable code yields no structural signals).
+    """
+    cfg = cfg or load_attack_config()
+    fcfg = (cfg.get("advisory") or {}).get("family_signals") or {}
+    if not fcfg:
+        return {}
+    from .parser_utils import parse
+
+    call_counts: Counter = Counter()
+    struct: dict[str, int] = {}
+    n_pointer_params = 0
+    tree = parse(func, language, auto=auto) if auto else None
+    if tree is not None and not tree.root_node.has_error:
+        struct = _structural_counts(tree.root_node)
+        n_pointer_params = _count_pointer_params(tree.root_node)
+        for node in iter_nodes(tree.root_node):
+            if node.type != "call_expression":
+                continue
+            callee = node.child_by_field_name("function")
+            if callee is None or callee.type != "identifier":
+                continue
+            call_counts[callee.text.decode("utf-8", "replace")] += 1
+    else:  # no AST: api-kind signals fall back to word-boundary regex
+        for name, sig in fcfg.items():
+            for api in (sig.get("apis") or []):
+                call_counts[api] += len(re.findall(rf"\b{re.escape(api)}\s*\(", func))
+
+    out: dict[str, int] = {}
+    for name, sig in fcfg.items():
+        kind = sig.get("kind", "api")
+        if kind == "api":
+            raw = sum(call_counts[a] for a in (sig.get("apis") or []))
+        elif kind == "pointer_surface":
+            derefs = struct.get("n_deref", 0) + struct.get("n_arrow", 0)
+            raw = derefs if (derefs > 0 and
+                             n_pointer_params >= int(sig.get("min_pointer_params", 1))) else 0
+        elif kind == "static_shared":
+            raw = struct.get("n_static", 0) + sum(
+                call_counts[a] for a in (sig.get("apis") or []))
+        elif kind == "mul_sites":
+            raw = struct.get("n_mul", 0)
+        else:
+            raise ValueError(f"unknown family-signal kind {kind!r} for {name!r}")
+        if raw >= int(sig.get("min_count", 1)):
+            out[name] = raw
+    return {k: out[k] for k in sorted(out, key=lambda s: (-out[s], s)) if out[k]}
+
+
+def family_signal_classes(cfg: Optional[dict] = None) -> dict[str, str]:
+    """signal name -> human-readable description (for advisory prose)."""
+    cfg = cfg or load_attack_config()
+    fcfg = (cfg.get("advisory") or {}).get("family_signals") or {}
+    return {name: str(sig.get("description", name)) for name, sig in fcfg.items()}
+
+
 def _render(template_text: str, primary: str, classes: dict[str, str],
-            apis: dict[str, int], cap: int) -> str:
+            apis: dict[str, int], cap: int, signals: Optional[dict[str, int]] = None,
+            signal_classes: Optional[dict[str, str]] = None) -> str:
     n_kinds = len(apis)
     api_list = ", ".join(list(apis)[:3])
-    return template_text.format(
+    kw = dict(
         api_primary=primary,
         class_primary=classes.get(primary, "unsafe sink usage"),
         api_list=api_list,
         n_api_kinds=n_kinds,
         sites=_sites_phrase(apis[primary], cap) if primary in apis else "0 call sites",
     )
+    if signals:  # family-template placeholders (round 7)
+        psig = next(iter(signals))
+        sc = signal_classes or {}
+        raw = signals[psig]
+        if raw >= cap:
+            sig_sites = f"{cap}+ matched sites"
+        else:
+            sig_sites = f"{raw} matched site" + ("" if raw == 1 else "s")
+        kw.update(
+            signal_primary=psig,
+            signal_class=sc.get(psig, "code-pattern match"),
+            signal_list=", ".join(sc.get(s, s) for s in list(signals)[:3]),
+            n_signal_kinds=len(signals),
+            signal_sites=sig_sites,
+        )
+    return template_text.format(**kw)
 
 
 # ---------------------------------------------------------------------------
@@ -156,24 +301,34 @@ def build_advisory(func: str, template_id: Optional[str] = None,
     """Build the C5 advisory for one function.
 
     The template is selected by a seeded draw on (config.seed, sample_id) —
-    NEVER by the label.  Content is anchored on the function's own risky-sink
+    NEVER by the label.  Content is anchored on the function's own observable
     profile; counts are capped (advisory.count_cap) so advisory intensity is a
-    bounded function of observable features.
+    bounded function of observable features.  Template pool (round 7): classic
+    risky-sink call sites -> pattern_templates; else family feature signals
+    (advisory.family_signals, bench_attack_v2 only) -> family_templates; else
+    the generic zero_api fallback — advisory PRESENCE stays 100% in both label
+    classes (anti-leakage), and the pool choice is a pure function of code
+    features (old configs have no family_signals key, so their behavior is
+    unchanged: pattern or zero_api only).
 
-    Returns {"text", "template_id", "zero_api", "risky_apis", "n_calls_raw",
-             "sites", "n_api_kinds"}.
+    Returns {"text", "template_id", "advisory_kind", "zero_api", "risky_apis",
+             "family_signals", "n_calls_raw", "sites", "n_api_kinds"}.
     """
     cfg = cfg or load_attack_config()
     acfg = cfg.get("advisory") or {}
     cap = int(acfg.get("count_cap", 3))
     apis = extract_risky_apis(func, language=language, cfg=cfg)
+    fam = (extract_family_signals(func, language=language, cfg=cfg)
+           if acfg.get("family_signals") else {})
     seed = int(cfg.get("seed", 0))
     if apis:
-        pool = acfg.get("pattern_templates") or []
-        fallback_kind = "pattern"
+        pool, kind = acfg.get("pattern_templates") or [], "pattern"
+    elif fam:
+        pool, kind = acfg.get("family_templates") or [], "family"
+        if not pool:
+            pool, kind = acfg.get("zero_api_templates") or [], "zero_api"
     else:
-        pool = acfg.get("zero_api_templates") or []
-        fallback_kind = "zero_api"
+        pool, kind = acfg.get("zero_api_templates") or [], "zero_api"
     if not pool:
         raise ValueError("attack_v2 config: advisory templates missing")
     if template_id is None:
@@ -181,18 +336,25 @@ def build_advisory(func: str, template_id: Optional[str] = None,
         template_id = pool[rng.randrange(len(pool))]["id"]
     tpl = next((t for t in pool if t["id"] == template_id), None)
     if tpl is None:  # cross-pool pin (e.g. caller forces a specific id)
-        all_t = (acfg.get("pattern_templates") or []) + (acfg.get("zero_api_templates") or [])
+        all_t = ((acfg.get("pattern_templates") or [])
+                 + (acfg.get("family_templates") or [])
+                 + (acfg.get("zero_api_templates") or []))
         tpl = next((t for t in all_t if t["id"] == template_id), None)
     if tpl is None:
         raise ValueError(f"unknown advisory template_id: {template_id!r}")
     primary = next(iter(apis), "")
     text = " ".join(_render(tpl["text"], primary, acfg.get("apis") or {},
-                            apis, cap).split())
+                            apis, cap,
+                            signals=fam if kind == "family" else None,
+                            signal_classes=family_signal_classes(cfg)
+                            if kind == "family" else None).split())
     return {
         "text": text,
         "template_id": tpl["id"],
-        "zero_api": fallback_kind == "zero_api",
+        "advisory_kind": kind,
+        "zero_api": kind == "zero_api",
         "risky_apis": apis,
+        "family_signals": fam,
         "n_calls_raw": int(apis[primary]) if apis else 0,
         "sites": _sites_phrase(apis[primary], cap) if apis else "0 call sites",
         "n_api_kinds": len(apis),
@@ -305,7 +467,9 @@ def apply_attack(sample: dict, arm: str, cfg: Optional[dict] = None) -> dict:
     meta.update({
         "func_source": "advisory", "carrier": actual, "requested_carrier": carrier,
         "position": position, "template_id": adv["template_id"],
+        "advisory_kind": adv["advisory_kind"],
         "zero_api": adv["zero_api"], "risky_apis": adv["risky_apis"],
+        "family_signals": adv["family_signals"],
         "n_calls_raw": adv["n_calls_raw"], "sites": adv["sites"],
         "n_api_kinds": adv["n_api_kinds"], "advisory_chars": len(adv["text"]),
         "advisory_offset": offset, "policy_safety_scan": "pass",

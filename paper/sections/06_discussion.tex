@@ -78,6 +78,14 @@ denial-of-service; and the defence layer itself (\S above). The C5 benchmark
 --- query-relevant by construction (100/100 own-sink advisories vs.\ 0.2\%
 of naive carriers), anti-leakage audited, gates pre-registered --- is our
 released instrument for measuring exactly this channel.
+% [R7 scope-update point] S-Vòng-7: when the RQ9 numbers land, update the
+% "at open 2--3B scale" clause above (and the matching clauses in the
+% abstract, intro, conclusion, and threats) to the branch-correct scope ---
+% "open 2--7B models" plus the registered H-R1 branch wording
+% (harm persists / diminishes / reversal / ceiling-uninformative), per
+% docs/round7_prereg.md §3.5. If RQ9 did not run, keep 2--3B and disclose
+% the execution failure. Fill the slot below and delete this comment.
+\detokenize{{R7:scope_update_discussion}}
 
 \subsection{Structured recovery can be a refusal-suppression machine}
 Our Round-2 pipeline is a cautionary artifact for the over-refusal-mitigation
@@ -118,6 +126,24 @@ paired, verdict-level reporting (McNemar on predictions and flip counts
 stratified by ground truth, not just UAC deltas) as a default for LLM
 security-tool evaluations.
 
+\subsection{How far do the two corruption channels reach? (Round 7)}
+\label{sec:round7scope}
+Both channels were established on one bench family mix and one model
+scale, so Round 7 extends each along exactly one axis under a frozen
+pre-registration (\texttt{docs/round7\_prereg.md}): RQ8 moves the C5
+advisory to four new CWE families (use-after-free, integer overflow, path
+traversal, NULL dereference) on the benign side; RQ9 moves the reassertion
+ladder to the 7--8B class on the byte-identical Round-6 arm. The verdicts
+are read by rule, both directions registered in advance, and a
+family-dependent or scale-null outcome is reported as a finding with its
+registered interpretation, not absorbed into the headline.
+% S-Vòng-7: fill exactly one branch per slot from the master verdicts;
+% do not soften or strengthen the registered wording.
+CWE scope of the verdict-bias channel:
+\detokenize{{R7:rq8_cwe_scope_discussion}}
+Scale scope of the reassertion-harm channel:
+\detokenize{{R7:rq9_scale_discussion}}
+
 \subsection{Threats to validity}
 \textbf{Pilot scale.} Every result rests on tens of samples per cell (E0: 20
 paired functions/arm; E5/E6: 31--40; E8: 30+30; round-5 subsets: 60+60 with
@@ -130,7 +156,18 @@ conclusions as pilot-scale evidence with direction, not magnitudes.
 chat-instruct models on local hardware; the blocking non-transfer verdict is
 explicitly model-scale-scoped by pre-registration (0/3 clause) and does not
 foreclose blocking on frontier models, whose refusal policies may be stronger
-and differently triggered. Granite's round-5 monitor uses disclosed fallback
+and differently triggered.
+% [R7] S-Vòng-7: replace the preceding "All models are open-weight 2--3B"
+% scope with the branch-correct wording once RQ9 lands (2--7B + substrate
+% disclosure if dtype changed), and fill the slot below.
+\detokenize{{R7:threats_scale_round7}}
+\textbf{Round-7 CWE scope.} The RQ8 family extension is 4 families x 20
+paired benign functions at pilot scale; the family-level rule was chosen as
+PRIMARY precisely because per-family power is low, so a null family row is
+``not demonstrated at this power'', never ``absence of bias''. The five
+pre-registered comparisons (4 family tests + 1 pooled) are reported in full
+with no multiple-comparison correction, per the frozen registration.
+\detokenize{{R7:threats_cwe_round7}} Granite's round-5 monitor uses disclosed fallback
 thresholds (no calibration fit); the risk is bounded by its 240/240
 schema-complete records and the 0.5B smoke probe that shows genuine refusals
 are catchable.

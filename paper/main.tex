@@ -53,6 +53,11 @@
 % outputs/master/round6_ablation.json (scripts/collect_master_round6.py)
 % placeholders until S-R6 fills them from outputs/master/round6_ablation.json.
 \InputIfFileExists{tables/tab_round6_ablation}{}{\missingsection{tables/tab_round6_ablation}}
+% Round 7: RQ8 CWE-generalization + RQ9 7-8B replication — skeleton table
+% with \detokenize{{R7:*}} placeholder cells (compile-safe); S-Vòng-7 fills
+% every cell from outputs/master/round7_token_map.json
+% (scripts/collect_master_round7.py), per docs/round7_prereg.md.
+\InputIfFileExists{tables/tab_round7}{}{\missingsection{tables/tab_round7}}
 
 \InputIfFileExists{sections/05_results}{}{\missingsection{sections/05_results}}
 \InputIfFileExists{sections/06_discussion}{}{\missingsection{sections/06_discussion}}

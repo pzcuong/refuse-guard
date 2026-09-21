@@ -1,0 +1,133 @@
+% tab_round7.tex — RQ8 (CWE generalization) + RQ9 (7B replication), Round 7.
+% KHUNG (skeleton): every numeric cell below is a {{R7:*}} placeholder wrapped
+% in \detokenize so the paper compiles before the round-7 data lands.
+% FILLED BY S-Vòng-7 ONLY from outputs/master/round7_token_map.json (written
+% by scripts/collect_master_round7.py; re-read verified) — replace the whole
+% \detokenize{{R7:...}} call with the mapped LaTeX string. NO NUMBER MAY BE
+% TYPED BY HAND.
+% Design authority (pre-registered BEFORE any round-7 generation, with
+% Amendment-1 reconciling the executed configs):
+% docs/round7_prereg.md §0b (families CWE-476/416/190/200 per bench_attack_v2;
+% RQ9 model qwen7b per configs/round7_7b.yaml; branch algebra).
+% Requires: booktabs.
+\begin{table*}[t]
+\centering
+\caption{Round 7 (pre-registered, Amendment-1-reconciled): generalization
+of the two corruption channels. \textbf{Top (RQ8)} --- benign
+false-positive rate on four NEW CWE families of the executed
+\texttt{bench\_attack\_v2} registry (NULL dereference CWE-476, use-after-free
+CWE-416, integer overflow CWE-190, information exposure CWE-200;
+feature-signal anchored advisories, anti-leakage audited), 20 paired
+benign functions per family, C0 vs.\ C5\_near; Granite-3.3-2B primary
+(headroom rationale registered). $p$ is the two-sided exact binomial
+McNemar on paired records; a family shows the channel iff $p<0.05$ AND
+flips b2v $>$ v2b ($^{*}$; with $n{=}20$ the smallest passing
+all-one-direction configuration is 6/20, $p=0.03125$). POOLED is the
+pre-registered secondary gate ($\Delta$FP $\geq 0.15$, $p<0.05$) over the
+80 paired benign functions; per-family and pooled rows are ALWAYS reported
+together (anti-masking clause), and a pooled pass carried by $\leq 2$
+families is labelled pooled-driven with the driving families named.
+\textbf{Bottom (RQ9)} --- minimal replication ladder of the reassertion
+harm at 7B (Qwen2.5-Coder-7B-Instruct, Amendment-1), on the byte-identical
+Round-6 arm (same bench sha, same 60 vul + 30 benign subset, same prompt
+builder; per-record prompt-SHA guard vs.\ Round-6, no cross-model reuse).
+$\Delta$ and $p$ are paired vs.\ A0. Pre-registered H-R1 branch order
+(configs/round7\_7b.yaml rule algebra): SUPPORTED ($\Delta \geq 0.20$,
+$p<0.05$, $\geq$10 flips; power $2/2^{12}\approx 4.9\times10^{-4}$)
+$\rightarrow$ REVERSAL $\rightarrow$ ABSENT-STRONG (A0 saturated: the
+baseline cannot hide downward harm, so absence is strong on this subset;
+caveat: subset difficulty) $\rightarrow$ ABSENT $\rightarrow$
+PARTIAL-INCONCLUSIVE (incl.\ the 3--9-flip gap); the qwen family-match
+caveat (inert Qwen-3B) is mandatory on any null reading. H-R2 by flip
+count: $\leq$3 flips and $p\geq0.05$ SAFE, $\geq$10 UNSAFE, else PARTIAL.
+H-R3: benign direction consistency vs.\ the same-model benign check
+(C0 vs.\ B0-on-C5\_near; smallest passing configuration 6/30,
+$p=0.03125$; saturated C0 uninformative). Refusal rate is asserted 0.000
+across all round-7 records and is never mapped to benign. Cells marked
+\texttt{\detokenize{{R7:...}}} are unfilled placeholders pending the
+round-7 master (\texttt{scripts/collect\_master\_round7.py}).}
+\label{tab:round7}
+\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\multicolumn{6}{@{}l@{}}{\textbf{RQ8: verdict-bias channel across new CWE
+families} (Granite-3.3-2B, benign side)} \\
+Family & FP C0 & FP C5\_near & $\Delta$FP & flips b2v/v2b & $p$ (exact) \\
+\midrule
+% source: outputs/master/round7_master.json -> cwe.granite2b.CWE-476.*
+\detokenize{{R7:tab.rq8.granite2b.CWE-476.family}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.c0}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.c5}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.delta}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.flips}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.p}} \\
+% source: outputs/master/round7_master.json -> cwe.granite2b.CWE-416.*
+\detokenize{{R7:tab.rq8.granite2b.CWE-416.family}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.c0}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.c5}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.delta}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.flips}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.p}} \\
+% source: outputs/master/round7_master.json -> cwe.granite2b.CWE-190.*
+\detokenize{{R7:tab.rq8.granite2b.CWE-190.family}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.c0}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.c5}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.delta}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.flips}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.p}} \\
+% source: outputs/master/round7_master.json -> cwe.granite2b.CWE-200.*
+\detokenize{{R7:tab.rq8.granite2b.CWE-200.family}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.c0}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.c5}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.delta}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.flips}}
+  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.p}} \\
+\midrule
+% source: outputs/master/round7_master.json -> cwe.granite2b.POOLED.* (n=80)
+POOLED ($n{=}80$)
+  & \detokenize{{R7:tab.rq8.granite2b.POOLED.c0}}
+  & \detokenize{{R7:tab.rq8.granite2b.POOLED.c5}}
+  & \detokenize{{R7:tab.rq8.granite2b.POOLED.delta}}
+  & \detokenize{{R7:tab.rq8.granite2b.POOLED.flips}}
+  & \detokenize{{R7:tab.rq8.granite2b.POOLED.p}} \\
+% source: outputs/master/round7_master.json -> verdict.RQ8.granite2b.* (rule-computed)
+\multicolumn{6}{@{}l@{}}{Verdict (by rule): \detokenize{{R7:tab.rq8.granite2b.verdict}}} \\
+% source: verdict.RQ8.llama3b.* (secondary replication, headroom-caveated)
+\multicolumn{6}{@{}l@{}}{\footnotesize Llama-3.2-3B secondary (headroom-caveated):
+\detokenize{{R7:rq8.llama3b.verdict_clause}}} \\
+\midrule
+\multicolumn{6}{@{}l@{}}{\textbf{RQ9: reassertion-harm replication at 7B}
+(Qwen2.5-Coder-7B-Instruct, minimal ladder, byte-identical Round-6 arm)} \\
+Rung & Added component & recall (vul, $n{=}60$) & FP (benign, $n{=}30$)
+& $\Delta$ vs A0 & $p$ vs A0 \\
+\midrule
+% source: outputs/master/round7_master.json -> scale.qwen7b.A0.*
+A0 & none (B0 raw)
+  & \detokenize{{R7:tab.rq9.qwen7b.A0.recall}}
+  & \detokenize{{R7:tab.rq9.qwen7b.A0.fp}}
+  & --- & --- \\
+% source: outputs/master/round7_master.json -> scale.qwen7b.A1.*
+A1 & boundary label only (minimal provenance)
+  & \detokenize{{R7:tab.rq9.qwen7b.A1.recall}}
+  & \detokenize{{R7:tab.rq9.qwen7b.A1.fp}}
+  & \detokenize{{R7:tab.rq9.qwen7b.A1.delta}}
+  & \detokenize{{R7:tab.rq9.qwen7b.A1.p}} \\
+% source: outputs/master/round7_master.json -> scale.qwen7b.A5.*
+A5 & + system reassertion ($=$ full P3)
+  & \detokenize{{R7:tab.rq9.qwen7b.A5.recall}}
+  & \detokenize{{R7:tab.rq9.qwen7b.A5.fp}}
+  & \detokenize{{R7:tab.rq9.qwen7b.A5.delta}}
+  & \detokenize{{R7:tab.rq9.qwen7b.A5.p}} \\
+\midrule
+% source: outputs/master/round7_master.json -> verdict.RQ9.qwen7b.* (rule-computed)
+\multicolumn{6}{@{}l@{}}{Verdicts (by rule, fixed branch order):
+\detokenize{{R7:tab.rq9.qwen7b.verdicts}}} \\
+% source: scale.qwen7b.prompt_identity.vs_round6 (+ qwen-3B family caveat note)
+\multicolumn{6}{@{}l@{}}{\footnotesize Prompt identity vs.\ Round-6
+(same prompt, different model):
+\detokenize{{R7:rq9.qwen7b.identity_clause}}.
+Null readings carry the mandatory family caveat (Qwen-3B inert, Amendment-1
+§0b(i)) --- see \texttt{docs/round7\_prereg.md}.} \\
+\bottomrule
+\end{tabular}
+\end{table*}
