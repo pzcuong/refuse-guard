@@ -1,0 +1,39 @@
+# PackGuard data pipeline config (W1, round 8)
+seed: 20260922
+
+paths:
+  raw_root: data/packguard/raw
+  dd_dataset: data/packguard/raw/ddmalicious/samples   # DataDog malicious-software-packages-dataset (partial clone, blob=none + sparse)
+  benign_root: data/packguard/raw/benign
+  manifest: data/packguard/manifests/dataset_v1.json
+  features_dir: outputs/packguard/features
+
+malicious_selection:          # stride over alphabetical package list, offset seed%stride
+  npm_malicious_intent: 100   # pool 12601
+  npm_compromised_lib: 50     # pool 1001
+  pypi_malicious_intent: 60   # pool 1816
+  pypi_compromised_lib: 10    # pool 16
+  keep_all_versions: true     # disclosed near-duplicate policy
+  zip_password: "infected"    # DataDog malware-dataset convention (README)
+
+benign_selection:
+  npm:
+    want: 130                 # pool 1234 names from 5 keywords x 250 popularity-ranked
+    keywords: [utils, cli, server, web, testing]
+    tarball_cap_bytes: 2500000
+  pypi:
+    want: 110                 # pool 15000 (hugovk top-pypi-packages 30 days)
+    sdist_url_cap_bytes: 2500000
+
+extraction:
+  max_files_per_sample: 12
+  max_file_bytes: 100000
+  priority_files: [setup.py, package.json, index.js, main.js, app.js, __init__.py, install.js, preinstall.js, postinstall.js]
+  skip_paths: ["node_modules", ".git"]
+  entry_kinds: [lib, setup, postinstall]
+
+features:
+  tag: v1
+  parquet: outputs/packguard/features/features_v1.parquet
+  jsonl: outputs/packguard/features/features_v1.jsonl
+  graphs_gz: outputs/packguard/features/graphs_v1.jsonl.gz

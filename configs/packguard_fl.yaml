@@ -1,0 +1,42 @@
+# PackGuard FL config — round-8 FINAL real runs (agent F, AMENDMENT-1).
+# seed 20260922 everywhere; every result row carries meta.mock (must be false
+# for these runs; synthetic fixture runs are separate and clearly flagged).
+seed: 20260922
+
+data:
+  features_dir: outputs/packguard/features   # loader picks the HIGHEST features_v*.jsonl (v2)
+  test_fraction: 0.2
+  split: group                               # PRIMARY split (AMENDMENT-1); random = secondary
+  feature_block: graph
+
+model:
+  type: lr            # lr | mlp
+  hidden_dim: 32      # mlp only
+
+fl:
+  rounds: 15
+  local_epochs: 2
+  lr: 0.1
+  batch_size: 32
+  mu_fedprox: 0.01    # FedProx proximal coefficient
+
+secure_agg:
+  enabled: true       # pairwise additive-mask SIMULATION (masks cancel at server)
+
+dp:
+  enabled: false      # DP ablation runs with a PURPOSEFUL sigma=0.1 (eps~9.7/round)
+  sigma: 0.1
+  delta: 1.0e-5
+  clip: 1.0           # per-client update L2 clip (DP-FedAvg style)
+
+eval:
+  primary_comparison: fedavg_vs_centralized   # McNemar + bootstrap on paired correctness
+  bootstrap_n: 10000
+  bootstrap_seed: 20260922
+
+ablations:
+  fl_variants: [fedavg, fedprox, centralized, per_client_only]
+  feature_blocks: [graph, tfidf]   # graph features vs code-as-text baseline path
+  kb:                              # LLM-KB augmentation on/off
+    enabled: false                 # enabled by the final runner once kb_v2 exists
+    kb_dir: outputs/packguard/kb
