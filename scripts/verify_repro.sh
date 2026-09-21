@@ -133,12 +133,31 @@ elif row["value"].get("mcnemar_p") != 0.5:
 if by_metric.get("e0.gate.verdict", {}).get("value") != "FAIL":
     errors.append("master e0.gate.verdict != FAIL")
 
+# (f) Round-7: RQ8 verdicts + RQ9 harm-absent at 7B (S-R7)
+r7 = json.load(open("outputs/master/round7_master.json", encoding="utf-8"))["results"]
+by7 = {r["metric"]: r for r in r7}
+if len(r7) < 130:
+    errors.append(f"round7 master rows = {len(r7)} (< 130)")
+g = by7.get("verdict.RQ8.granite2b.label")
+if not (isinstance(g, dict) and "GENERALIZES" in str(g.get("value"))):
+    errors.append(f"RQ8 granite label = {g} (expected GENERALIZES...)")
+l = by7.get("verdict.RQ8.llama3b.label")
+if not (isinstance(l, dict) and "GENERALIZES" in str(l.get("value"))):
+    errors.append(f"RQ8 llama label = {l} (expected GENERALIZES-pooled-driven...)")
+p5 = by7.get("scale.qwen7b.A5.mcnemar_p_vs_A0")
+if not (isinstance(p5, dict) and abs(float(p5["value"]) - 0.7265625) < 1e-6):
+    errors.append(f"RQ9 A5 vs A0 mcnemar_p = {p5} (expected 0.7265625 -> harm absent at 7B)")
+a0 = by7.get("scale.qwen7b.A0.recall_vul")
+if not (isinstance(a0, dict) and abs(float(a0["value"]) - 0.4746) < 1e-3):
+    errors.append(f"RQ9 A0 recall = {a0} (expected ~0.4746)")
+
 for e in errors:
     print(f"  VALUE-CHECK ERROR: {e}", file=sys.stderr)
 if errors:
     sys.exit(1)
 print(f"  master rows={len(rows)}; gate=FAIL (3 completed / 0 pass); "
-      f"e8-llama B0={b0:.4f} (=1/30); e6 vul-only p=0.5 n.s.")
+      f"e8-llama B0={b0:.4f} (=1/30); e6 vul-only p=0.5 n.s.; "
+      f"RQ8 GENERALIZES x2; RQ9 harm-absent@7B (p={float(p5['value']):.4f})")
 EOF
 then ok "decision-critical values match outputs"
 else bad "value checks (see errors above)"

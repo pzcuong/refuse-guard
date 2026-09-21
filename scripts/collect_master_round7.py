@@ -42,10 +42,15 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parents[1]
 
 # ---------------------------------------------------------------------------
-# expected sources (defaults; the executed config may override via Amendment-1
-# recorded in docs/round7_prereg.md -- edit these two maps then, not the logic)
+# expected sources (defaults; the executed layout is recorded via Amendment-2
+# in docs/round7_prereg.md -- edit these two maps then, not the logic)
 # ---------------------------------------------------------------------------
-RQ8_DIR = "outputs/experiments/round7_cwe"
+# [Amendment-2, POST-HOC PATH-ONLY (recorded after RQ8 generation; no rule
+# changed)]: the RQ8 runner executed into outputs/experiments/round7_rq8/
+# (per-model 320-record files results_<model>.json + manifest_cwe.json),
+# not the provisional outputs/experiments/round7_cwe/ path registered in
+# prereg §4. See docs/round7_prereg.md Amendment-2 for the full disclosure.
+RQ8_DIR = "outputs/experiments/round7_rq8"
 # RQ9 executed layout (Amendment-1; configs/round7_7b.yaml, slug qwen7b):
 # one file per ladder variant + one benign B0 file (the C0-arm source for H-R3).
 RQ9_DIR = "outputs/experiments/round7_7b"
@@ -54,6 +59,10 @@ RQ8_RESULTS = {
     "granite2b": f"{RQ8_DIR}/results_granite2b.json",   # primary model (prereg §1.2)
     "llama3b": f"{RQ8_DIR}/results_llama3b.json",       # secondary replication
 }
+# Both executed files hold ONE model's full RQ8 run (320 records = 160 benign
+# + 160 vul across {C0, C5_near}) — the collector consumes them as-is; the
+# per-family/pooled blocks gate on MIN_FAMILY_N paired benign, not on file
+# counts.
 RQ9_RUNGS = ("A0", "A1", "A5")
 RQ9_RUNG_COMPONENT = {
     "A0": "none (B0 raw)",
@@ -238,10 +247,18 @@ def parse_manifest(man: dict) -> dict[str, str]:
 
 def _rq8_family_side(recs: list[dict], fam_map: dict[str, str],
                      label: int, condition: str) -> dict[str, dict[str, int]]:
-    """family -> {sid: y_pred} for one (label, condition) side."""
+    """family -> {sid: y_pred} for one (label, condition) side.
+
+    Parsed-binary records only (y_pred in {0,1}): an unparsed PARTIAL or a
+    REFUSAL drops from the paired n (runner rule, disclosed as
+    n_pairs_excluded_unparsed_or_refusal) — refusal is never mapped to
+    benign.  Mirrors the `parsed()` convention used by the RQ9 blocks; the
+    executed per-model 320-record files contain exactly one such record
+    (llama3b, sample 198370, vul/C0)."""
     side: dict[str, dict[str, int]] = {}
     for r in recs:
-        if r.get("y_true") != label or r.get("condition") != condition:
+        if r.get("y_true") != label or r.get("condition") != condition \
+                or r.get("y_pred") not in (0, 1):
             continue
         sid = str(r["sample_id"])
         fam = canonical_family(r["family"]) if "family" in r else fam_map[sid]
@@ -354,7 +371,14 @@ def build_rq8_rows() -> tuple[list[dict], dict]:
                      n=stv["n_pairs"], family=fam, arm="C5_near",
                      note="secondary, narrate only")
         # verdicts (computed by rule; both per-family and pooled reported)
+        # V2-bug-#3 guard (S-Vòng-7): prereg §2.3.5 -- with fewer than the 4
+        # registered families powered, H-G1 cannot fire ("GENERALIZES" via
+        # >=3 passing requires ALL registered families powered); a verdict on
+        # a partially-powered design can only be FAMILY-DEPENDENT or
+        # pooled-driven.
         n_powered = len(powered_fams)
+        g1_supported = (n_powered == FAMILIES_EXPECTED
+                        and len(passing) >= 3)
         rows.append(row("RQ8", f"verdict.RQ8.{model}.families_powered",
                         n_powered, model=model, source_file=rel,
                         note=f"of {FAMILIES_EXPECTED} registered; unpowered "
@@ -363,27 +387,30 @@ def build_rq8_rows() -> tuple[list[dict], dict]:
                         len(passing), model=model, source_file=rel,
                         note=f"passing: {passing or 'none'} (H-G1: >=3/4)"))
         rows.append(row("RQ8", f"verdict.RQ8.{model}.H_G1",
-                        "SUPPORTED" if len(passing) >= 3 else "NOT_SUPPORTED",
+                        "SUPPORTED" if g1_supported else "NOT_SUPPORTED",
                         model=model, source_file=rel,
-                        note="rule: >=3/4 powered families with exact p<0.05 "
-                             "AND b2v>v2b on benign"))
+                        note="rule: all 4 registered families powered AND "
+                             ">=3 of them with exact p<0.05 AND b2v>v2b on "
+                             "benign (prereg §2.3 + §2.3.5 guard: <=3 powered "
+                             "-> H-G1 NOT_SUPPORTED)"))
         rows.append(row("RQ8", f"verdict.RQ8.{model}.H_G2",
                         "SUPPORTED" if pooled_pass else "NOT_SUPPORTED",
                         model=model, source_file=rel,
                         note=f"rule: pooled delta_fp>=0.15 AND p<0.05 AND "
                              f"b2v>v2b; observed delta="
                              f"{stp['rate_cur'] - stp['rate_prev']:+.4f}"))
-        if len(passing) >= 3 or pooled_pass:
-            label = "GENERALIZES" if len(passing) >= 3 \
+        if g1_supported or pooled_pass:
+            label = "GENERALIZES" if g1_supported \
                 else "GENERALIZES-pooled-driven"
         else:
             label = "FAMILY-DEPENDENT"
         assert label in RQ8_LABELS
         rows.append(row("RQ8", f"verdict.RQ8.{model}.label", label,
                         model=model, source_file=rel,
-                        note="rule (prereg §2.3): GENERALIZES iff "
-                             "family_pass_count>=3 OR pooled_pass; "
-                             "pooled-driven sub-label when family_pass_count<=2 "
+                        note="rule (prereg §2.3 + §2.3.5): GENERALIZES iff "
+                             "all 4 families powered AND family_pass_count>=3, "
+                             "OR pooled_pass; pooled-driven sub-label when "
+                             "family_pass_count<=2 (or <=3 families powered) "
                              "and pooled fires; else FAMILY-DEPENDENT. Both "
                              "per-family and pooled rows are ALWAYS reported "
                              "(anti-masking clause)."))

@@ -26,6 +26,20 @@ deterministic rebuild verified byte-identical across runs. Zero sample
 overlap with bench_attack_v1 (excluded by rule) and zero overlap with the
 rest of the bench_v1 bridge (measured).
 
+> **[CORRECTED-R7]** (S-exec, Vòng 7, sau audit V1): câu trên là SAI do BUG-1
+> — builder đọc manifest bridge bằng key `records` trong khi file thật dùng
+> key `samples`, nên overlap in ra 0. Đo lại trên chính jsonl đã ship (sha
+> `7e8ed42421a7c2d00c64313d985e0f63e92911881cb24f1857b09f5490a3d6b4`,
+> không đổi): overlap với `eval_subset_round2.json` (universe của bench_v1,
+> 838 ids) = **22 ids**; với `eval_subset_round1.json` = **16 ids**. Ảnh hưởng
+> thuần provenance/disclosure: 22 row này từng được đo ở vòng trước dưới
+> điều kiện KHÁC (C2/C3 stress), không phải leak label, không đổi selection
+> (seed-based), không đổi bất kỳ số RQ8 nào. Claim "zero overlap with
+> bench_attack_v1" (200 ids bị loại bởi rule) vẫn ĐÚNG. Đã sửa:
+> `src/conditions/bench_attack_v2.py` (key `samples`, cả round1+round2),
+> `manifest_attack_v2.json` (22 / 16 + note), `docs/bench_attack_v2.md`.
+> Chi tiết: `reports/round7/V1_report.md` BUG-1 + `reports/round7/EXEC_report.md`.
+
 ## W1 — family selection and pool reality (deviations disclosed)
 
 - Parseability scan of the official test+valid splits (round-2 rule: as-is

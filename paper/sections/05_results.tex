@@ -413,14 +413,21 @@ driving families; otherwise the verdict is \emph{family-dependent}, which
 is itself a finding (the channel demonstrated so far only on the
 memory-copy-heavy bench).
 
-\textbf{Results.} \detokenize{{R7:rq8.granite2b.family_clause}}.
-Pooled: \detokenize{{R7:rq8.granite2b.pooled_clause}}.
-Verdict: \detokenize{{R7:rq8.granite2b.verdict_clause}}.
+\textbf{Results.} CWE-190: 9/0 paired benign flips ($n{=}20$, $p=0.003906$); CWE-200: 14/0 paired benign flips ($n{=}20$, $p=1.22{\times}10^{-4}$); CWE-416: 15/0 paired benign flips ($n{=}20$, $p=6.1{\times}10^{-5}$); CWE-476: 13/0 paired benign flips ($n{=}20$, $p=2.44{\times}10^{-4}$).
+Pooled: FP $0.062\rightarrow0.700$ ($\Delta$FP $=+0.637$; 51 benign$\to$vulnerable vs 0 corrections; $n{=}80$; $p=8.88{\times}10^{-16}$).
+Verdict: GENERALIZES (family\_pass\_count 4/4 of 4; H-G1 SUPPORTED, H-G2 SUPPORTED).
 The secondary replication on Llama-3.2-3B (disclosed as headroom-limited):
-\detokenize{{R7:rq8.llama3b.verdict_clause}}.
+GENERALIZES-pooled-driven (family\_pass\_count 2/4 of 4; H-G1 NOT\_SUPPORTED, H-G2 SUPPORTED) ---
+driving families CWE-416 and CWE-200, named per the anti-masking clause; its
+two non-significant families are headroom-limited, not evidence of absence
+(C5\_near FP sits at the 0.95--1.00 ceiling in all four families: CWE-476 is
+one flip short of the 6/20 power threshold, and CWE-190 has two samples of
+headroom above an already-0.900 C0 FP).
 Table~\ref{tab:round7} and Figure~\ref{fig:round7}a report all four
 families and the pooled row side by side; refusal rate is reported
-separately in every cell (refusal is never mapped to benign).
+separately in every cell (refusal is never mapped to benign); one PARTIAL
+record (sample 198370, Llama CWE-200 vul/C0, unparsed JSON) is excluded
+from the paired count and disclosed rather than mapped to a verdict.
 
 \subsection{RQ9: Does the reassertion harm replicate at 7--8B scale?}
 \label{sec:rq9}
@@ -456,15 +463,33 @@ the registered benign check, exact McNemar, smallest passing
 configuration 6/30, $p=0.03125$; saturated C0 is uninformative).
 
 \textbf{Results.} Model run and substrate:
-\detokenize{{R7:rq9.qwen7b.model_clause}}.
-Ladder: recall(A0) \detokenize{{R7:tab.rq9.qwen7b.A0.recall}}
-$\rightarrow$ \detokenize{{R7:tab.rq9.qwen7b.A1.recall}}
-$\rightarrow$ \detokenize{{R7:tab.rq9.qwen7b.A5.recall}}.
-\detokenize{{R7:rq9.qwen7b.hr1_clause}}.
-\detokenize{{R7:rq9.qwen7b.hr2_clause}}.
-\detokenize{{R7:rq9.qwen7b.hr3_clause}}.
-Prompt-identity guard: \detokenize{{R7:rq9.qwen7b.identity_clause}}
+\texttt{qwen7b} (Qwen2.5-Coder-7B-Instruct, bfloat16 --- no fallback
+triggered, MPS).
+Ladder: recall(A0) 0.475
+$\rightarrow$ 0.458
+$\rightarrow$ 0.517.
+H-R1 NOT\_SUPPORTED-ABSENT: recall 0.475$\rightarrow$0.517 (A0$\to$A5 flips 3/5, p=0.7266).
+H-R2 SAFE: $\Delta$recall(A0$\to$A1) = -0.017.
+H-R3 CONSISTENT: benign C0 FP=0.0667, C5\_near flips b2v=13 v2b=0, n=30, p\_exact$=0.000244$
+--- the advisory channel itself still moves benign verdicts at 7B; it is the
+reassertion \emph{ladder} harm that fails to appear (240 records, refusal
+rate 0.000, zero cross-model reuse).
+Prompt-identity guard: 120/120 of the overlapping (sample, rung) prompts match the Round-6 prompt SHAs byte-for-byte (same prompt, different model)
 (Table~\ref{tab:round7}, Figure~\ref{fig:round7}b).
+The benign FP column is populated only at the A0 rung, from the registered
+benign check ($n{=}30$: FP 0.500 on C5\_near vs.\ 0.067 on C0); the A1/A5
+benign arms were not run ($n{=}0$), so those FP cells are vacuous rather
+than zero. Two pre-registered caveats govern every reading of this null:
+(i) \emph{family confound} --- Qwen2.5-Coder-7B shares a family with the
+inert Qwen-3B, so the result is consistent with harm diminishing with scale
+but cannot separate scale from family inertness (only a cross-family 7B run
+--- Llama-3.1-8B or Mixtral --- could); (ii) \emph{baseline difficulty} ---
+the 7B A0 baseline is far from saturated (0.475 vs.\ 1.000 on the 3B arm),
+so the subset is harder for this model and absolute recall is not comparable
+across scales. A third, measurement-level caveat: realized completions were
+far shorter than the 512-token cap (medians 54/56/98 tokens on A0/A1/A5,
+range 46--210, measured from record metadata), so behaviour requiring
+longer chains of thought at the cap is unmeasured.
 
 \subsection{B4: a realistic-difficulty baseline}
 \label{sec:codebert}

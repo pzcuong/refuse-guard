@@ -359,13 +359,22 @@ def materialize(cfg_path=None, out_dir: Optional[Path] = None) -> dict:
         else:
             max_share[kind_name] = None  # guard not applicable below min rows
 
-    # bench_v1 bridge overlap (disclosed; only bench_attack_v1 ids are excluded)
-    try:
-        bridge = json.loads(Path(_PROJECT_ROOT / "data/manifests/eval_subset_round2.json")
-                            .read_text(encoding="utf-8"))
-        bridge_ids = {rec["sample_id"] for rec in bridge.get("records", [])}
-    except (OSError, json.JSONDecodeError, KeyError, TypeError):
-        bridge_ids = set()
+    # bench_v1 bridge overlap (disclosed; only bench_attack_v1 ids are excluded).
+    # [CORRECTED-R7 / BUG-1 fix, V1 audit]: the bridge manifests store ids under
+    # the key `samples` (a list of records), NOT `records` — the old read
+    # silently yielded an empty id set and a false overlap of 0.  Measured for
+    # the shipped artifact (same seed/rule): 22 ids overlap the round-2 bridge
+    # (eval_subset_round2.json, 838 ids — the universe bench_v1 was drawn from)
+    # and 16 ids overlap the round-1 manifest (eval_subset_round1.json).
+    def _bridge_ids(rel: str) -> set:
+        try:
+            d = json.loads(Path(_PROJECT_ROOT / rel).read_text(encoding="utf-8"))
+            return {str(s["sample_id"]) for s in d.get("samples", [])}
+        except (OSError, json.JSONDecodeError, KeyError, TypeError):
+            return set()
+
+    bridge_ids = _bridge_ids("data/manifests/eval_subset_round2.json")
+    bridge1_ids = _bridge_ids("data/manifests/eval_subset_round1.json")
 
     manifest = {
         "name": "bench_attack_v2",
@@ -465,6 +474,13 @@ def materialize(cfg_path=None, out_dir: Optional[Path] = None) -> dict:
         },
         "bench_v1_bridge_overlap_rows": sum(1 for r in rows_out
                                             if r["sample_id"] in bridge_ids),
+        "bench_v1_bridge_overlap_rows_round1": sum(
+            1 for r in rows_out if r["sample_id"] in bridge1_ids),
+        "bench_v1_bridge_overlap_note": (
+            "overlap with the round-2 bridge manifest (the universe bench_v1 "
+            "was drawn from) and the round-1 manifest; provenance disclosure "
+            "only — no label leak, selection is seed-based and unchanged, and "
+            "bench_attack_v1 ids themselves remain excluded (overlap 0)"),
         "jsonl_sha256": hashlib.sha256(jsonl_path.read_bytes()).hexdigest(),
     }
     manifest_path = out_dir / "manifest_attack_v2.json"

@@ -64,7 +64,8 @@ def write_rq8(proj: Path, fam_flips: dict[str, tuple[int, int, int]],
                          "family": fam})
     man = {"samples": [{"sample_id": f"{f}-{i:02d}", "family": f}
                        for f in fam_flips for i in range(fam_n[f])]}
-    d = proj / "outputs/experiments/round7_cwe"
+    # mirror of the collector's RQ8_DIR (Amendment-2: executed layout)
+    d = proj / "outputs/experiments/round7_rq8"
     d.mkdir(parents=True, exist_ok=True)
     (d / "manifest_cwe.json").write_text(json.dumps(man))
     (d / f"results_{model}.json").write_text(json.dumps(
@@ -417,7 +418,7 @@ class TestMainFailsafe:
         write_rq8(proj, {f: (8, 20, 0) for f in FAMS})
         assert cm7.main([]) == 0
         # mutate a source after the fact -> verify must fail loudly
-        rel = proj / "outputs/experiments/round7_cwe/results_granite2b.json"
+        rel = proj / "outputs/experiments/round7_rq8/results_granite2b.json"
         data = json.loads(rel.read_text())
         data["records"][0]["y_pred"] = 1 if data["records"][0]["y_pred"] == 0 else 0
         rel.write_text(json.dumps(data))

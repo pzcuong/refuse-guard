@@ -33,6 +33,17 @@ MANIFEST = ROOT / "outputs" / "master" / "ARTIFACT_MANIFEST.sha256"
 FILES: list[str] = [
     # master aggregate (single source of truth for the paper's numbers)
     "outputs/master/master_results.json",
+    "outputs/master/round7_master.json",
+    "outputs/master/round7_token_map.json",
+    "outputs/master/round6_bias.json",
+    "outputs/experiments/round7_rq8/metrics_round7_rq8.json",
+    "outputs/experiments/round7_rq8/results_llama3b.json",
+    "outputs/experiments/round7_rq8/results_granite2b.json",
+    "outputs/experiments/round7_7b/results_qwen7b__vul__A0.json",
+    "outputs/experiments/round7_7b/results_qwen7b__vul__A5.json",
+    "outputs/experiments/round7_7b/results_qwen7b__vul__A1.json",
+    "outputs/experiments/round7_7b/results_qwen7b__benign__B0.json",
+    "outputs/experiments/round7_7b/smoke_7b.json",
     "outputs/master/master_results.md",
     # E0 reproduction gate
     "outputs/experiments/round3_e0/gate_verdict.json",

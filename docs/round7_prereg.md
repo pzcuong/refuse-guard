@@ -395,3 +395,37 @@ với khung bảng `paper/tables/tab_round7.tex`.
 
 ---
 *Execution log (điền sau):*
+
+---
+
+## AMENDMENT-2 (2026-09-21 — POST-HOC, PATH-ONLY)
+
+**Trạng thái: hậu kiểm (post-hoc).** Amendment này được ghi SAU khi generation
+RQ8 đã hoàn thành (cả hai model 320/320 records), nên theo đúng chữ §0a đây là
+vi phạm quy trình path-change ("KHÔNG được xảy ra sau khi generation RQ8 bắt
+đầu") — được ghi nhận minh bạch, KHÔNG được dùng để hợp thức hoá bất kỳ thay
+đổi rule nào. **Không có hypothesis, ngưỡng, decision rule, bảng nhánh diễn
+giải, hay model registry nào bị đổi. Thay đổi duy nhất: PATH.**
+
+- **Nội dung:** prereg §4 đăng ký path tạm cho RQ8 =
+  `outputs/experiments/round7_cwe/results_<model>.json` + `manifest_cwe.json`.
+  Runner thực thi (`src/experiments/round7_rq8.py`, config
+  `configs/round7_rq8.yaml`) lại ghi vào **`outputs/experiments/round7_rq8/`**
+  (cùng tên file: `results_granite2b.json`, `results_llama3b.json` — mỗi file
+  320 records = 160 benign + 160 vul của MỘT model; `manifest_cwe.json`).
+  Collector `scripts/collect_master_round7.py` đã cập nhật map `RQ8_DIR`
+  trỏ sang `round7_rq8/` (comment đầu file chừa sẵn chỗ này: "edit these two
+  maps then, not the logic"); tests fixture tương ứng
+  (`tests/test_round7_master.py`) mirror path mới.
+- **Cơ chế bước qua amendment trước generation:** step bridge-copy của runner
+  (hợp đồng §4 tạm) kỳ vọng file 80 records/job trong khi driver đã đổi sang
+  per-model file 320 records → bridge skipped ("partial-coverage file") và
+  path divergence chỉ được phát hiện sau hết CPU/GPU bởi audit V1 (BUG-2/V2
+  Issue path-map). Sửa lỗi runner bridge KHÔNG thuộc phạm vi amendment này;
+  collector đọc trực tiếp layout thực thi nên bridge copy không còn cần thiết.
+- **Hệ quả đọc kết quả: KHÔNG.** Cùng file, cùng records, cùng rule; chỉ đường
+  dẫn nguồn đổi. Fail-safe contract (thiếu nguồn → `[pending]` + exit 0,
+  không ghi file) giữ nguyên.
+- File liên quan: `scripts/collect_master_round7.py` (map + comment),
+  `tests/test_round7_master.py` (fixture path), `reports/round7/EXEC_report.md`
+  (người sửa: S-exec Vòng 7).

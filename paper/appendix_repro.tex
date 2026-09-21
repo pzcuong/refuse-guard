@@ -26,12 +26,15 @@ baseline, fusion policy),
 pre-registered P3 component ladder, C5 extension, and qwen spot check),
 and \code{scripts} (training, evaluation, calibration, audit recomputes,
 \code{collect\_master\_round5.py}, \code{collect\_master\_round6.py},
+\code{collect\_master\_round7.py},
 \code{analyze\_verdict\_bias.py}). Pre-registrations are frozen in
 \code{configs/e*\_round3.yaml}, \code{docs/e0\_protocol.md}, the
 round-5 gates in \code{configs/attack\_v2.yaml},
 \code{configs/round5\_e0v2.yaml}, \code{configs/round5\_defense.yaml},
-and the round-6 ablation in \code{configs/round6\_ablation.yaml}
-reconciled with \code{docs/round6\_ablation\_prereg.md} (+ Amendment-1);
+the round-6 ablation in \code{configs/round6\_ablation.yaml}
+reconciled with \code{docs/round6\_ablation\_prereg.md} (+ Amendment-1),
+and Round 7 in \code{docs/round7\_prereg.md} (+ Amendment-1) with
+\code{configs/attack\_v2\_cwe.yaml} and \code{configs/round7\_7b.yaml};
 every output records model id, revision, seed, config hash, and date.
 
 \subsection{Environment}
@@ -74,17 +77,22 @@ number into \code{outputs/master/round6\_ablation.json}
 continuity-corrected $\chi^2$ variants stored alongside), while
 \code{scripts/analyze\_verdict\_bias.py} produces
 \code{outputs/master/round6\_bias.json} the same way;
-(12)~\code{scripts/final\_eval\_summary.py} aggregates master results.
+(12)~\code{scripts/final\_eval\_summary.py} aggregates master results;
+(13)~Round 7 runs \code{src.experiments.round7\_rq8} (CWE-generalization
+arm) and \code{src.experiments.round7\_7b} (stages
+\code{smoke}/\code{run}/\code{benign}/\code{metrics}), and
+(14)~\code{scripts/collect\_master\_round7.py} aggregates every round-7
+number into \code{outputs/master/round7\_master.json} +
+\code{round7\_token\_map.json} (exact discordant-only McNemar recomputed
+from records; verdicts computed by the registered rules; re-read verified).
 All LLM calls are content-addressed and cached in \code{outputs/llm\_cache/};
 any rerun resumes from cache. A smoke verification without training or
 generation (\code{bash scripts/verify\_repro.sh}) checks the test suite
 (strict ``$N$ passed, zero failed''), a dry-run of the E2 runner, existence
 and parseability of every artifact the paper cites, decision-critical values
-(gate verdict, recomputed E8, master-row count), the SHA256 artifact manifest
-(\code{scripts/make\_manifest.py}), and the PDF build; at submission time it
-reports 30/30 checks passed with 443 unit tests green (the round-5/6 master
-files \code{round5\_master.json}, \code{round6\_bias.json}, and
-\code{round6\_ablation.json} are among the checked artifacts).
+(gate verdict, recomputed E8, master-row count, round-7 verdicts and
+headline numbers, token-map-vs-paper consistency), the SHA256 artifact
+manifest (\code{scripts/make\_manifest.py}), and the PDF build.
 
 \subsection{Number-to-file traceability}
 Every table cell and plotted point is generated from the listed output file;

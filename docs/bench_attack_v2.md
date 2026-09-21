@@ -85,9 +85,18 @@ this bench, valid-drawn rows would be mildly optimistic for B4.
 Exclusions: all 200 `bench_attack_v1` sample_ids (the C5-executed artifact)
 are excluded — **zero sample overlap** with v1 (manifest +
 `test_no_overlap_with_bench_attack_v1`). Overlap with the remaining bench_v1
-bridge rows (round-3 C2/C3 stress arms) turned out to be **0** as well
-(`bench_v1_bridge_overlap_rows: 0`), so v2 is fully fresh relative to every
-prior function benchmark.
+bridge is **not** zero: **22 ids** overlap the round-2 bridge manifest
+(`eval_subset_round2.json`, the 838-id universe bench_v1 was drawn from) and
+**16 ids** overlap the round-1 manifest (`eval_subset_round1.json`)
+(`bench_v1_bridge_overlap_rows: 22`, `bench_v1_bridge_overlap_rows_round1: 16`).
+[CORRECTED-R7]: this document previously claimed "0 … fully fresh relative to
+every prior function benchmark" — that number was the output of a manifest-key
+bug (the builder read `records`; the manifests use `samples`) and was wrong.
+Impact is provenance-only: those 22 rows were measured in earlier rounds under
+DIFFERENT conditions (round-2/3 C2/C3 stress arms); there is no label leak,
+selection is seed-based and unchanged, and no RQ8 number changes. v2 is fresh
+relative to the executed `bench_attack_v1` artifact, not to every prior
+benchmark.
 
 ### Stratification rule
 

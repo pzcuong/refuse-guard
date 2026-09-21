@@ -22,7 +22,13 @@ localizes the harm --- boundary labelling alone is harmless, and the
 system task-intent reassertion carries 28 of the 34 net flips (exact
 $p=7.45{\times}10^{-9}$). Semantic isolation reduces instruction-injection
 success $0.742\rightarrow 0.484$ ($p{=}0.0078$) without improving accuracy, and
-ungated refusal-recovery can manufacture full unsafe compliance. We release a
+ungated refusal-recovery can manufacture full unsafe compliance. A
+pre-registered extension carries both corruption findings outward: the
+verdict-bias channel generalizes across four further CWE families (4/4 on
+the primary model), while the reassertion harm does not replicate at 7B ---
+defence-induced corruption is, on everything measured here (2--7B), a
+small-model risk, and minimal provenance is safe in every measured ladder.
+We release a
 query-relevant, anti-leakage benchmark and argue that at open-model scale the
 actionable risk is verdict corruption --- by untrusted context and by the
 defence itself --- not denial of service.

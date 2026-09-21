@@ -332,7 +332,8 @@ def test_dry_run_eight_generations(tmp_path):
 # ---------------------------------------------------------------------------
 def _write_collector_tree(tmp_path, per_family, model_slug, mid):
     """Synthetic COMPLETE run + manifest in the registered collector layout."""
-    bridge = tmp_path / "outputs" / "experiments" / "round7_cwe"
+    # mirror of the collector's RQ8_DIR (Amendment-2: executed layout)
+    bridge = tmp_path / "outputs" / "experiments" / "round7_rq8"
     bridge.mkdir(parents=True)
     cfg = rq8.load_config(PROJECT_ROOT / "configs/round7_rq8.yaml")
     man = rq8.build_manifest(cfg, bridge)

@@ -6,7 +6,7 @@ We asked whether safety alignment interferes with LLM-based vulnerability
 analysis, and designed the study so that the answer --- in either direction
 --- would be informative. The measurement returned a sharper story than
 either side predicted. The feared blocking does not materialize at open
-2--3B scale: a pre-registered reproduction gate fails with effect size
+2--7B scale: a pre-registered reproduction gate fails with effect size
 exactly 0, and the verdict survives the strongest literature-faithful
 escalation we could build --- a content-anchored, query-relevant risk
 advisory embedded in the analyzed function itself (100/100 own-sink
@@ -23,14 +23,21 @@ outputs. Semantic isolation cuts instruction-injection success to 48\%
 an ungated structured-recovery pipeline suppresses refusal entirely (unsafe
 compliance 1.00) and a gate-first redesign restores pipeline-level safety by
 construction, and a CodeBERT fallback supplies honest, refusal-independent
-coverage at realistic difficulty (F1 0.215).
+coverage at realistic difficulty (F1 0.215). Two pre-registered Round-7
+extensions close the loop: the verdict-bias channel generalizes across four
+further CWE families (4/4 on the primary model; pooled-driven on the
+headroom-limited secondary), while the reassertion harm does not replicate
+at 7B --- consistent with defence-induced corruption being a small-model
+risk, with the model-family confound disclosed, and with minimal provenance
+safe in every measured ladder (2--7B).
 
 For builders of LLM security tooling the guidance is concrete: do not
 engineer against refusal on analysis tasks at this scale --- engineer against
 verdict corruption, and require a paired flip ledger from every safety
-wrapper before it ships --- and, per the Round-6 ablation, ship the
-wrapper's labelling half while keeping its task-reframing half off for
-verdict-critical analysis. For researchers, two scoped firsts invite
+wrapper before it ships --- and, per the Round-6 ablation and the Round-7
+replication, ship the wrapper's labelling half while keeping its
+task-reframing half off for verdict-critical analysis at every scale tested.
+For researchers, two scoped firsts invite
 replication: the first systematic test of query-relevant safety-blocking
 transfer to source-code vulnerability analysis at open-model scale, and the
 first evidence of defence-induced verdict corruption in this setting, now
@@ -40,8 +47,10 @@ proves harmless; the frontier-model transfer question is the highest-value
 open problem.
 
 Future work, sized beyond a pilot: frontier-model API runs to test
-blocking and bias transfer at scale; extending the C5 advisory generator
-beyond its 26-sink inventory to further CWE families and repository-level
+blocking and bias transfer at scale; cross-family 7B-scale ladders
+(Llama-3.1-8B or a Mixtral-class model) to separate the Round-7 null from
+Qwen-family inertness; extending the C5 advisory generator beyond its
+26-sink inventory and the four executed CWE families to repository-level
 context; scaling each cell past power thresholds; replacing lexical intent
 gating with model-based gating measured on paraphrase adversaries; and
 re-running on the official PrimeVul v1.0 substrate. All artifacts ---

@@ -1,10 +1,9 @@
 % tab_round7.tex — RQ8 (CWE generalization) + RQ9 (7B replication), Round 7.
-% KHUNG (skeleton): every numeric cell below is a {{R7:*}} placeholder wrapped
-% in \detokenize so the paper compiles before the round-7 data lands.
-% FILLED BY S-Vòng-7 ONLY from outputs/master/round7_token_map.json (written
-% by scripts/collect_master_round7.py; re-read verified) — replace the whole
-% \detokenize{{R7:...}} call with the mapped LaTeX string. NO NUMBER MAY BE
-% TYPED BY HAND.
+% FILLED by S-Vòng-7: every numeric cell below was replaced verbatim by the
+% mapped string in outputs/master/round7_token_map.json (written by
+% scripts/collect_master_round7.py; re-read verified). NO NUMBER TYPED BY
+% HAND. Cross-checked programmatically by scripts/verify_repro.sh (step 4b:
+% every token-map value used in the paper must appear in the sources).
 % Design authority (pre-registered BEFORE any round-7 generation, with
 % Amendment-1 reconciling the executed configs):
 % docs/round7_prereg.md §0b (families CWE-476/416/190/200 per bench_attack_v2;
@@ -43,9 +42,11 @@ count: $\leq$3 flips and $p\geq0.05$ SAFE, $\geq$10 UNSAFE, else PARTIAL.
 H-R3: benign direction consistency vs.\ the same-model benign check
 (C0 vs.\ B0-on-C5\_near; smallest passing configuration 6/30,
 $p=0.03125$; saturated C0 uninformative). Refusal rate is asserted 0.000
-across all round-7 records and is never mapped to benign. Cells marked
-\texttt{\detokenize{{R7:...}}} are unfilled placeholders pending the
-round-7 master (\texttt{scripts/collect\_master\_round7.py}).}
+across all round-7 records and is never mapped to benign. Every numeric cell
+is taken verbatim from \texttt{outputs/master/round7\_token\_map.json}
+(\texttt{scripts/collect\_master\_round7.py}, re-read verified); the benign
+FP column is populated only at A0 via the registered benign check
+($n{=}30$) --- the A1/A5 benign arms were not run ($n{=}0$).}
 \label{tab:round7}
 \small
 \begin{tabular}{@{}lccccc@{}}
@@ -55,46 +56,46 @@ families} (Granite-3.3-2B, benign side)} \\
 Family & FP C0 & FP C5\_near & $\Delta$FP & flips b2v/v2b & $p$ (exact) \\
 \midrule
 % source: outputs/master/round7_master.json -> cwe.granite2b.CWE-476.*
-\detokenize{{R7:tab.rq8.granite2b.CWE-476.family}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.c0}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.c5}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.delta}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.flips}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-476.p}} \\
+CWE-476*
+  & 0.050
+  & 0.700
+  & $+0.650$
+  & 13/0
+  & $2.44{\times}10^{-4}$ \\
 % source: outputs/master/round7_master.json -> cwe.granite2b.CWE-416.*
-\detokenize{{R7:tab.rq8.granite2b.CWE-416.family}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.c0}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.c5}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.delta}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.flips}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-416.p}} \\
+CWE-416*
+  & 0.000
+  & 0.750
+  & $+0.750$
+  & 15/0
+  & $6.1{\times}10^{-5}$ \\
 % source: outputs/master/round7_master.json -> cwe.granite2b.CWE-190.*
-\detokenize{{R7:tab.rq8.granite2b.CWE-190.family}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.c0}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.c5}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.delta}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.flips}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-190.p}} \\
+CWE-190*
+  & 0.200
+  & 0.650
+  & $+0.450$
+  & 9/0
+  & $0.003906$ \\
 % source: outputs/master/round7_master.json -> cwe.granite2b.CWE-200.*
-\detokenize{{R7:tab.rq8.granite2b.CWE-200.family}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.c0}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.c5}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.delta}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.flips}}
-  & \detokenize{{R7:tab.rq8.granite2b.CWE-200.p}} \\
+CWE-200*
+  & 0.000
+  & 0.700
+  & $+0.700$
+  & 14/0
+  & $1.22{\times}10^{-4}$ \\
 \midrule
 % source: outputs/master/round7_master.json -> cwe.granite2b.POOLED.* (n=80)
 POOLED ($n{=}80$)
-  & \detokenize{{R7:tab.rq8.granite2b.POOLED.c0}}
-  & \detokenize{{R7:tab.rq8.granite2b.POOLED.c5}}
-  & \detokenize{{R7:tab.rq8.granite2b.POOLED.delta}}
-  & \detokenize{{R7:tab.rq8.granite2b.POOLED.flips}}
-  & \detokenize{{R7:tab.rq8.granite2b.POOLED.p}} \\
+  & 0.062
+  & 0.700
+  & $+0.637$
+  & 51/0
+  & $8.88{\times}10^{-16}$ \\
 % source: outputs/master/round7_master.json -> verdict.RQ8.granite2b.* (rule-computed)
-\multicolumn{6}{@{}l@{}}{Verdict (by rule): \detokenize{{R7:tab.rq8.granite2b.verdict}}} \\
+\multicolumn{6}{@{}l@{}}{Verdict (by rule): GENERALIZES (family\_pass\_count 4/4 of 4; H-G1 SUPPORTED, H-G2 SUPPORTED)} \\
 % source: verdict.RQ8.llama3b.* (secondary replication, headroom-caveated)
 \multicolumn{6}{@{}l@{}}{\footnotesize Llama-3.2-3B secondary (headroom-caveated):
-\detokenize{{R7:rq8.llama3b.verdict_clause}}} \\
+GENERALIZES-pooled-driven (family\_pass\_count 2/4 of 4; H-G1 NOT\_SUPPORTED, H-G2 SUPPORTED)} \\
 \midrule
 \multicolumn{6}{@{}l@{}}{\textbf{RQ9: reassertion-harm replication at 7B}
 (Qwen2.5-Coder-7B-Instruct, minimal ladder, byte-identical Round-6 arm)} \\
@@ -103,29 +104,29 @@ Rung & Added component & recall (vul, $n{=}60$) & FP (benign, $n{=}30$)
 \midrule
 % source: outputs/master/round7_master.json -> scale.qwen7b.A0.*
 A0 & none (B0 raw)
-  & \detokenize{{R7:tab.rq9.qwen7b.A0.recall}}
-  & \detokenize{{R7:tab.rq9.qwen7b.A0.fp}}
+  & 0.475
+  & 0.500
   & --- & --- \\
 % source: outputs/master/round7_master.json -> scale.qwen7b.A1.*
 A1 & boundary label only (minimal provenance)
-  & \detokenize{{R7:tab.rq9.qwen7b.A1.recall}}
-  & \detokenize{{R7:tab.rq9.qwen7b.A1.fp}}
-  & \detokenize{{R7:tab.rq9.qwen7b.A1.delta}}
-  & \detokenize{{R7:tab.rq9.qwen7b.A1.p}} \\
+  & 0.458
+  & 0.000
+  & $-0.017$
+  & $1.0$ \\
 % source: outputs/master/round7_master.json -> scale.qwen7b.A5.*
 A5 & + system reassertion ($=$ full P3)
-  & \detokenize{{R7:tab.rq9.qwen7b.A5.recall}}
-  & \detokenize{{R7:tab.rq9.qwen7b.A5.fp}}
-  & \detokenize{{R7:tab.rq9.qwen7b.A5.delta}}
-  & \detokenize{{R7:tab.rq9.qwen7b.A5.p}} \\
+  & 0.517
+  & 0.000
+  & $+0.042$
+  & $0.7266$ \\
 \midrule
 % source: outputs/master/round7_master.json -> verdict.RQ9.qwen7b.* (rule-computed)
 \multicolumn{6}{@{}l@{}}{Verdicts (by rule, fixed branch order):
-\detokenize{{R7:tab.rq9.qwen7b.verdicts}}} \\
+NOT\_SUPPORTED-ABSENT $\cdot$ H-R2 SAFE $\cdot$ H-R3 CONSISTENT} \\
 % source: scale.qwen7b.prompt_identity.vs_round6 (+ qwen-3B family caveat note)
 \multicolumn{6}{@{}l@{}}{\footnotesize Prompt identity vs.\ Round-6
 (same prompt, different model):
-\detokenize{{R7:rq9.qwen7b.identity_clause}}.
+120/120 of the overlapping (sample, rung) prompts match the Round-6 prompt SHAs byte-for-byte (same prompt, different model).
 Null readings carry the mandatory family caveat (Qwen-3B inert, Amendment-1
 §0b(i)) --- see \texttt{docs/round7\_prereg.md}.} \\
 \bottomrule
