@@ -15,8 +15,13 @@ defence-harm) trong domain malicious-package (nhạy cảm an ninh CAO hơn vuln
 chuẩn hóa cross-language, huấn luyện FL qua partition ecosystem (non-IID tự nhiên),
 với LLM-KB explainable gated bởi refusal monitor.
 
-## 2. Môi trường (đã kiểm chứng)
+## 2. Môi trường (đã kiểm chứng) — CẬP NHẬT 2026-09-21: MODEL <4B ONLY
 - Root: `/Users/macbook/.zcode/workspace/default/refuseguard` — mọi path absolute.
+- **RÀNG BUỘC MỚI (directive user): research chỉ dùng model <4B.** Models khả dụng
+  (đã dọn bỏ 7B/8B, giải phóng 31GB): Qwen2.5-Coder-3B, unsloth/Llama-3.2-3B,
+  granite-3.3-2b, Qwen2.5-Coder-0.5B (smoke), CodeBERT-base + fine-tuned checkpoint.
+  KHÔNG tải lại model ≥4B. Scale-question (RQ9) khép ở 2-3B với family-confound
+  disclosed (docs/literature_2026_refresh.md mục C).
 - Python `.venv/bin/python` (3.12): torch 2.14 (MPS), transformers 5.17, datasets,
   sklearn, tree_sitter + tree_sitter_languages (CÓ sẵn: javascript, python, java...),
   statsmodels, matplotlib. KHÔNG API key — LLM local: Qwen2.5-Coder-3B + Llama-3.2-3B +

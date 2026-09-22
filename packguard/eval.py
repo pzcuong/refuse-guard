@@ -48,12 +48,14 @@ from packguard.fl import (
 )
 from src.metrics.stats import bootstrap_ci_diff, mcnemar
 
-__all__ = ["run_pipeline", "main"]
+__all__ = ["run_pipeline", "run_grid", "main"]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DEFAULT = PROJECT_ROOT / "configs" / "packguard_fl.yaml"
 FEATURES_DIR_DEFAULT = PROJECT_ROOT / "outputs" / "packguard" / "features"
 OUT_DIR_DEFAULT = PROJECT_ROOT / "outputs" / "packguard" / "fl"
+GRID_OUT_DEFAULT = PROJECT_ROOT / "outputs" / "packguard" / "fl_multiseed"
+TEXT_CACHE_DEFAULT = PROJECT_ROOT / "outputs" / "packguard" / "features" / "text_v2.json"
 
 
 def _now() -> str:
@@ -420,19 +422,463 @@ def _render_summary(base_meta: dict, runs: dict, primary_stats: dict,
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Round-9 multi-seed grid (AMENDMENT-3; W1) — 5 seeds x 4 methods x 2 feature
+# sets x {group PRIMARY, random SECONDARY} splits, plus the disclosed 3-client
+# fallback arm (partition npm_hook). Added HERE because scripts/ is outside
+# this agent's write space; the round-8 run_pipeline above is untouched.
+# ---------------------------------------------------------------------------
+def _tfidf_blocks(train: list[dict], test: list[dict], cache: dict) -> None:
+    """Attach a `tfidf` block, fit on the TRAIN text only (no vocabulary
+    leakage). Hyperparameters (max_features=1000, min_df=2, sublinear_tf) and
+    the fixed dense key set are an exact mirror of
+    scripts/packguard_final_runs.py::tfidf_blocks (round-8 final runs) so the
+    grid is comparable with the round-8 numbers; the mirror exists because
+    scripts/ is not modifiable by this agent (round-9 tasking)."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    vec = TfidfVectorizer(max_features=1000, min_df=2, sublinear_tf=True)
+    Xtr = vec.fit_transform([cache.get(r["sample_id"], "") or "" for r in train])
+    Xte = vec.transform([cache.get(r["sample_id"], "") or "" for r in test])
+    names = [f"tfidf_{j}" for j in range(Xtr.shape[1])]
+    for recs, X in ((train, Xtr), (test, Xte)):
+        coo = X.tocsr()
+        for i, r in enumerate(recs):
+            row = coo[i]
+            dense = {n: 0.0 for n in names}  # same key set for EVERY record
+            for j in row.indices:
+                dense[names[j]] = round(float(row[0, j]), 6)
+            r["features"]["tfidf"] = dense
+
+
+def _wilcoxon_over_seeds(deltas: list[float]) -> dict:
+    """Wilcoxon signed-rank over per-seed deltas (AMENDMENT-3 A3.2). All-zero
+    deltas -> p is undefined (never fabricated). n=5 seeds cannot reach
+    alpha=0.05 two-sided (minimum exact p = 1/16 = 0.0625) — the result is
+    descriptive support only; this is stated in the output itself."""
+    from scipy import stats as sps
+
+    ds = [float(d) for d in deltas]
+    out: dict[str, Any] = {
+        "deltas": ds,
+        "n": len(ds),
+        "n_pos": sum(d > 0 for d in ds),
+        "n_neg": sum(d < 0 for d in ds),
+        "n_zero": sum(d == 0 for d in ds),
+        "mean_delta": float(sum(ds) / len(ds)) if ds else None,
+        "power_note": ("n=5 seeds: two-sided exact Wilcoxon minimum p = "
+                       "0.0625 > 0.05 -> descriptive support only "
+                       "(AMENDMENT-3 A3.2)"),
+    }
+    if not ds or all(d == 0.0 for d in ds):
+        out["p_value"] = None
+        out["note"] = "all deltas are exactly zero; Wilcoxon undefined"
+        return out
+    try:
+        res = sps.wilcoxon(ds)
+        out["statistic"] = float(res.statistic)
+        out["p_value"] = float(res.pvalue)
+    except Exception as exc:  # disclose, never fabricate
+        out["p_value"] = None
+        out["error"] = f"{type(exc).__name__}: {exc}"
+    return out
+
+
+def _grid_fl_config(cfg: dict, input_dim: int, seed: int, block: str) -> "FLConfig":
+    """FLConfig for grid cells — same hyperparameter source as run_pipeline
+    (fl + model config sections; mu_fedprox -> mu; DP off unless cfg says on)."""
+    fl_over: dict[str, Any] = {**(cfg.get("fl", {}) or {}), **(cfg.get("model", {}) or {})}
+    fl_over["mu"] = float(fl_over.pop("mu_fedprox", 0.01))
+    flc = FLConfig.from_dict(fl_over, input_dim=input_dim)
+    flc.seed = seed
+    flc.feature_block = block
+    flc.test_fraction = float(((cfg.get("data", {}) or {}).get("test_fraction", 0.2)))
+    if (cfg.get("dp", {}) or {}).get("enabled"):
+        flc.dp_enabled = True
+        flc.dp_sigma = float(cfg["dp"].get("sigma", 0.01))
+        flc.dp_delta = float(cfg["dp"].get("delta", 1e-5))
+        flc.dp_clip = float(cfg["dp"].get("clip", 1.0))
+    return flc
+
+
+def _grid_cell(records: list[dict], cache: dict, cfg: dict,
+               seed: int, split_mode: str, block: str, scheme: str,
+               base_meta: dict) -> tuple[list[dict], dict]:
+    """One (seed, split, feature-set, partition) cell: run the 4 registered
+    methods; return ([run rows], cell summary with per-seed comparison)."""
+    import copy
+
+    from packguard.fl import (
+        FLConfig,
+        FedClient,
+        build_clients,
+        client_label_distribution,
+        make_global_test_split,
+        make_group_split,
+        paired_correctness,
+        run_centralized,
+        run_federated,
+        run_per_client_routing,
+    )
+    from src.metrics.stats import mcnemar
+
+    frac = float(((cfg.get("data", {}) or {}).get("test_fraction", 0.2)))
+    recs = copy.deepcopy(records)
+    if split_mode == "group":
+        train, test = make_group_split(recs, frac, seed=seed)
+    elif split_mode == "random":
+        train, test = make_global_test_split(recs, frac, seed=seed)
+    else:
+        raise ValueError(f"unknown split mode {split_mode!r}")
+    if block == "tfidf":
+        _tfidf_blocks(train, test, cache)
+    clients = build_clients(train, feature_block=block, scheme=scheme)
+    test_client = FedClient("global_test", test, feature_block=block)
+    flc = _grid_fl_config(cfg, test_client.input_dim, seed, block)
+    mu = float((cfg.get("fl", {}) or {}).get("mu_fedprox", 0.01))
+    dist = client_label_distribution(clients)
+
+    methods = ("fedavg", "fedprox", "centralized", "per_client_best")
+    res = {
+        "fedavg": run_federated(clients, test_client, flc, "fedavg", seed),
+        "fedprox": run_federated(clients, test_client, flc, "fedprox", seed),
+        "centralized": run_centralized(clients, test_client, flc, seed),
+        "per_client_best": run_per_client_routing(
+            clients, test, test_client, flc, seed, scheme=scheme),
+    }
+
+    rows: list[dict] = []
+    y_test = [int(r["label"]) for r in test]
+    for method in methods:
+        r = res[method]
+        m = r["final_metrics"]
+        sub = _subgroup_metrics(test, r["final_probs"])
+        payload = {
+            "kind": "run",
+            "name": f"{scheme}__{split_mode}__{block}__{method}__seed{seed}",
+            "meta": dict(base_meta),
+            "seed": seed,
+            "method": method,
+            "features": block,
+            "split": split_mode,
+            "partition": scheme,
+            "mock": False,
+            "config_sha16": base_meta["config_sha16"],
+            "date": base_meta["date"],
+            "f1": m.get("f1", m.get("f1_macro")),
+            "auc": m.get("auc", m.get("auc_macro")),
+            "precision": m.get("precision"),
+            "recall": m.get("recall"),
+            "n_train": len(train),
+            "n_test": m.get("n"),
+            "n_test_malicious": m.get("n_test_malicious"),
+            "input_dim": test_client.input_dim,
+            "client_distribution": dist,
+            "per_ecosystem_f1": {k: (v or {}).get("f1") for k, v in sub.items()
+                                 if k.startswith("eco_")},
+            "subgroup_metrics": sub,
+            "mu_fedprox": mu,
+            "secure_agg_mask_residual": r.get("secure_agg_mask_residual"),
+            "dp": {k: r.get(k) for k in
+                   ("dp_enabled", "dp_sigma", "dp_epsilon_per_round")},
+            "history_tail": (r.get("history") or [])[-3:],
+        }
+        if method == "per_client_best":
+            payload["macro_metrics"] = r.get("macro_metrics")
+            payload["n_uncovered"] = r.get("n_uncovered")
+            payload["per_client_global"] = r.get("per_client")
+        rows.append(payload)
+
+    # per-seed pre-registered comparison: FedAvg vs centralized
+    corr_fl, corr_cent = paired_correctness(
+        res["fedavg"]["final_probs"], res["centralized"]["final_probs"], y_test)
+    mc = mcnemar(corr_cent, corr_fl, exact=None)
+    f1_fl = res["fedavg"]["final_metrics"]["f1"]
+    f1_c = res["centralized"]["final_metrics"]["f1"]
+    auc_fl = res["fedavg"]["final_metrics"].get("auc")
+    auc_c = res["centralized"]["final_metrics"].get("auc")
+    cell = {
+        "seed": seed, "split": split_mode, "features": block,
+        "partition": scheme, "n_test": len(test),
+        "n_test_malicious": int(sum(y_test)),
+        "fedavg_f1": f1_fl, "centralized_f1": f1_c, "f1_delta": f1_fl - f1_c,
+        "fedavg_auc": auc_fl, "centralized_auc": auc_c,
+        "auc_delta": (auc_fl - auc_c) if (auc_fl is not None and auc_c is not None) else None,
+        "mcnemar_fedavg_vs_centralized": mc,
+    }
+    return rows, cell
+
+
+def _mean_std(values: list) -> dict:
+    vals = [float(v) for v in values if v is not None]
+    if not vals:
+        return {"mean": None, "std": None, "n": 0}
+    mu = sum(vals) / len(vals)
+    var = sum((v - mu) ** 2 for v in vals) / len(vals)  # population std over seeds
+    return {"mean": mu, "std": var ** 0.5, "n": len(vals)}
+
+
+def _aggregate_grid(all_rows: list[dict], all_cells: list[dict]) -> dict:
+    """Aggregate per (partition, split, features, method): mean+-std; and per
+    (partition, split, features): Wilcoxon over the 5 per-seed FedAvg-vs-
+    centralized deltas + per-seed McNemar table (AMENDMENT-3 A3.2)."""
+    agg: dict[str, Any] = {"cells": {}, "comparisons": {}}
+    groups: dict[tuple, list[dict]] = {}
+    for r in all_rows:
+        groups.setdefault((r["partition"], r["split"], r["features"], r["method"]),
+                          []).append(r)
+    for (part, split, block, method), rs in sorted(groups.items()):
+        rs = sorted(rs, key=lambda r: r["seed"])
+        agg["cells"][f"{part}__{split}__{block}__{method}"] = {
+            "partition": part, "split": split, "features": block, "method": method,
+            "seeds": [r["seed"] for r in rs],
+            "f1": _mean_std([r["f1"] for r in rs]),
+            "auc": _mean_std([r["auc"] for r in rs]),
+            "precision": _mean_std([r["precision"] for r in rs]),
+            "recall": _mean_std([r["recall"] for r in rs]),
+            "eco_npm_f1": _mean_std([
+                (r.get("per_ecosystem_f1") or {}).get("eco_npm") for r in rs]),
+            "eco_pypi_f1": _mean_std([
+                (r.get("per_ecosystem_f1") or {}).get("eco_pypi") for r in rs]),
+            "mean_n_test": _mean_std([r["n_test"] for r in rs]),
+        }
+    comps: dict[tuple, list[dict]] = {}
+    for c in all_cells:
+        comps.setdefault((c["partition"], c["split"], c["features"]), []).append(c)
+    for (part, split, block), cs in sorted(comps.items()):
+        cs = sorted(cs, key=lambda c: c["seed"])
+        f1_deltas = [c["f1_delta"] for c in cs]
+        auc_deltas = [c["auc_delta"] for c in cs if c["auc_delta"] is not None]
+        agg["comparisons"][f"{part}__{split}__{block}"] = {
+            "partition": part, "split": split, "features": block,
+            "per_seed": cs,
+            "wilcoxon_f1_delta_fedavg_minus_centralized": _wilcoxon_over_seeds(f1_deltas),
+            "wilcoxon_auc_delta_fedavg_minus_centralized": (
+                _wilcoxon_over_seeds(auc_deltas) if len(auc_deltas) == len(cs)
+                else {"note": "auc undefined in some seeds", "deltas": auc_deltas}),
+            "f1_delta_mean_std": _mean_std(f1_deltas),
+        }
+    return agg
+
+
+def _render_grid_summary(base_meta: dict, agg: dict, cfg: dict,
+                         client_dist: dict, n_runs: int) -> str:
+    def cell_ms(d: dict) -> str:
+        f1, auc = d["f1"], d["auc"]
+        fmt = lambda x: ("n/a" if x is None or x.get("mean") is None
+                         else f"{x['mean']:.4f}±{x['std']:.4f}")
+        return fmt(f1), fmt(auc)
+
+    lines: list[str] = []
+    lines.append("# PackGuard multi-seed grid — summary (round 9, AMENDMENT-3)")
+    lines.append("")
+    lines.append(f"- date: {base_meta['date']}")
+    lines.append(f"- config sha16: {base_meta['config_sha16']}; seeds: "
+                 f"{base_meta['seeds']}")
+    lines.append(f"- runs: {n_runs} (mock=false, real features_v2, 603-sample corpus)")
+    lines.append("- primary: group split, F1, FedAvg vs centralized; aggregation "
+                 "= Wilcoxon over 5 seeds + per-seed McNemar (A3.2). n=5 seeds "
+                 "-> two-sided Wilcoxon minimum p = 0.0625 > 0.05: DESCRIPTIVE ONLY.")
+    lines.append("")
+    for part, part_label in (("ecosystem", "PRIMARY partition: ecosystem (npm / pypi, 2 clients)"),
+                             ("npm_hook", "FALLBACK arm: npm_hook 3-client partition "
+                                          "(ecosystem+hook partition of the SAME corpus, "
+                                          "NOT a new ecosystem — not cross-ecosystem FL)")):
+        lines.append(f"## {part_label}")
+        lines.append("")
+        lines.append("| split | features | method | F1 (mean±std) | AUC (mean±std) "
+                     "| npm F1 | pypi F1 |")
+        lines.append("|---|---|---|---|---|---|---|")
+        for split in ("group", "random"):
+            for block in ("graph", "tfidf"):
+                for method in ("fedavg", "fedprox", "centralized", "per_client_best"):
+                    d = agg["cells"].get(f"{part}__{split}__{block}__{method}")
+                    if not d:
+                        continue
+                    f1s, aucs = cell_ms(d)
+                    eco = lambda k: ("n/a" if d[k]["mean"] is None
+                                     else f"{d[k]['mean']:.4f}±{d[k]['std']:.4f}")
+                    lines.append(f"| {split} | {block} | {method} | {f1s} | {aucs} "
+                                 f"| {eco('eco_npm_f1')} | {eco('eco_pypi_f1')} |")
+        lines.append("")
+        lines.append(f"### FedAvg vs centralized — per-seed tests ({part})")
+        lines.append("")
+        lines.append("| split | features | seed | F1 (FL) | F1 (central) | ΔF1 | "
+                     "McNemar p | method |")
+        lines.append("|---|---|---|---|---|---|---|---|")
+        for key, comp in sorted(agg["comparisons"].items()):
+            if not key.startswith(part + "__"):
+                continue
+            for c in comp["per_seed"]:
+                mc = c["mcnemar_fedavg_vs_centralized"]
+                lines.append(
+                    f"| {c['split']} | {c['features']} | {c['seed']} "
+                    f"| {c['fedavg_f1']:.4f} | {c['centralized_f1']:.4f} "
+                    f"| {c['f1_delta']:+.4f} | {mc['p_value']:.4g} | {mc['method']} |")
+        lines.append("")
+        lines.append(f"### Wilcoxon over seeds ({part})")
+        lines.append("")
+        lines.append("| split | features | ΔF1 mean±std | n_pos/n_neg/n_zero | "
+                     "Wilcoxon p (F1) | Wilcoxon p (AUC) |")
+        lines.append("|---|---|---|---|---|---|")
+        for key, comp in sorted(agg["comparisons"].items()):
+            if not key.startswith(part + "__"):
+                continue
+            w1 = comp["wilcoxon_f1_delta_fedavg_minus_centralized"]
+            w2 = comp["wilcoxon_auc_delta_fedavg_minus_centralized"]
+            ms = comp["f1_delta_mean_std"]
+            p1 = "n/a" if w1.get("p_value") is None else f"{w1['p_value']:.4g}"
+            p2 = "n/a" if w2.get("p_value") is None else f"{w2['p_value']:.4g}"
+            lines.append(
+                f"| {comp['split']} | {comp['features']} "
+                f"| {ms['mean']:+.4f}±{ms['std']:.4f} "
+                f"| {w1['n_pos']}/{w1['n_neg']}/{w1['n_zero']} | {p1} | {p2} |")
+        lines.append("")
+    lines.append("## Client partitions (train pool; group split, graph block, "
+                 "seed 20260922)")
+    lines.append("```json")
+    lines.append(json.dumps(client_dist, indent=1))
+    lines.append("```")
+    lines.append("")
+    lines.append("## Notes (honest)")
+    lines.append("- FedProx(mu=0.01) can coincide exactly with FedAvg: the proximal "
+                 "penalty at this mu does not change the trajectory on this data "
+                 "(unit-tested that larger mu does).")
+    lines.append("- per_client_best = oracle-partition routing (A3.2): each test "
+                 "sample scored by its own partition's local model; macro over "
+                 "clients is in the JSON rows (macro_metrics).")
+    lines.append("- npm_hook partition: ecosystem+hook split of the SAME 603-sample "
+                 "corpus — NOT a new ecosystem, NOT cross-ecosystem FL (A3.3). The "
+                 "npm_hook client is extreme-skew (~99% malicious; the corpus has "
+                 "only ONE hooked benign package, which lands in TRAIN in all 5 "
+                 "group splits).")
+    lines.append("- tfidf-FedAvg degenerates to an all-malicious predictor "
+                 "(recall=1.0, precision = test base rate) in every cell — its F1 "
+                 "variation across seeds only tracks test composition, and the "
+                 "identical 0.7839 on the random split reflects the stratified "
+                 "test set being identical in size/composition across seeds "
+                 "(n_test=121, n_mal=78).")
+    return "\n".join(lines)
+
+
+def run_grid(cfg: dict, out_dir: Path = GRID_OUT_DEFAULT,
+             features_dir: Optional[Path] = None) -> dict:
+    """Round-9 multi-seed grid (AMENDMENT-3, registered before execution).
+
+    Real data only (mock=false enforced); TF-IDF fit per (seed, split) on the
+    train pool; every run row records {seed, method, features, split,
+    partition, mock, config_sha16, date}. Outputs grid_results.json +
+    summary.md under out_dir.
+    """
+    grid_cfg = (cfg.get("grid", {}) or {})
+    seeds = [int(s) for s in grid_cfg.get("seeds", [int(cfg.get("seed", 20260922))])]
+    splits = list(grid_cfg.get("splits", ["group", "random"]))
+    blocks = list(grid_cfg.get("feature_blocks", ["graph", "tfidf"]))
+    partitions = list(grid_cfg.get("partitions", ["ecosystem"]))
+    if grid_cfg.get("run_client3") and "npm_hook" not in partitions:
+        partitions.append("npm_hook")
+    if "tfidf" in blocks:
+        cache_path = PROJECT_ROOT / str(grid_cfg.get(
+            "text_cache", "outputs/packguard/features/text_v2.json"))
+        if not cache_path.exists():
+            raise FileNotFoundError(
+                f"tfidf grid needs the round-8 text cache {cache_path} "
+                "(scripts/packguard_final_runs.py builds it); refusing to fake it")
+        with cache_path.open() as f:
+            cache = json.load(f)
+    else:
+        cache = {}
+
+    records, feat_meta = load_feature_records(
+        features_dir or ((cfg.get("data", {}) or {}).get(
+            "features_dir", FEATURES_DIR_DEFAULT)))
+    if feat_meta.get("mock", False):
+        raise RuntimeError("run_grid refuses mock data (AMENDMENT-3: real runs only)")
+
+    cfg_sha = config_sha16(cfg)
+    base_meta = {
+        "seed": "multi", "seeds": seeds,
+        "config_sha16": cfg_sha,
+        "date": _now(),
+        "pipeline": "packguard.eval.run_grid",
+        "mock": False,
+        "features_source": feat_meta.get("source"),
+        "amendment": "AMENDMENT-3 (docs/packguard_prereg.md): multi-seed grid + "
+                     "npm_hook fallback partition; registered before execution",
+    }
+
+    all_rows: list[dict] = []
+    all_cells: list[dict] = []
+    client_dist_sample: dict[str, dict] = {}
+    total = len(partitions) * len(seeds) * len(splits) * len(blocks)
+    done = 0
+    for scheme in partitions:
+        for seed in seeds:
+            for split_mode in splits:
+                for block in blocks:
+                    done += 1
+                    print(f"[grid {done}/{total}] {scheme} seed={seed} "
+                          f"split={split_mode} block={block}", flush=True)
+                    rows, cell = _grid_cell(
+                        records, cache, cfg, seed, split_mode, block, scheme,
+                        base_meta)
+                    all_rows.extend(rows)
+                    all_cells.append(cell)
+                    # one partition snapshot per scheme, taken deterministically
+                    # from the PRIMARY cell (group split, graph block, seed[0])
+                    if (seed == seeds[0] and split_mode == "group"
+                            and block == blocks[0]):
+                        client_dist_sample[scheme] = rows[0]["client_distribution"]
+
+    agg = _aggregate_grid(all_rows, all_cells)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    results_path = out_dir / "grid_results.json"
+    with results_path.open("w", encoding="utf-8") as f:
+        json.dump({
+            "meta": base_meta,
+            "n_runs": len(all_rows),
+            "rows": all_rows,
+            "per_seed_comparisons": all_cells,
+            "aggregate": agg,
+        }, f, indent=1, default=str)
+    summary_path = out_dir / "summary.md"
+    summary_path.write_text(_render_grid_summary(
+        base_meta, agg, cfg, client_dist_sample, len(all_rows)), encoding="utf-8")
+    return {
+        "meta": base_meta,
+        "n_runs": len(all_rows),
+        "rows_written": str(results_path),
+        "summary_written": str(summary_path),
+        "aggregate_cells": len(agg["cells"]),
+        "comparisons": len(agg["comparisons"]),
+    }
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="PackGuard FL pilot harness")
     ap.add_argument("--config", default=str(CONFIG_DEFAULT))
     ap.add_argument("--synthetic", action="store_true",
                     help="use the mock fixture (results flagged mock=true)")
     ap.add_argument("--features-dir", default=None)
-    ap.add_argument("--out-dir", default=str(OUT_DIR_DEFAULT))
+    ap.add_argument("--out-dir", default=None)
+    ap.add_argument("--grid", action="store_true",
+                    help="round-9 multi-seed grid (AMENDMENT-3); writes "
+                         "outputs/packguard/fl_multiseed/{grid_results.json,summary.md}")
     args = ap.parse_args(argv)
     cfg = load_yaml(args.config)
+    if args.grid:
+        out_dir = Path(args.out_dir) if args.out_dir else GRID_OUT_DEFAULT
+        summary = run_grid(cfg, out_dir=out_dir,
+                           features_dir=Path(args.features_dir)
+                           if args.features_dir else None)
+        print(f"grid rows -> {summary['rows_written']} ({summary['n_runs']} runs)")
+        print(f"grid summary -> {summary['summary_written']}")
+        return 0
+    out_dir = Path(args.out_dir) if args.out_dir else OUT_DIR_DEFAULT
     summary = run_pipeline(cfg, synthetic=args.synthetic,
                            features_dir=Path(args.features_dir)
                            if args.features_dir else None,
-                           out_dir=Path(args.out_dir))
+                           out_dir=out_dir)
     print(f"results -> {summary['outputs']['results_jsonl']}")
     print(f"summary -> {summary['outputs']['summary_md']}")
     print(f"mock={summary['meta']['mock']} "

@@ -67,6 +67,8 @@ __all__ = [
     "run_federated",
     "run_centralized",
     "run_per_client",
+    "run_per_client_routing",
+    "client_name_of",
     "config_sha16",
     "load_feature_records",
 ]
@@ -379,18 +381,54 @@ def make_group_split(
     return train, test
 
 
-def build_clients(train_records: list[dict], feature_block: str = "graph") -> list["FedClient"]:
-    """Client = ecosystem partition (npm_only / pypi_only / mixed)."""
+PARTITION_SCHEMES = ("ecosystem", "npm_hook")
+
+
+def client_name_of(record: dict, scheme: str = "ecosystem") -> str:
+    """Name of the FL client a record belongs to, for a partition scheme.
+
+    round-9 addition (AMENDMENT-3 A3.3). Two schemes exist:
+      * "ecosystem" (PRIMARY, round-8 behaviour): client = the record's
+        ecosystem ("npm" / "pypi").
+      * "npm_hook" (round-9 fallback, disclosed): ecosystem+hook partition of
+        the SAME corpus — npm with an install hook -> "npm_hook", npm without
+        -> "npm_core", pypi stays "pypi". This is NOT a new ecosystem and
+        must never be read as cross-ecosystem FL.
+    The hook flag comes from the v2 feature `has_postinstall` (round-8 BUG-2
+    fix made it reliable). Unknown schemes raise — never silently default.
+    """
+    eco = str(record.get("ecosystem", "mixed"))
+    if scheme == "ecosystem":
+        return eco
+    if scheme == "npm_hook":
+        if eco != "npm":
+            return eco
+        feats = record.get("features", {}) or {}
+        hook = float((feats.get("graph", {}) or {}).get("has_postinstall", 0.0))
+        return "npm_hook" if hook > 0 else "npm_core"
+    raise ValueError(
+        f"unknown partition scheme {scheme!r} (expected one of {PARTITION_SCHEMES})"
+    )
+
+
+def build_clients(
+    train_records: list[dict],
+    feature_block: str = "graph",
+    scheme: str = "ecosystem",
+) -> list["FedClient"]:
+    """Client partition of the train pool. Default scheme="ecosystem"
+    reproduces round-8 behaviour exactly (npm / pypi); scheme="npm_hook"
+    gives the round-9 3-client fallback partition (AMENDMENT-3 A3.3)."""
     groups: dict[str, list[dict]] = {}
     for r in train_records:
-        groups.setdefault(str(r.get("ecosystem", "mixed")), []).append(r)
+        groups.setdefault(client_name_of(r, scheme), []).append(r)
     clients = [
-        FedClient(name=eco, records=recs, feature_block=feature_block)
-        for eco, recs in sorted(groups.items())
+        FedClient(name=name, records=recs, feature_block=feature_block)
+        for name, recs in sorted(groups.items())
     ]
     if len(clients) < 2:
         raise ValueError(
-            f"need >=2 ecosystem clients for FL, got {len(clients)}: {sorted(groups)}"
+            f"need >=2 clients for FL, got {len(clients)}: {sorted(groups)}"
         )
     return clients
 
@@ -696,6 +734,64 @@ def run_per_client(clients: Sequence[FedClient], test: FedClient, cfg: FLConfig,
                 "auc_macro": float(np.mean(aucs)) if aucs else None,
                 "n_clients": len(clients),
             }}
+
+
+def run_per_client_routing(clients: Sequence[FedClient],
+                           test_records: list[dict],
+                           test: FedClient,
+                           cfg: FLConfig,
+                           seed: int = DEFAULT_SEED,
+                           scheme: str = "ecosystem") -> dict:
+    """round-9 grid method "per_client_best" (AMENDMENT-3 A3.2): trains the
+    SAME per-client models as run_per_client (identical protocol and seed),
+    then additionally scores every global-test sample by the local model of
+    its OWN partition share (oracle-partition routing) — the best case a
+    per-client deployment could reach, with no cross-client generalization.
+
+    Returns:
+      final_metrics      routing metrics on the full global test set (the
+                         per-client-best headline);
+      macro_metrics      round-8 macro-mean over clients (continuity);
+      per_client         per-client metrics on the FULL global test set
+                         (same as run_per_client's per_client);
+      final_probs        routed per-sample probabilities;
+      n_uncovered        test rows whose partition had no local model
+                         (0 expected; disclosed, never silently dropped).
+    """
+    y_true = test.y.numpy().astype(int)
+    routed = np.zeros(len(test_records), dtype=float)
+    covered = np.zeros(len(test_records), dtype=bool)
+    per = []
+    for c in clients:
+        set_seed(seed)
+        model = build_model({"type": cfg.model_type, "hidden_dim": cfg.hidden_dim},
+                            c.input_dim)
+        local_train(model, c.X, c.y, epochs=int(cfg.rounds) * int(cfg.local_epochs),
+                    lr=cfg.lr, batch_size=cfg.batch_size, seed=seed)
+        probs_all = predict_proba(model, test.X)
+        per.append({"client": c.name,
+                    **compute_clf_metrics(y_true, probs_all)})
+        for i, r in enumerate(test_records):
+            if client_name_of(r, scheme) == c.name:
+                routed[i] = probs_all[i]
+                covered[i] = True
+    n_uncovered = int((~covered).sum())
+    routing = compute_clf_metrics(y_true, routed)
+    f1s = [p["f1"] for p in per if p["f1"] is not None]
+    aucs = [p["auc"] for p in per if p.get("auc") is not None]
+    return {
+        "algo": "per_client_best",
+        "per_client": per,
+        "final_metrics": routing,
+        "macro_metrics": {
+            "f1_macro": float(np.mean(f1s)) if f1s else None,
+            "auc_macro": float(np.mean(aucs)) if aucs else None,
+            "n_clients": len(clients),
+        },
+        "final_probs": [round(float(p), 6) for p in routed],
+        "n_uncovered": n_uncovered,
+        "partition_scheme": scheme,
+    }
 
 
 def paired_correctness(probs_a: Sequence[float], probs_b: Sequence[float],

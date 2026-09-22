@@ -40,3 +40,24 @@ ablations:
   kb:                              # LLM-KB augmentation on/off
     enabled: false                 # enabled by the final runner once kb_v2 exists
     kb_dir: outputs/packguard/kb
+
+# ---------------------------------------------------------------------------
+# Round-9 multi-seed grid (AMENDMENT-3, docs/packguard_prereg.md; agent W1).
+# Registered BEFORE execution: seeds fixed, aggregation rule frozen
+# (per-seed McNemar + Wilcoxon over the 5 per-seed F1 deltas; n=5 -> exact
+# two-sided minimum p = 0.0625, i.e. descriptive support only).
+# Primary grid = 5 seeds x 4 methods x 2 feature sets x 2 splits = 80 runs on
+# the ecosystem (2-client) partition; the npm_hook 3-client fallback partition
+# (ecosystem+hook split of the SAME 603-sample corpus, NOT a new ecosystem)
+# runs as a separately-labelled arm. Hyperparameters come from the fl/model/
+# secure_agg/dp sections above (unchanged from round 8).
+# Run: .venv/bin/python -m packguard.eval --grid
+# ---------------------------------------------------------------------------
+grid:
+  seeds: [20260922, 20260923, 20260924, 20260925, 20260926]
+  splits: [group, random]            # group = PRIMARY (AMENDMENT-1), random = secondary
+  feature_blocks: [graph, tfidf]     # tfidf fit on TRAIN of each (seed, split)
+  methods: [fedavg, fedprox, centralized, per_client_best]
+  partitions: [ecosystem]            # PRIMARY client partition
+  run_client3: true                  # adds the disclosed npm_hook fallback arm (A3.3)
+  text_cache: outputs/packguard/features/text_v2.json

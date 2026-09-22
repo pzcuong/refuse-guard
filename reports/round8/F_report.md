@@ -1,5 +1,21 @@
 # F Report — Round 8 (Final: bug-fix + real rerun + KB + safety + paper2)
 
+> **[CORRECTED-R9]** Sửa FALSE CLAIM xác nhận bởi audit vòng 9 (V1_report.md
+> §3–§4, §6): mọi chỗ ở mục §5 dưới đây (và bảng trước đó) đọc các số
+> "FP-bias (benign)" **là SAI tên** — do hai lần đảo dấu triệt tiêu nhau
+> (caller truyền `[not label ...]`, hàm chọn `not labels[i]`), field
+> `fp_bias` thực đo là **TP-rate (recall) trên sample MALICIOUS**, không
+> phải FP trên benign. Đọc đúng của §5(2): P2 (advisory-in-package) đẩy
+> **malicious recall** .2→.6 pooled (granite .4→**1.0** = 5/5 malicious
+> được phát hiện — KHÔNG phải "mọi benign bị gắn nhãn malicious"); FP trên
+> benign thực đo = **0/30** mọi arm×model. Kết luận sửa loại kênh: kênh
+> corruption trong domain package là **recall-perturbing / sensitivity-
+> shift (undirected, theo model)**, KHÔNG phải FP-injecting như
+> RefuseGuard vulnerability domain. Metrics đã regenerate (v2,
+> `malicious_recall` + `fp_benign`) từ raw records không đổi:
+> `scripts/packguard_safety_metrics_regen.py`. Xem
+> `reports/round9/F_report.md`.
+
 Ngày: 2026-09-22. Vai trò: Tác nhân cuối (F). Đầu vào: audit V1/V2 (đã xác
 nhận bug), W1/W2 outputs. Nguyên tắc: chỉ sửa bug được V1/V2 xác nhận +
 AMENDMENT-1; KHÔNG git commit; mọi số trong report này truy vết tới file

@@ -220,3 +220,83 @@ BEFORE the final (paper) training runs; no result was tuned post hoc.
    gated by check_semantics (comment-only). RR/flip/FP-bias per arm with the
    frozen decision rules. Scope may be reduced for wall-clock; the realized N
    is always reported.
+
+---
+
+## AMENDMENT-3 — round 9, agent W1 (2026-09-22, written BEFORE the multi-seed
+## grid was executed)
+
+Ordering disclosure: this amendment was committed to the file before the
+grid runner was built and before ANY run of the round-9 grid; per-seed rows
+were only observed as the single executed run emitted them, and the
+aggregation rules below were frozen before any aggregate statistic
+(mean/std/p-value) was computed. No rule was changed after seeing results.
+
+### A3.1 Multi-seed grid (primary study of round 9)
+
+- **Seeds**: {20260922, 20260923, 20260924, 20260925, 20260926} (the round-8
+  seed 20260922 is one of the five; no post-hoc seed selection).
+- **Methods**: FedAvg, FedProx (mu = 0.01 from `configs/packguard_fl.yaml`),
+  centralized, per-client-best. Hyperparameters unchanged from round 8
+  (LR, 15 rounds, 2 local epochs, SGD lr 0.1, batch 32, secure-agg
+  SIMULATION on, DP off).
+- **Feature sets**: `graph` (behavior-graph, primary) and `tfidf`
+  (code-as-text baseline; fit on the TRAIN pool of each (seed, split) only).
+- **Splits**: group-split PRIMARY (package-family, AMENDMENT-1);
+  random split kept as reported SECONDARY.
+- **Client partition**: `ecosystem` (npm / pypi, 2 clients) is the PRIMARY
+  partition. The round-9 fallback 3-client scheme `npm_hook` (A3.3) is run
+  as a separately-labelled arm, never merged into the primary grid count
+  (5 seeds x 4 methods x 2 feature sets x 2 splits = 80 primary runs).
+- **Per-ecosystem F1** is reported for every cell (duty D4).
+
+### A3.2 Aggregation rule (frozen before execution)
+
+- **Primary endpoint**: F1 (malicious = positive, threshold 0.5) on the
+  group-split global held-out test set, FedAvg vs centralized.
+- **Per seed**: paired McNemar on per-sample accuracy@0.5 (method labelled
+  exact/chi2 as in src/metrics/stats.mcnemar) + the per-seed F1 and AUC
+  deltas (FedAvg - centralized).
+- **Over seeds**: Wilcoxon signed-rank (two-sided) over the 5 per-seed F1
+  deltas, with AUC deltas as a secondary Wilcoxon; sign consistency
+  (#seeds with delta > 0 / < 0 / = 0) reported alongside. Reporting is
+  mean +/- std of F1/AUC per cell.
+- **Honest power statement, registered in advance**: with n = 5 seeds the
+  smallest achievable two-sided exact Wilcoxon p is 1/16 = 0.0625 > 0.05,
+  so this rule CANNOT reach alpha = 0.05. The Wilcoxon-over-seeds result is
+  therefore DESCRIPTIVE SUPPORT, never a standalone significance claim; any
+  FedAvg-vs-centralized conclusion from this grid remains pilot-level and
+  must be written with that qualifier.
+- **per-client-best definition** (fixed here): oracle-partition routing —
+  each global-test sample is scored by the local model trained on its own
+  partition share (the best case a per-client deployment could achieve;
+  no cross-client generalization). The round-8 macro-mean over clients is
+  reported alongside for continuity.
+
+### A3.3 Client-3 status and the npm_hook fallback
+
+- BKC was re-probed (2026-09-22, time-boxed): the widely-circulated Zenodo
+  DOI 10.5281/zenodo.3367649 (-> record 3367650) resolves to an UNRELATED
+  astronomy calibration file; the only BKC-adjacent Zenodo artifact found
+  (record 14907786, NSS-2024 typosquatting snapshot, 336.8 MB) is npm-only
+  and metadata-only — the record's own description states the BKC/MalOSS
+  package source "must be retrieved by the corresponding owner/maintainer";
+  the official landing page (dasfreak.github.io/Backstabber-Knife-Collection)
+  returned GitHub Pages 404. Per the pre-agreed stop rule (>3 GB or fail ->
+  stop), NO third ecosystem was ingested; there is NO client-3 manifest and
+  dataset.py is unchanged this round.
+- **Fallback (registered here, before the runs)**: a 3-client partition of
+  the SAME 603-sample corpus by ecosystem+hook:
+  client-1 `npm_hook` = npm packages with an install hook (has_postinstall
+  from the v2 features), client-2 `npm_core` = npm without an install hook,
+  client-3 `pypi`. This MUST be disclosed everywhere as an
+  **"ecosystem+hook partition of the same corpus, NOT a new ecosystem"**
+  and MUST NOT be read as cross-ecosystem FL. The `npm_hook` client is
+  extremely label-skewed (162 malicious / 1 benign corpus-wide); client
+  sizes and per-client skew are reported for every seed.
+
+### A3.4 Provenance
+
+Every run row records {seed, method, features, split, partition,
+mock: false, config_sha16, date}. Outputs:
+`outputs/packguard/fl_multiseed/grid_results.json` + `summary.md`.

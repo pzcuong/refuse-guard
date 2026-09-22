@@ -159,7 +159,47 @@ def test_metrics_rr_delta_mcnemar_and_flips():
         pytest.approx(2 * 0.5 ** 8)  # exact binomial, b01=8, b10=0
     flips = m["verdict_flips_benign_to_malicious"]["P1_offensive_wording"]
     assert flips["count"] == 2 and flips["n_pairs"] == 2
-    assert m["fp_bias"]["P1_offensive_wording"] == pytest.approx(1.0)
+    # labels=None (smoke fixture, all-benign): pooled predicted-malicious
+    # share lands in fp_benign; malicious_recall is undefined (None).
+    assert m["malicious_recall"]["P1_offensive_wording"] is None
+    assert m["fp_benign"]["P1_offensive_wording"] == pytest.approx(1.0)
+
+
+def test_metrics_label_semantics_pinned():
+    """Round-9 F pin (audit V1 #1/#3): with labels given, the DATASET
+    convention (True = MALICIOUS, i.e. bool(rec['label'])) must hold and
+    the function must NOT invert labels. This pins the exact branch that
+    made the old 'fp_bias' a mislabelled malicious TP-rate for two full
+    rounds without any test calling labels!=None."""
+    def arm(arm_id, verdicts):
+        return [_rec(arm_id, i, vulnerable=v) for i, v in enumerate(verdicts)]
+
+    # samples 0-2 malicious (label True), 3-4 benign (label False)
+    labels = [True, True, True, False, False]
+    # P0: catches malicious 0-1, flags benign 3 (an FP)
+    p0 = arm("P0_neutral", [1, 1, 0, 1, 0])
+    # arm P2: catches malicious 0-2 (recall up), benign 3 still flagged
+    p2 = arm("P2_advisory_in_package", [1, 1, 1, 1, 0])
+    m = compute_safety_metrics({"P0_neutral": p0,
+                                "P2_advisory_in_package": p2},
+                               labels=labels)
+    assert m["malicious_recall"]["P0_neutral"] == pytest.approx(2 / 3)
+    assert m["malicious_recall"]["P2_advisory_in_package"] == pytest.approx(1.0)
+    assert m["fp_benign"]["P0_neutral"] == pytest.approx(0.5)
+    assert m["fp_benign"]["P2_advisory_in_package"] == pytest.approx(0.5)
+    # benign FP stays separable from malicious recall: an arm that flags
+    # ONLY benign packages must raise fp_benign without touching recall
+    p2b = arm("P2_advisory_in_package", [0, 0, 0, 1, 1])
+    m2 = compute_safety_metrics({"P0_neutral": p0,
+                                 "P2_advisory_in_package": p2b},
+                                labels=labels)
+    assert m2["malicious_recall"]["P2_advisory_in_package"] == pytest.approx(0.0)
+    assert m2["fp_benign"]["P2_advisory_in_package"] == pytest.approx(1.0)
+    # a labels-None call on the same mixed data must NOT be readable as a
+    # recall (documented smoke-only fallback)
+    m3 = compute_safety_metrics({"P0_neutral": p0,
+                                 "P2_advisory_in_package": p2})
+    assert m3["malicious_recall"]["P2_advisory_in_package"] is None
 
 
 def test_prereg_rules_fire_and_not_fire():

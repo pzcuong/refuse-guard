@@ -193,8 +193,11 @@ def main() -> int:
                               key=lambda r: r["sample_id"])
             arms_recs[arm] = arm_recs
             if labels is None:
+                # DATASET convention: True = malicious (label==1). No
+                # inversion — round-9 F fix; the old ``[not b for b ...]``
+                # double-inversion is what mislabelled TP-rate as fp_bias.
                 labels = [bool(r.get("label")) for r in arm_recs]
-        return compute_safety_metrics(arms_recs, labels=[not b for b in labels])
+        return compute_safety_metrics(arms_recs, labels=labels)
 
     results = {"meta": meta, "per_model": {}, "pooled": None, "rules": {}}
     for model_id in args.models:
