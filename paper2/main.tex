@@ -1,5 +1,7 @@
 % PackGuard merged paper — FINAL BUILD (rounds 8-9 + reviewer-hard workflow + P0 roadmap).
 % Final numbers: 603-sample corpus, 20-seed registered grid (AMENDMENT-4), safety n=60, KB v3 100%.
+% r10 addendum (workflow round 1, audit verdict "verified"): stabilized-centralized arm
+% SRC: outputs/packguard/r10/r1_stabilized_central/{results.jsonl,summary.md} — 80/80 real cells, one config.
 % Compile: tectonic main.tex   (acmart via tectonic bundle)
 % Every number is traceable to outputs/packguard/* (see comments % SRC:).
 \documentclass[sigconf,nonacm]{acmart}
@@ -43,12 +45,16 @@ $p{=}3.8{\times}10^{-6}$, Holm-adjusted $1.1{\times}10^{-5}$; its FedAvg
 variant collapses to an all-malicious predictor in 79/80 cells) ---
 text features are not federation-robust; graph features are.
 A refusal-gated LLM-built knowledge base --- now covering the full corpus
-API universe (137/137 types, 2{,}299/2{,}299 instances) --- is neutral
-under FedAvg ($-0.1$ F1) and adds $+1.0$ F1 to centralized training
-(gain concentrated on the minority client: pypi $.875\to.966$, npm
-$.940\to.932$); its robust yield is gated
-per-call explanation, not accuracy. In 360 safety-arm generations over 60
-real packages and two $<$4B models, no overt refusal occurs (RR $=0.000$;
+API universe (137/137 types, 2{,}299/2{,}299 instances) --- adds
+${\approx}+1.0$ F1 to centralized training (reproduced in magnitude by
+the KB-v3 pure-join re-run at the shared seed: $+1.0$/$+1.1$ points on
+group/random, graph features), but its FedAvg effect is of mixed sign
+($-0.1$ to $-2.2$ points; single-seed deltas below seed variability),
+so its robust yield is gated
+per-call explanation, not accuracy. In safety-arm generations over real
+packages --- 360 over 60 in the registered batch, 600 over 100 in a
+round-10 expansion --- no overt refusal occurs in any arm (RR
+${\equiv}0.000$: structural blocking-absence at this scale;
 consistent with 2{,}700 measured defensive-task generations across both
 project domains at 2--3B), so defensive-refusal blocking does not
 replicate in the package domain; instead, untrusted in-package content
@@ -57,12 +63,22 @@ comment) shifts verdict sensitivity on genuinely malicious packages in a
 model-dependent direction (malicious recall $.53\to.80$ for
 granite-3.3-2B vs.\ $.13\to.03$ for Llama-3.2-3B) with zero false
 positives on benign packages (0/180) --- a recall-perturbing channel,
-unlike the false-positive channel observed in the vulnerability domain.
+unlike the false-positive channel observed in the vulnerability domain;
+a round-10 granite-3.3-2B re-run of the vulnerability-domain ladder now
+shows the reassertion harm replicates at 2B (malicious recall
+$.76\to.07$, $p{\approx}4{\times}10^{-10}$) with a benign verdict
+false-positive bias ($0\to20/30$, $p{\approx}2{\times}10^{-6}$) ---
+same model, opposite domain signature.
+% SRC: outputs/experiments/r10_granite_ladder/metrics_round9.json (audit round 6,
+% verdict "verified": recall/flips/p-values recomputed from 240 raw records).
 We report all negative and null results, including that an earlier
 apparent FedAvg minority-client harm disappeared once a file-selection
-bug was fixed, and that centralized training itself collapsed in 2 of 160
-seed-level cells, and discuss the distance between this pilot and a
+bug was fixed, that centralized training itself collapsed in 2 of 160
+seed-level cells, and that the per-seed significance layer predates the
+refreshed twenty-seed grid and is treated as unverified pending
+recomputation; we discuss the distance between this pilot and a
 Q1-grade system.
+% SRC: audit round 2 (fl_multiseed summary self-labels n=5; Wilcoxon/McNemar not recomputed on refresh).
 \end{abstract}
 
 \maketitle
@@ -246,8 +262,15 @@ ecosystem partition. LR, 15 rounds, threshold 0.5. FedProx
 repeated. per-client-best is oracle per-sample routing (an upper bound,
 not a deployable system). Seed 20260922 reproduces the round-8
 single-seed table to four decimals (graph FedAvg $.9231$/$.9160$,
-centralized $.9282$/$.9260$ F1/AUC).
-% SRC: outputs/packguard/fl_multiseed/grid_results.json (640 rows, mock=false, AMENDMENT-4 20 seeds)
+centralized $.9282$/$.9260$ F1/AUC). The grid was re-run and re-audited
+(round 2) under the same configuration: 640/640 rows real, covering
+\{ecosystem, npm\_hook\} $\times$ \{group, random\} $\times$ \{graph,
+tfidf\}; the centralized ecosystem means reproduce the round-1 fixed
+baselines exactly.
+% SRC: outputs/packguard/fl_multiseed/grid_results.json (640 rows, mock=false, AMENDMENT-4 20 seeds);
+% refresh re-audit round 2: outputs/packguard/r10/fl_multiseed/grid_results.json
+% (640/640 mock=False, 20 seeds x 8 (partition,split,block) x 4 methods,
+% config_sha16 e0cd260b014556bb = round 1; centralized ecosystem means == r1 fixed baselines).
 }\label{tab:main}
 \begin{tabular}{lcccc}
 \toprule
@@ -270,8 +293,13 @@ tfidf per-client-best & $.833{\pm}.036$ & $.862{\pm}.070$ & $.827{\pm}.045$ & $.
 over the 20 registered seeds (AMENDMENT-4), F1. Wilcoxon = two-sided
 exact signed-rank over the twenty per-seed deltas; $p^{\mathrm{Holm}}$ =
 Holm-adjusted over the four registered comparisons. Last column: seeds
-whose exact per-seed McNemar reaches $p{<}.01$.
-% SRC: outputs/packguard/fl_multiseed/grid_results.json (aggregate + per_seed_comparisons; exact mode; scipy)
+whose exact per-seed McNemar reaches $p{<}.01$. \emph{Refresh caveat
+(round-2 audit):} the grid pipeline summary self-labels $n{=}5$
+(AMENDMENT-3) and these per-seed inferential numbers have not been
+recomputed on the refreshed 20-seed grid; they are treated as
+unverified pending regeneration (\S\ref{sec:results}).
+% SRC: outputs/packguard/fl_multiseed/grid_results.json (aggregate + per_seed_comparisons; exact mode; scipy);
+% stale-flag: outputs/packguard/r10/fl_multiseed/summary.md:5-6 (round-2 audit, tables NOT recomputed)
 }\label{tab:stats}
 \begin{tabular}{lcccc}
 \toprule
@@ -300,15 +328,131 @@ cells; precision ${\approx}$ test base rate), so its F1 only tracks
 test composition --- the minority client (PyPI) collapses under an
 unweighted average (group-split pypi F1 $.671{\pm}.059$ vs.\
 $.790{\pm}.076$ centralized). FedProx at $\mu{=}0.01$ is identical to
-FedAvg in 160/160 cells --- the proximal term does not bind at this
-scale (unit-verified at larger $\mu$). Conversely,
+FedAvg in 160/160 cells --- bit-identical in both F1 and AUC in every
+cell-seed of the refreshed grid, despite $\mu{=}0.01$ being present on
+every row --- so the ``four-method'' grid is effectively three distinct
+models and any FedAvg-vs-FedProx comparison is vacuous; whether the
+proximal term genuinely cannot bind at this scale or the implementation
+is inert is an open implementation-validity question (audit queued).
+The penalty is unit-verified to bind at larger $\mu$.
+% SRC: audit round 2 RISK-1 (fedavg=fedprox identical 160/160, recomputed
+% from outputs/packguard/r10/fl_multiseed/grid_results.json).
+Conversely,
 \emph{centralized} training collapsed in 2/160 seed-level cells
 (random/graph, seed 20260923: F1 $.375$, P$=1.0$, R$=.231$; group/graph
 npm\_hook, seed 20260935: F1 $.326$) while all 320 FL cells stayed
 ${\ge}.7308$; excluding the two collapsed cells, the worst remaining
-centralized cell is $.750$. A registered stabilized-centralized arm
-(lr sweep + early stopping on train cross-validation, no test contact)
-is required before any central-vs-FL ordering is hardened.
+centralized cell is $.750$.
+% SRC: outputs/packguard/r10/r1_stabilized_central/results.jsonl + summary.md
+% (audit round 1 "verified": 80/80 real cells, key numbers recomputed from raw).
+\textbf{Stabilized-centralized arm (registered; run once; single
+config).} The registered stabilization protocol --- per-cell lr sweep
+$\{0.01,0.03,0.1\}$ with train-only 3-fold-CV early stopping (patience
+3, max 30 epochs; retrain on the full train split, eval on the
+untouched global test) --- ran over 20 seeds $\times$
+\{group,random\} $\times$ \{graph,tfidf\}: 80/80 real cells under one
+configuration (sha16 \texttt{e0cd260b014556bb}), 240 sweep entries
+with 0 undefined fold evals. The sweep selects lr $0.1$ in 58/80
+cells, $0.03$ in 21, $0.01$ in 1; mean best epoch $12.05$ (min 2, max
+30). Outcome: on graph features the arm is F1-neutral (early $-$ fixed
+$\Delta$F1 $+.0011$ group, $-.0015$ random; group/graph
+$.859{\pm}.046$ early vs.\ $.858{\pm}.047$ fixed). On tfidf it loses
+($-.0511$ group, $-.0561$ random), and the early-stopped tfidf arm
+predicts positive on ${\approx}99.5\%$/$99.6\%$ of test rows
+(group/random): CV-AUC-based selection parks the tfidf arm at a
+near-all-positive operating point, so the tfidf $\Delta$F1 is
+block-specific operating-point behavior, \emph{not} a general verdict
+on early stopping (the round-3 calibration analysis below resolves
+this: no all-malicious mode exists under the fixed configuration).
+Three scope limits travel with these numbers: early-vs-fixed is an
+aggregate difference only (15/1/64 cells better/tie/worse; no paired
+test or CI yet); all 80 cells are the ecosystem partition
+(single-partition scope); and the random/graph fixed baseline is
+outlier-driven (F1 std $.1133$ fixed vs.\ $.0356$ early-stopped). The
+central-vs-FL ordering is therefore still not hardened ---
+re-testing FedAvg-vs-centralized under the stabilized baseline remains
+queued.
+% SRC: outputs/packguard/r10/r1_stabilized_central/summary.md (per-cell-group
+% DeltaF1 +.0011/-.0511/-.0015/-.0561; pos_rate(early) tfidf .995/.996;
+% random/graph fixed F1 std .1133 vs early .0356); results.jsonl (best_lr
+% 0.1/0.03/0.01 = 58/21/1; best_epochs mean 12.05, min 2, max 30; early-vs-fixed
+% 15 better/1 tie/64 worse; 240 sweep entries, 0 undefined fold evals;
+% partition=ecosystem only; config_sha16 e0cd260b014556bb).
+
+\textbf{Refreshed grid and per-sample probabilities (round-2 audit).}
+The full grid was re-run under the round-1 configuration (same
+\texttt{e0cd260b014556bb}) and re-audited: 640/640 rows real
+(\texttt{mock=False}) over 20 seeds $\times$ 8
+(partition~$\times$~split~$\times$~feature-block) cells $\times$ 4
+methods (160 cell-seeds each), covering both the two-client ecosystem
+partition and the three-client npm\_hook partition; the centralized
+ecosystem means reproduce the round-1 fixed baselines exactly (e.g.,
+group/graph $.858{\pm}.047$). Per-sample test probabilities for all 160
+centralized cells are released (\texttt{probs\_dump.jsonl}: 1 meta +
+19{,}484 real rows, 12{,}680 malicious / 6{,}804 benign; per-cell
+predicted-positive rate $.1417$--$.9929$, tfidf $.6847$--$.9000$;
+342/19{,}484 probabilities are exactly 0 or 1, all in the graph block)
+--- trained at the config lr/rounds, i.e.\ not the stabilized
+early-stopping arm --- and are the input for the round-3 calibration
+analysis below. Two audit risks travel with the
+refresh: the ecosystem random/tfidf FedAvg cell is \emph{seed-invariant}
+(F1 $.784$ bit-identical across all 20 seeds, std $.0000$ --- consistent
+with the tfidf near-degenerate operating point; variance and paired
+statistics on that cell are not meaningful), and the per-seed
+inferential layer (Table~\ref{tab:stats}; the three-client fallback
+comparison) is \emph{stale}: the grid pipeline summary self-labels
+$n{=}5$ (AMENDMENT-3) while listing twenty seeds, and its
+Wilcoxon/McNemar tables have not been recomputed on the refreshed grid
+--- they may reflect an inherited 5-seed subset and are treated as
+unverified pending regeneration.
+% SRC: outputs/packguard/r10/fl_multiseed/{grid_results.json,summary.md} +
+% outputs/packguard/r10/r2_grid_refresh/probs_dump.jsonl (audit round 2,
+% verdict "verified": row/cell counts, label split 12680/6804, pred-rate
+% ranges, fedavg=fedprox 160/160, seed-invariant cell 0.78392 std 0.0000,
+% stale summary header n=5; summary.md:24).
+
+\textbf{Calibration, oracle thresholds, and the class-weight arm
+(round-3 audit).} On the released per-sample test probabilities of the
+160 centralized cells --- plus a weighted-BCE retrain of the same cells
+(pos\_weight $=n_{\mathrm{neg}}/n_{\mathrm{pos}}$ on train, same
+lr/epochs/seed protocol; helper-local trainer, disclosed) --- three
+findings, all recomputed by the auditor from the raw dumps.
+(i)~\emph{No all-malicious mode}: 0/40 cells per
+block$\times$split are all-malicious at threshold 0.5, so the round-1
+all-positive parking is specific to the early-stopping protocol; the
+fixed centralized TF-IDF model's deficit at 0.5 is calibration and
+threshold bias, not a trivial classifier (predicted-positive rate@0.5:
+$.692$/$.719$ graph, $.803$/$.806$ TF-IDF, group/random). Calibration
+is still poor for TF-IDF: pooled 15-bin ECE $.1891$/$.2240$
+(group/random) vs.\ $.0726$/$.0870$ for graphs; Brier
+$.1664$/$.1574$ vs.\ $.1478$/$.1659$ --- and the ECE column is the
+\emph{unweighted} model's; the weighted arm's calibration is not
+reported. (ii)~\emph{Threshold sweep --- a test-set oracle, not a
+deployable result}: thresholds are selected on the same pooled test
+rows they are scored on (no validation split in the analysis script),
+so these gains are post-hoc upper bounds: TF-IDF improves
+$.8466\to.8790$ (thr $.55$, group) and $.8432\to.8955$ (thr $.60$,
+random), while graphs are best at the default $.50$ (no gain:
+$.8618$/$.8416$). A validation-locked re-evaluation is queued before
+any tuned-threshold claim is made; until then, the fixed-threshold
+comparisons above (Table~\ref{tab:main}) must not be read as intrinsic
+model ranking --- part of the graph-vs-TF-IDF F1 gap at 0.5 is
+threshold miscalibration. (iii)~\emph{Class weighting is a negative
+intervention, not a remedy}: weighted-BCE retraining lowers F1@0.5 in
+3 of 4 block$\times$split groups (graph $.8618\to.8347$ group,
+$.8416\to.8278$ random; TF-IDF $.8466\to.8005$ group) and helps only
+TF-IDF/random ($.8432\to.8706$) --- which still loses to the zero-cost
+(oracle) threshold sweep on the unweighted model ($.8955$). Post-hoc
+threshold adjustment dominates costlier weighted retraining in this
+setting.
+% SRC: outputs/packguard/r10/r3_calibration/{calibration.json,summary.md,probs_dump_weighted.jsonl}
+% (audit round 3, verdict "verified": 19,484 mock=False class_weighted_bce rows
+% over exactly 160 cells, 0 label mismatches vs the r2 dump; ECE/Brier/
+% before-after F1/best thresholds/all-malicious 0/40 all recomputed by auditor).
+% Oracle qualification from the analysis code (updater code-read): scripts/r10/
+% r3_calibration.py:41 (input = r2 TEST-set dump), :59-69 (threshold sweep and
+% max-F1 taken on the same test rows; no validation split) — consistent with the
+% round-3 material not claiming a validation lock.
 
 \textbf{Three-client fallback arm.} A registered fallback partition
 (npm split by install-hook presence: npm\_core 214 / npm\_hook 114 /
@@ -378,7 +522,7 @@ the graphs from $.878$ to $.907$ --- with the disclosure that 113/122
 LLM entries self-report confidence clipped at $0.90$ (a weak calibration
 signal). The FL ablation below was run under the earlier
 $54.7\%$-coverage KB; a registered re-run under the complete KB needs no
-LLM calls (KB features are a pure join) and is queued.
+LLM calls (KB features are a pure join) and is reported below.
 %% SRC: outputs/experiments/round9_kb/coverage_v3.json (coverage v2/v3 per type and
 % instance; kb_feature_means v2 0.877705 / v3 0.907093);
 % outputs/packguard/kb/kb_build_v2_meta.json (kb_stats_after 142 = 20 seed + 122 llm);
@@ -389,7 +533,7 @@ LLM calls (KB features are a pure join) and is queued.
 \centering\small
 \caption{KB ablation on the primary (group) split, round-8 run under KB
 v2 (54.7\% type coverage); the completed KB v3 ($100\%$) re-run is
-registered. ``on'' appends
+reported in the text. ``on'' appends
 kb\_risk\_ratio / kb\_confidence / kb\_unsure\_ratio to the 18 graph
 features. % SRC: outputs/packguard/fl/results.jsonl rows group__graph__kb_{off,on}__*; outputs/packguard/kb/kb_build_v2_meta.json; outputs/experiments/round9_kb/coverage_v3.json
 }\label{tab:kb}
@@ -406,7 +550,8 @@ pypi F1 (central) & .875 & \multicolumn{3}{c}{\textbf{.966}} \\
 \end{tabular}
 \end{table}
 
-KB features are neutral under FedAvg ($-0.1$\,pt F1) and add $+1.0$\,pt
+Under the round-8 KB-v2 run, KB features were neutral under FedAvg
+($-0.1$\,pt F1) and added $+1.0$\,pt
 F1 / $+0.6$\,pt AUC to centralized training, with the gain concentrated
 on the minority client (pypi F1 $.875\to.966$; the npm subgroup slips
 $.940\to.932$; subgroup $n{=}36$ --- indicative,
@@ -417,6 +562,31 @@ covering the full API universe --- the contribution of the KB is this
 audit trail, not classifier performance.
 %% SRC: outputs/packguard/fl/results.jsonl rows group__graph__kb_{off,on}__centralized
 % (subgroup eco_pypi n=36, n_test_malicious=15; F1 .875 -> .9655).
+
+\textbf{KB-v3 pure-join re-run (round-4 audit; single seed 20260922,
+graph features only).} The complete-KB re-run needs no LLM calls ---
+KB features are a pure dict-join (verified: no network/LLM path) ---
+and joins the full corpus API universe: instance coverage
+$2299/2299 = 1.0$, mean unsure ratio $0.0$, over $142$ KB entries
+(20 seed + 122 LLM-classified, 0 unsure; 5 entries cover APIs absent
+from this 603-record corpus). At the shared seed the centralized gain
+matches the round-8 magnitude ($+0.0103$ group, $+0.0112$ random F1),
+but the FedAvg effects are of \emph{mixed sign} ($-0.0009$ group,
+$-0.0224$ random). With $n{=}1$ seed, all four deltas sit far below
+the measured per-cell seed variability (centralized group/graph F1
+std $.0468$): no statistical claim is possible, and the honest reading
+is a \emph{backend-dependent interaction} --- small positive on
+centralized, negative under FedAvg --- pending the twenty-seed
+inference layer and a KB-entry ablation (seed-only vs.\ LLM-only
+vs.\ coverage-matched control). Denominator note: ``mean confidence''
+is $0.75215$ instance-weighted over the 2{,}299 joined API instances
+but $0.8993$ entry-level over the 142 KB entries --- both correct, not
+interchangeable.
+% SRC: outputs/packguard/r10/r4_kb_v3/{results.jsonl,summary.md} (audit round 4,
+% verdict "verified": 8 mock=False runs, F1/AUC digit-for-digit; join_stats
+% coverage 2299/2299 = 1.0, mean_conf 0.75215, kb_stats 142 = 20 seed + 122 LLM,
+% n_unsure 0; entry-level 0.8993 and the 5-absent-entries note are the auditor's
+% recount of kb_v0002.jsonl); graph-only join: scripts/r10/r4_kb_v3_features.py:41-54.
 
 \subsection{Safety layer on real packages}\label{sec:safety}
 %% SRC: outputs/packguard/safety/safety_batch_n60.jsonl + safety_metrics_n60.json (metrics_version 2, regen 2026-09-22)
@@ -487,17 +657,88 @@ false-positive channel; the round-8 numbers (``FP-bias'' $.2\to.6$,
 granite $1.0$) must be re-read as recall on the 10 malicious packages
 ($2/10\to3/10\to6/10$; granite $5/5$) with benign FP 0/30.
 
+\textbf{Safety expansion to $n{=}100$ (round-8 audit).} The merged
+batch is 360 verbatim copies of the $n{=}60$ records plus 240 new
+generations over 100 distinct samples (50 malicious / 50 benign; the
+new 40 are gate-passers $[30{:}50]$ of the same round-8 draw ---
+asserted zero overlap); copied records carry no mock field
+(\texttt{mock=None}), all 240 new rows are \texttt{mock=False}; of the
+new generations, 192 are fresh (MPS, bfloat16) and 48 are
+deterministic-cache hits (temperature $0$, seed 1234). Pooled:
+malicious recall $.35\to.38\to.44$ (P0$\to$P1$\to$P2), benign FP
+$0/0/2$-of-100, parsed $1.0/.995/1.0$, RR $0.0$ everywhere with zero
+discordant pairs (exact $p{=}1.0$); verdict flips $3/0$ at P1 (199
+pairs) and $19/8$ at P2 (200 pairs); pre-registered verdicts
+\texttt{blocking\_supported=false},
+\texttt{corruption\_supported=true} (P1, P2). Two interpretation
+rules, stated with the numbers. (i) \emph{The blocking column is
+structurally uninformative here}: RR ${\equiv}0.0$ in \emph{all} arms
+including P0 (0 refusals in 600 records) --- the models never block
+this batch, so $p{=}1.0$ is \emph{not} evidence that ``blocking has no
+effect''; the finding is structural blocking-absence, not a treatment
+null. (ii) \emph{Pooled numbers mask opposite per-model movement}: at
+P2, llama's recall collapses $.16\to.06$ (all 8
+malicious$\to$benign flips are llama's; benign FP $0$) while
+granite's recall rises $.54\to.82$ but incurs the pooled FP
+($0\to.04$; both pooled FP records are granite's) --- the pooled
+corruption verdict is rule-driven (min-flip-count ${\ge}1$) and its
+P1 instance rests on just 3 flips; the granite-vs-llama divergent
+corruption response is itself the salient observation. Selection
+caveat: this run's scan covered 265 records (100 gate-pass); the
+plan-level pool figure ($560\to230$; 147 mal/83 ben) remains
+unverified.
+% SRC: outputs/packguard/r10/r8_safety_expand/{safety_metrics_n100.json,safety_batch_n100.jsonl}
+% (audit round 8, verdict "verified": merged batch = 360 verbatim copies + 240 new;
+% pooled recalls .35/.38/.44; per-model llama .16/.16/.06, granite .54/.60/.82;
+% fp_benign pooled 0/0/2, granite .04 at P2; flips 3/0 over 199 pairs and 19/8
+% over 200 pairs; RR 0.0 with 0 discordant pairs, p=1.0; verdicts
+% blocking_supported=false / corruption_supported=true (P1, P2); cache split
+% 192 fresh / 48 hits; mock=None on the 360 copies; selection_stats_this_run
+% 265/100/165).
+
 \textbf{Mechanism not yet isolated.} We cannot yet distinguish ``the
 advisory content helps the model reason about malicious behavior'' from
 ``any unusual in-package content perturbs the verdict''; the recall
 \emph{increase} is therefore not claimed as a benefit, and the
 \emph{decrease} (llama) is the measured harm. The matched-scale family
 contrast (granite $+8$ vs.\ llama $-3$ net flips at P2) shows the effect
-is family-specific at 2--3B. A registered mechanism ablation
-(same-meaning paraphrases + scrambled controls) and an FP-directed arm
-(an advisory asserting ``this code is clean'') are queued. All of this
-remains pilot-scale: it establishes measurability, the zero-refusal
-blocking outcome, and direction --- not effect size.
+is family-specific at 2--3B.
+\textbf{Mechanism ablation (round-7 audit; null with low power).} The
+registered ablation is now run --- same-meaning paraphrase and
+word-scrambled controls of the neutral task over 30 malicious
+gate-passers of the round-8 seeded draw (zero new selection): 180 real
+rows (all \texttt{mock=False}; 90 per model, 60 per variant), parsed
+rate $1.000$ (179 ANSWER + 1 PARTIAL, counted parsed by the
+parsed-JSON criterion), refusal $0.000$ in every cell. Neither variant
+significantly moves the malicious-verdict rate (exact McNemar, 30
+pairs per cell): granite $.6000\to.6667$ (paraphrase, $p{=}.5$),
+$\to.6333$ (scrambled, $p{=}1.0$); llama $.1333\to.2333$ ($p{=}.25$),
+$\to.1667$ ($p{=}1.0$). Three caveats travel with this null:
+(i) \emph{power} --- at $n{=}30$ with every $p{\ge}.25$, ``no effect''
+is indistinguishable from a small effect; this is a suggestive
+null-with-low-power, not an established null (the uniformly
+non-negative direction is suggestive only); (ii) \emph{provenance} ---
+96/180 rows are deterministic-cache hits (temperature $0$, seed 1234,
+byte-identical prompts: all 60 verbatim rows plus 9 paraphrase + 9
+scrambled per model; generation dates Sep 21--23), 84 generated fresh
+--- methodologically valid reuse, not new generation; (iii) \emph{no
+cross-round comparison} --- the granite verbatim rate $.60$ here is a
+different sample set (gate-passers [0:30] of the round-8 draw) from
+the ladder's A0 recall $.7627$. The directional bookkeeping is
+corrected from the runner's first report: granite/scrambled contains
+exactly one $1{\to}0$ flip alongside two $0{\to}1$ (net $+1$); the
+other three cells are purely $0{\to}1$. The FP-directed arm (an
+advisory asserting ``this code is clean'') remains queued. All of
+this remains pilot-scale: it establishes measurability, the
+zero-refusal blocking outcome, and direction --- not effect size.
+% SRC: outputs/packguard/r10/r7_mechanism_ablation/{mechanism_metrics.json,mechanism_batch.jsonl}
+% (audit round 7, verdict "verified": every material number reproduced from the
+% raw batch; the one 1->0 flip in granite/scrambled confirmed in the file
+% (b10_a_success_b_fail=1) and in the auditor's recompute -- correcting the
+% runner's "zero 1->0 flips" keyNumbers sentence; 96/180 deterministic-cache-hit
+% split (gen dates Sep 21-23; temp=0, seed=1234) and the [0:30] gate-passer
+% selection auditor-verified; sample import read-only with label==1 assert,
+% scripts/r10/r7_mechanism_ablation.py:68-73).
 
 \section{Discussion}\label{sec:discussion}
 \textbf{When graphs lose to text.} On this pilot, raw text remains the
@@ -525,7 +766,13 @@ before auditing the features. Rounds 9 and the twenty-seed extension sharpen the
 opposite direction: centralized training collapsed in 2/160 seed-level
 cells while all 320 FL cells stayed ${\ge}.73$
 (\S\ref{sec:results}) --- single-run conclusions can err in both
-directions, motivating the registered stabilized-centralized arm.
+directions, motivating the registered stabilized-centralized arm ---
+now run: it leaves graph F1 unchanged and its tfidf arm parked near an
+all-positive operating point (\S\ref{sec:results}), so stabilization
+is measured while the central-vs-FL ordering awaits a re-test under
+this baseline.
+% SRC: outputs/packguard/r10/r1_stabilized_central/summary.md (DeltaF1 per
+% cell-group; pos_rate(early) tfidf .995/.996).
 \textbf{Safety transfer.} The RefuseGuard \emph{machinery} (refusal
 monitor, AST-gated advisory injection, frozen rules) ports mechanically
 to packages, but the corruption channel does not port as the same
@@ -535,14 +782,54 @@ perturbs recall on malicious packages with benign FP $=0$
 (\S\ref{sec:safety}). P2's advisory-in-package attack is a
 package-specific threat the vulnerability study could not express, and
 the AST gate makes it safely measurable; because the direction is
-model-dependent, follow-up arms must pre-register \emph{both} outcome
+model-dependent --- the $n{=}100$ expansion confirms opposite
+per-model signs (\S\ref{sec:safety}) --- follow-up arms must
+pre-register \emph{both} outcome
 directions (harm and benefit) before running.
-\textbf{Scale versus model family (open confound).} Across the project,
-Qwen2.5-Coder is inert at 3B \emph{and} 7B (the pre-registered 7B
-harm-absent verdict is SUPPORTED), Llama-3.2-3B shows defense harm at
-3B, and granite-3.3-2B moves in the opposite direction in the package
-domain: the scale-vs-family confound is open, and every conclusion in
-this paper is closed at 2--3B.
+\textbf{Scale versus model family (confound narrowed by a round-10
+granite ladder).} Across the project, Qwen2.5-Coder is inert at 3B
+\emph{and} 7B (the pre-registered 7B harm-absent verdict is SUPPORTED),
+Llama-3.2-3B shows defense harm at 3B, and granite-3.3-2B moves in the
+opposite direction in the package domain. A round-10 granite-3.3-2B
+re-run of the vulnerability-domain ladder (240 cache-only generations,
+zero new decoding, refusal rate $0.0$ in every arm) now shows the
+reassertion harm \emph{replicates at 2B}: recall on vulnerable files
+$.7627\to.0667$ under rung A5 (41/0 flips; McNemar
+continuity-corrected $\chi^2$ $p{=}4.2{\times}10^{-10}$, exact
+binomial $9.1{\times}10^{-13}$; bootstrap $\Delta$ CI $[-.81,-.58]$)
+and $.7627\to.4000$ under the milder advisory-only rung A1 (23/2
+flips, $p{=}6.3{\times}10^{-5}$) --- the pre-registered
+``A1-minimal-safe'' hypothesis is REFUTED (harm attributable to A1),
+the harm-absent hypothesis is NOT\_EVALUABLE on this model (harm
+present), and the benign rung adds a verdict false-positive bias
+($0/30\to20/30$, exact $p{=}1.9{\times}10^{-6}$). Same model, opposite
+domain signature: in the package domain granite's advisory arm moved
+malicious recall \emph{up} with zero benign FP, while in the
+vulnerability domain it collapses recall and manufactures benign FPs
+--- the effect is family-and-domain specific rather than a pure scale
+effect, and every conclusion remains closed at 2--3B. Caveats stated
+with the numbers: (i) the A5 arm is cache-only and its prompt hashes
+match none of the cache's stored keys (0/60, vs.\ 60/60 for
+A0/A1/benign), so ``byte-identical prompts'' for A5 rests on the cache
+layer's keying and is not independently verifiable (a one-time GPU
+regeneration of A5 would close this gap; queued); (ii) the metrics
+file mixes McNemar variants --- the two quoted vulnerability $p$ values
+are continuity-corrected $\chi^2$ and the file's exact binomial values
+are smaller still ($9.1{\times}10^{-13}$, $1.9{\times}10^{-5}$), so the
+direction of every conclusion is unchanged but the method should be
+unified (queued); (iii) A0's recall denominator is 59 parsed records
+(1 unparseable) vs.\ 60 for A1/A5, and the paired tests use the 59
+valid pairs.
+% SRC: outputs/experiments/r10_granite_ladder/metrics_round9.json (audit round 6,
+% verdict "verified": 240 raw records real=true, granite-3.3-2b model-guard,
+% cache-only; recalls 45/59=.7627, 24/60=.4000, 4/60=.0667; flips + p-values
+% reproduced incl. statsmodels chi2-cc 4.1854e-10/6.3342e-05 and exact
+% 1.9073e-06; verdicts verbatim: H-R7-harm-replicates SUPPORTED,
+% H-R7-harm-absent NOT_EVALUABLE, H-R7-A1-minimal-safe REFUTED,
+% H-R7-benign-verdict-bias SUPPORTED; config_sha16 239a67086059a4c5 recomputed).
+% A5 provenance gap (0/60 prompt-hash matches; cache-hit itself proven) and
+% method mix are auditor round-6 issues; mediation counts (A5: 297 generic-wrapped
+% + 189 string-structured vs A1: 0/0) ground the rung descriptions.
 \textbf{8B feasibility disclosure.} The correct instrument for the scale
 question (Llama-3.1-8B-Instruct, same family, ${\sim}2.7\times$) is
 infeasible on this stack: four independent MPS load failures (a bf16
@@ -569,9 +856,13 @@ remains future work.
 
 \section{Conclusion and Limitations}\label{sec:conclusion}
 A 603-sample, provenance-complete pilot shows: federated training over
-ecosystem partitions is near-free for graph features across five
-registered seeds and costly for text features (whose FedAvg variant
+ecosystem partitions is near-free for graph features across the
+twenty-seed registered grid (aggregate deltas; the per-seed
+significance layer is pending recomputation) and costly for text
+features (whose FedAvg variant
 degenerates to a majority-class predictor); representation superiority is
+% SRC: refresh round 2 (640 rows = 20 seeds x 8 cells x 4 methods,
+% outputs/packguard/r10/fl_multiseed/grid_results.json); stale-inference flag audit round 2.
 split-decision; LLM-built knowledge bases are measurable, with a now
 complete ($100\%$-coverage) gated API universe whose robust yield is
 explanation rather than F1; and the safety-layer third threat is real but
@@ -580,14 +871,38 @@ Limitations: pilot scale (CI widths ${\pm}.05$--$.08$ F1), simulation-only
 trust mechanisms, two languages, popularity-derived benign labels,
 hand-curated mappings, an LLM-KB whose
 confidence is self-reported, and a hard scale ceiling: conclusions close
-at 2--3B, the direction of safety-layer effects follows model family, and
+at 2--3B, the direction of safety-layer effects follows model family
+\emph{and} domain (granite-3.3-2B: reassertion harm plus benign verdict
+bias in the vulnerability domain, opposite-direction recall shift with
+zero benign FP in the package domain), and
 ${\ge}8$B evaluation requires a different runtime. A Q1-grade system
-needs: achieved-power and variance-decomposition analysis over the
-registered 20-seed grid (Holm correction is now applied), a
-stabilized-centralized arm, a real GNN over the
+needs: regenerated per-seed inference on the refreshed twenty-seed grid
+--- paired tests, effect sizes and bootstrap 95\% CIs, replacing the
+stale round-9 significance layer and covering both the stabilized arm
+(still aggregate-only) and both partitions --- an implementation audit
+of the FedProx arm (bit-identical to FedAvg in all 160 refreshed
+cell-seeds), a validation-locked threshold evaluation (the round-3
+sweep selects thresholds on the pooled test set --- an oracle; the
+validation-locked rerun is queued), a KB-entry ablation under twenty
+paired seeds (seed-only vs.\ LLM-only vs.\ coverage-matched control;
+the KB-v3 gain is single-seed), a unified McNemar method and an A5
+provenance closure for the granite ladder (one-time GPU regeneration),
+achieved-power and
+variance-decomposition analysis (Holm
+correction is now applied), a real GNN over the
 graphs, a leave-families-out evaluation, mechanism-isolated safety arms
 at $n{\ge}100$/model, at least one more ecosystem, audited benign labels,
-and a deployed-data evaluation of the safety arms.
+and a deployed-data evaluation of the safety arms. At the close of the
+present run set, the FedProx implementation audit and the twenty-seed
+paired-inference layer remain \emph{disclosed open items} (unexecuted):
+until they land, every federated comparison --- including the FedAvg
+null --- and all early-vs-fixed evidence in this paper is descriptive.
+% SRC: auditor round-1 caveats (r1_stabilized_central: no inference, single
+% partition) + round-2 audit (fedavg=fedprox 160/160; stale fl_multiseed
+% summary n=5; probs_dump.jsonl unblocks calibration); closure state per
+% audit round 10 (FedProx never audited/rerun by any r2-r10 wrapper; the r1
+% summary.md per-cell DeltaF1 is the only early-vs-fixed evidence on disk --
+% descriptive, n=20 seeds, no tests).
 
 \section*{Data and provenance}
 \begin{sloppypar}
