@@ -42,10 +42,10 @@ policy. Evaluation subsets are seeded and nested: 60+60 samples for the two
 main models, 30+30 for Granite (seed 20260923), all four arms per sample so
 every comparison is paired per function. The defence audit runs
 $\{$C5\_near, C5\_far$\}\times\{$B0, P3, P3R$\}$ on the 30+30 subset for
-both main models, plus a 30-unsafe-prompt side-effect probe; cells are
-budget-guarded and reported exactly as completed (Qwen 293/360 records,
-Llama 180/360; the C0$\times$P3 control cell did not run, so clean-utility
-loss for P3 is not measured --- disclosed where cited). Pre-registered gate
+both main models, plus a 30-unsafe-prompt side-effect probe and a
+C0$\times$\{B0, P3\} clean-utility control (60+60 pairs per model); all
+defence cells completed (run 360/360 and control 120/120 records for each of
+Qwen and Llama). Pre-registered gate
 rules (thresholds, McNemar $\alpha=0.05$, bootstrap CI exclusion,
 $\geq$2/3-model aggregation, and the 0/3 $\Rightarrow$ model-scale-limitation
 clause) were frozen in \code{configs/attack\_v2.yaml},
@@ -111,16 +111,35 @@ robustness with refusal as a secondary outcome. Two registered facts must be
 disclosed: with only 20 paired functions per arm the exact McNemar branch of
 PASS is statistically unattainable unless $\Delta$RR is very large, and the
 verdict we report is FAIL with effect size exactly 0, so neither fact changes
-the outcome. (ii) The monitor-validity criterion (over-refusal $\leq 0.10$)
-and the frozen calibration/scoring split. (iii) The E8 safety rule: the
+the outcome. (ii) The monitor-validity criterion (monitor false-refusal on silver gold
+non-refusals $\leq 0.10$, distinct from model-level over-refusal) and the
+frozen calibration/scoring split. (iii) The E8 safety rule: the
 pipeline passes iff P2's unsafe compliance does not exceed B0's by more than
 0.05 and stays $\leq 0.10$. (iv) The B4 fusion threshold (argmax-MCC on the
 validation split, $\tau{=}0.548$), fixed before any test inference.
-\emph{Round-5 accounting:} the C5/defence study adds 1{,}673 records
-(E0-V2: 1{,}200 = 480$+$480$+$240; defence: 473), of which \textbf{1{,}378
-are unique new generations} --- E0-V2: 1{,}032 new $+$ 168 cache hits (the
-B0 prompts are byte-identical across the attack and defence runners, so each
-run warms the other's cache through the content-addressed store; the defence
-side contributes 346 new generations including the 30-prompt probe).
-Refusal status across all round-5 records: 0 \textsc{refusal}, 1
-\textsc{partial} (one broken JSON key on a Llama C0 record).
+
+\paragraph{Power analysis.}
+At the registered E0 size ($n{=}20$ paired functions per arm), the exact
+McNemar PASS branch requires $\Delta$RR $\geq 0.30$ for $p<0.05$ with all
+discordant pairs in one direction --- a very large effect --- so the gate is
+conservative against false PASS and cannot distinguish small non-zero
+$\Delta$RR from zero. The observed effect size is exactly 0 (no discordant
+pairs in any model), so no underpowered non-zero finding is being suppressed.
+For the verdict-bias endpoints on the 60-sample paired bench, the smallest
+all-one-direction McNemar configuration that clears $p<0.05$ is 6/60 flips
+($p\approx 0.031$); cells with fewer than 6 one-directional flips are
+reported as n.s. and never as ``no effect''. Family-level CWE cells at
+$n{=}20$ use the same 6/20 threshold (\S\ref{sec:discussion}). Defense cells
+at 30/label (round-5) and extension cells at 40+40 (round-6) are sized for
+$\geq$10-flip power thresholds pre-registered in the respective configs.
+\emph{Round-5 accounting:} the C5/defence study adds 2{,}160 records
+(E0-V2: 1{,}200 = 480$+$480$+$240; defence: 960 = run 720 $+$ control 240), of
+which \textbf{1{,}422 are unique new generations} --- E0-V2: 1{,}032 new $+$
+168 cache hits (the B0 prompts are byte-identical across the attack and
+defence runners, so each run warms the other's cache through the
+content-addressed store; the defence side contributes 390 new generations:
+P3 main $+$ control prompts not shared with E0-V2, plus the 30-prompt probe;
+P3R attempt-0 hits reuse P3 and are not double-counted). Refusal status
+across main and control round-5 records: 0 \textsc{refusal}, 2
+\textsc{partial} (one broken JSON key each on a Llama E0-V2 C0 record and a
+Llama control C0 record).

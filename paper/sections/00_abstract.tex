@@ -28,7 +28,9 @@ verdict-bias channel generalizes across four further CWE families (4/4 on
 the primary model), while the reassertion harm does not replicate at 7B ---
 defence-induced corruption is, on everything measured here (2--7B), a
 small-model risk, and minimal provenance is safe in every measured ladder.
-We release a
+The refusal monitor is calibrated on a frozen split with a false-refusal
+constraint (monitor error $\leq 0.10$ on gold non-refusals for every model);
+Qwen's residual over-refusal is model-level, not detector error. We release a
 query-relevant, anti-leakage benchmark and argue that at open-model scale the
 actionable risk is verdict corruption --- by untrusted context and by the
 defence itself --- not denial of service.

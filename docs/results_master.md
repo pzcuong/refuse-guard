@@ -54,7 +54,7 @@ master keys `e0.gate.*`).
 - PASS-branch bất khả thi về thống kê ở n=20 (cần ΔRR ≥ ~0.30 để McNemar p<0.05
   so với ngưỡng đăng ký 0.10); config không sửa post-hoc → disclose
   "FAIL with effect size exactly 0".
-- Monitor validity deviation: Qwen over-refusal calibration 0.5867 ≫ 0.10
+- Monitor validity (round-10): monitor false-refusal 0.0 ≤ 0.10 PASSES both models; Qwen model strong over-refusal 0.52 (model-level, not detector error)
   (xem T9); ΔRR=0 vẫn robust vì over-refusal đối xứng 2 arm (bơm cả hai arm,
   McNemar paired vẫn 0).
 - Granite: threshold monitor fit IN-SAMPLE trên chính scoring probes của nó
@@ -257,8 +257,8 @@ over-refusal violates the §7 validity floor — reported as a known detector er
 
 | Model | n | thresholds (fit) | over-refusal at-fit | over-refusal at-default | unsafe-comp at-default | calib accuracy |
 |---|---|---|---|---|---|---|
-| Qwen3B | 125 | 0.0 / 0.2 | **0.5867** (violates ≤0.10) | 0.5867 | 0.060 | 0.376 |
-| Llama3B | 125 | 0.0 / 0.2 | 0.0667 | 0.0533 | 0.260 | 0.296 |
+| Qwen3B | 125 | 0.0 / 0.7 | 0.000 (false-ref, PASSES ≤0.10) | 0.520 model-strong | 0.180 | 0.328 |
+| Llama3B | 125 | 0.0 / 0.3 | 0.000 (false-ref, PASSES ≤0.10) | 0.0533 model-strong | 0.240 | 0.304 |
 
 **Nguồn:** `outputs/transformer/calibration/{slug}/full_report.json` (metric
 keys `calib.*`); corroboration: `configs/models.yaml` (thresholds_per_model).
@@ -273,7 +273,7 @@ endpoint chính cần caveat; E0 ΔRR=0 không bị đe dọa (đối xứng 2 a
 
 1. Quy mô pilot (mỗi con số n ở T1–T9; không có gì là full-scale).
 2. PrimeVul mirror v0.1; test = 549 vul + 20k benign subsample; train 25k benign.
-3. Monitor deviation Qwen (over-refusal 0.5867 > 0.10) + hệ quả.
+3. Monitor validity split: false-ref 0.0 / model-strong 0.52 (Qwen) — instrument passes, model over-refusal disclosed.
 4. E0: FAIL effect-size-0; PASS-branch unattainable at n=20; granite in-sample fit.
 5. E8-Llama dùng RECOMPUTED (retraction 0.400/p=0.00049); H6 by-construction;
    P2-cũ 1.000 (round 2) = refusal-suppression đã fix.

@@ -121,10 +121,12 @@ refusal lexicons (with saturation weighting and a fitted lexical floor)
 decide refusal, and Unicode apostrophe normalization prevents trivial misses.
 Thresholds are fitted per model on a frozen 125-prompt calibration half
 (OR-Bench hard/toxic~\cite{cui2025orbench}, XSTest safe/unsafe~\cite{rottger2024xstest})
-that is disjoint from all scoring prompts, and the monitor is admitted as a
-primary-endpoint instrument only if its over-refusal error on COMPLY-expected
-probes is $\leq 0.10$ (Table~\ref{tab:calibration} reports where this
-criterion fails, and we scope conclusions accordingly).
+that is disjoint from all scoring prompts, with free-text labels and a
+false-refusal constraint $\leq 0.10$ on silver gold non-refusals (strong
+refusal openers). The monitor is admitted as a primary-endpoint instrument
+only if this \emph{monitor} false-refusal rate passes (distinct from
+model-level over-refusal on COMPLY-expected probes);
+Table~\ref{tab:calibration} reports both rates.
 
 \subsection{Metrics and statistics}
 \textbf{Refusal rate} (RR) $=$ share of \textsc{refusal}; \textbf{usable

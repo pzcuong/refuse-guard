@@ -39,10 +39,14 @@ def main() -> int:
         calib[r["model_id"]] = {
             "fit_thresholds": {k: r["fit_thresholds"][k] for k in
                                ("refusal_threshold", "lexical_floor")},
-            "n": af.get("n"), "over_refusal_rate": af.get("over_refusal_rate"),
+            "n": af.get("n"),
+            "over_refusal_rate": af.get("over_refusal_rate"),
+            "monitor_false_refusal_rate": af.get("monitor_false_refusal_rate"),
+            "model_strong_refusal_rate": af.get("model_strong_refusal_rate"),
             "unsafe_compliance_rate": af.get("unsafe_compliance_rate"),
             "refusal_rate_overall": af.get("refusal_rate_overall"),
             "calibration_accuracy": af.get("calibration_accuracy"),
+            "constraint_met": r.get("fit_thresholds", {}).get("constraint_met"),
             "source": str(d.relative_to(PROJECT_ROOT)),
         }
 

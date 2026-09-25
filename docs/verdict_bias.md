@@ -131,23 +131,26 @@ it does not demonstrate content-independence in general.
 | granite2b | D2_task vs C0 | 0.367 | 0.333 | 0.033 | 0.367 |
 | granite2b | C5_near vs C0 | 0.650 | **0.667** | 0.000 | 0.633 |
 | granite2b | C5_far vs C0 | 0.750 | **0.833** | 0.000 | 0.667 |
-| llama3b | P3 vs B0 @C5_near | 0.633 (vul-only) | n/a (not run) | **0.633** | – |
-| llama3b | P3 vs B0 @C5_far | 0.667 (vul-only) | n/a (not run) | **0.667** | – |
-| qwen3b | P3 vs B0 @C5_near | 0.020 | 0.000 | 0.000 | – |
-| qwen3b | P3 vs B0 @C5_far | 0.020 | 0.000 | 0.000 | – |
+| llama3b | P3 vs B0 @C5_near | 0.683 | 0.000 | **0.633** | – |
+| llama3b | P3 vs B0 @C5_far | 0.700 | 0.000 | **0.667** | – |
+| qwen3b | P3 vs B0 @C5_near | 0.017 | 0.000 | 0.000 | – |
+| qwen3b | P3 vs B0 @C5_far | 0.017 | 0.000 | 0.000 | – |
 
 - **Attack-side corruption is FP-direction-dominated** (llama +0.183/0.000,
   granite +0.667..+0.833/0.000). **Defence-side corruption (P3 on llama) is
-  purely FN-direction** (19/30 and 20/30 vul 1→0; exact McNemar
-  p = 3.8e-06 / 1.9e-06 from `outputs/master/round5_master.json`). Same
-  pipeline, two opposite failure modes: untrusted context pushes verdicts
-  toward flagging; the semantic-boundary defence pushes them toward clearing.
+  FN-direction-dominated on the vulnerable side** (19/30 and 20/30 vul 1→0;
+  exact McNemar p = 3.8e-06 / 1.9e-06 from `outputs/master/round5_master.json`),
+  with 0 benign 0→1 flips and benign 1→0 corrections on the complete round-10
+  grid (llama total VCI 0.683/0.700 = 41–42/60 changed: 19–20 FN + 22–22
+  fpc). Same pipeline, two opposite failure modes: untrusted context pushes
+  verdicts toward flagging; the semantic-boundary defence pushes them toward
+  clearing.
 - **Granite's celebrated "recall gain" is context churn, not detection**:
   rec-direction 19/30 (C5_near) and 20/30 (C5_far) — the same run that
   "recovers" 19–20 vulnerable functions flags 20–25 benign ones. A verdict
   that flips on a ~250-character comment is not evidence-sensitive.
 - Qwen defence P3 is inert (1 benign 1→0 correction per arm, 0 FN changes),
-  matching Round-5 (`2/98` changed pairs).
+  matching Round-5 (`2/120` changed pairs on the complete C5 grid).
 
 ## 6. B4 — Did the model read the context? (evidence for discussion)
 
@@ -195,9 +198,10 @@ it does not demonstrate content-independence in general.
    a verdict changes when only the (untrusted) context changes. The attack's
    corruption is almost entirely FP-direction (up to 0.833 on benign
    functions), while the P3 boundary defence's corruption on the same models
-   is entirely FN-direction (0.633/0.667 on vulnerable functions, p ≤
-   3.8e-06): untrusted context and defensive mediation fail in opposite,
-   symmetric ways."
+   is FN-direction-dominated on vulnerable functions (0.633/0.667 on the vul
+   half, p ≤ 3.8e-06; full 60-pair VCI 0.683/0.700 including benign 1→0
+   corrections, FP-direction 0.000): untrusted context and defensive
+   mediation fail in opposite, symmetric ways."
 3. "The bias shows no detectable content-specific trace at this power:
    advisories with zero sink names shift false positives as much as
    advisories naming the function's own sinks (Δ ≤ 0.27 in either sign, CI
@@ -220,14 +224,17 @@ it does not demonstrate content-independence in general.
 2. **Model scale**: 2–3B local code-instruct models only; qwen is saturated
    (FP = 1.0, recall = 1.0 at C0), so VCI = 0 there is uninformative.
    Frontier models may behave differently in either direction.
-3. **Defence comparison asymmetry**: llama defence records cover vulnerable
-   functions only (A3 budget guard; benign side not run) → llama defence VCI
-   is FN-only by construction; disclosed in the JSON notes. P3 is a ≥5-part
+3. **Defence comparison**: round-10 completed the benign half of the llama
+   defence C5 grid (run cells 360/360) → VCI totals are full 60-pair
+   (llama 0.683/0.700; FN-direction still vul-only n=30: 19–20/30).
+   Headline McNemar cells remain 30 vul / arm. Qwen defence grid was already
+   complete. P3 is a ≥5-part
    bundle — component attribution now exists for Llama via the Round-6
    pre-registered ablation (harm concentrates at the system task-intent
    reassertion rung: 28/34 net flips, exact McNemar p = 7.45e-09;
-   `outputs/master/round6_ablation.json`), but the C0×P3 control is still
-   unrun and the benign-side defence records are still absent.
+   `outputs/master/round6_ablation.json`), and the C0×P3 control completed in
+   round-10 (Llama recall 0.967→0.233 without the C5 advisory, p = 4.8e-07;
+   Qwen 1.000→0.933, p = 0.5).
 4. **Granite monitor thresholds** are disclosed fallbacks (no calibration
    fit); with RR = 0 in 240/240 records this does not affect verdict-level
    metrics.

@@ -82,7 +82,7 @@ def test_p2_gate_rejects_real_code_changes(cfg):
 def test_thresholds_fitted_for_llama_from_models_yaml():
     thr = resolve_thresholds("unsloth/Llama-3.2-3B-Instruct")
     assert thr["refusal_threshold"] == 0.0
-    assert thr["lexical_floor"] == 0.2
+    assert thr["lexical_floor"] == 0.3  # round-10 free-text fit
     assert thr["fallback"] is False
 
 
@@ -95,7 +95,7 @@ def test_thresholds_fallback_disclosed_for_granite():
 
 def test_make_monitor_uses_fitted_thresholds():
     mon, thr = make_monitor("unsloth/Llama-3.2-3B-Instruct")
-    assert (mon.refusal_threshold, mon.lexical_floor) == (0.0, 0.2)
+    assert (mon.refusal_threshold, mon.lexical_floor) == (0.0, 0.3)  # round-10 free-text fit
     assert thr["fallback"] is False
 
 

@@ -300,3 +300,13 @@ aggregation rules below were frozen before any aggregate statistic
 Every run row records {seed, method, features, split, partition,
 mock: false, config_sha16, date}. Outputs:
 `outputs/packguard/fl_multiseed/grid_results.json` + `summary.md`.
+
+## AMENDMENT-4 (multi-seed 20; registered before the 20-seed run)
+- Seeds mở rộng 5 → 20 (20260922–20260941), cùng mọi hyperparameter/khác.
+- Primary: group-split F1, Wilcoxon exact two-sided over 20 per-seed ΔF1 (FedAvg − centralized).
+- Disclosure: kết quả 5-seed đã được biết khi viết amendment (không double-blind);
+  amendment này chỉ khóa protocol của lần chạy 20-seed, không khóa kết luận.
+- Min attainable p tại n=20: 2/2^20 ≈ 1.91e-6 < .05 → seed-level test có thể đạt α.
+- Holm correction trên 4 comparison chính (group/random × graph/tfidf), báo kèm raw p.
+- Chưa làm (roadmap tiếp): AUC-PR, ECE/threshold sweep, variance decomposition
+  (thuộc stats-5, chạy sau khi grid 20-seed có prob dump).

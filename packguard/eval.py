@@ -451,6 +451,17 @@ def _tfidf_blocks(train: list[dict], test: list[dict], cache: dict) -> None:
             r["features"]["tfidf"] = dense
 
 
+def _power_note(n: int) -> str:
+    """Exact two-sided Wilcoxon minimum attainable p for n paired seeds."""
+    if n <= 0:
+        return "no seeds"
+    from math import comb
+    total = 2 ** n
+    min_p = 2 * comb(n, 0) / total  # = 2/2^n
+    reach = "CAN reach" if min_p < 0.05 else "cannot reach"
+    return (f"n={n} seeds: two-sided exact Wilcoxon minimum attainable p = "
+            f"{min_p:.2e} -> seed-level tests {reach} alpha=0.05 (AMENDMENT-3 A3.2 / AMENDMENT-4)")
+
 def _wilcoxon_over_seeds(deltas: list[float]) -> dict:
     """Wilcoxon signed-rank over per-seed deltas (AMENDMENT-3 A3.2). All-zero
     deltas -> p is undefined (never fabricated). n=5 seeds cannot reach
@@ -466,9 +477,7 @@ def _wilcoxon_over_seeds(deltas: list[float]) -> dict:
         "n_neg": sum(d < 0 for d in ds),
         "n_zero": sum(d == 0 for d in ds),
         "mean_delta": float(sum(ds) / len(ds)) if ds else None,
-        "power_note": ("n=5 seeds: two-sided exact Wilcoxon minimum p = "
-                       "0.0625 > 0.05 -> descriptive support only "
-                       "(AMENDMENT-3 A3.2)"),
+        "power_note": _power_note(len(ds)),
     }
     if not ds or all(d == 0.0 for d in ds):
         out["p_value"] = None

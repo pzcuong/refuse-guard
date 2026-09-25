@@ -9,11 +9,13 @@
 \caption{RQ7 (Round 5): the defence is the risk. P3 (advisory detection +
 provenance boundary label + task-intent reassertion + refusal recovery)
 evaluated on the same C5-armed functions, paired with B0 on identical
-subsets. P3R = P3 plus structured retry with CodeBERT fallback; recovery is
-never triggered (P3R $\equiv$ P3 on every pair; RR $= 0.000$ in every cell).
-Llama's vulnerable-recall collapse under P3 is the defence's own doing
-(39/60 paired verdict flips vul$\to$benign; raw outputs are valid JSON, not
-parse failures). P3 is a bundle of $\geq$5 components: the effect is claimed
+subsets, plus a C0$\times$\{B0,P3\} control without the attack advisory.
+P3R = P3 plus structured retry with CodeBERT fallback; recovery is
+never triggered (P3R $\equiv$ P3 on every C5 pair; RR $= 0.000$ in every
+cell). Llama's vulnerable-recall collapse under P3 is the defence's own doing
+(39/60 paired C5 verdict flips vul$\to$benign, and 22/30 on clean C0 --- the
+harm does not require the advisory). Raw outputs are valid JSON, not
+parse failures. P3 is a bundle of $\geq$5 components: the effect is claimed
 at defence level only.}
 \label{tab:round5defense}
 \small
@@ -21,14 +23,19 @@ at defence level only.}
 \toprule
 Model & Arm & $n$ & recall B0 & recall P3 & recall P3R & McNemar $p$ (B0 vs P3) \\
 \midrule
-% source: outputs/experiments/round5_defense/results_llama3b.json (180 records, vul-only subset 30+30):
+% source: outputs/experiments/round5_defense/results_llama3b.json (360/360 records, vul-only subset 30+30):
 % recall 30/30 -> 11/30 -> 11/30 (near); 30/30 -> 10/30 -> 10/30 (far); flips 19/20; exact McNemar recomputed
 Llama-3.2-3B & C5\_near & 30 & 1.000 & \textbf{0.367} & 0.367 & $3.8\times10^{-6}$ \\
 Llama-3.2-3B & C5\_far & 30 & 1.000 & \textbf{0.333} & 0.333 & $1.9\times10^{-6}$ \\
-% source: outputs/experiments/round5_defense/results_qwen3b.json (293/360 records, 30 vul + 19 benign complete):
-% vul recall 30/30 under B0 and P3 in both arms; 2/98 B0-vs-P3 pairs changed (one benign sample, both arms)
+% source: outputs/experiments/round5_defense/results_qwen3b.json (360/360 records, 30 vul + 30 benign complete):
+% vul recall 30/30 under B0 and P3 in both arms; 2/120 B0-vs-P3 pairs changed (one benign sample, both arms)
 Qwen2.5-Coder-3B & C5\_near & 30 & 1.000 & 1.000 & 1.000 & $1.0$ \\
 Qwen2.5-Coder-3B & C5\_far & 30 & 1.000 & 1.000 & 1.000 & $1.0$ \\
+\midrule
+% source: outputs/experiments/round5_defense/results_*__control.json (120/120 each; C0 vul n=30):
+% Llama 29/30 -> 7/30 (22 flips, p=4.77e-07); Qwen 30/30 -> 28/30 (2 flips, p=0.5)
+Llama-3.2-3B & C0 control & 30 & 0.967 & \textbf{0.233} & --- & $4.8\times10^{-7}$ \\
+Qwen2.5-Coder-3B & C0 control & 30 & 1.000 & 0.933 & --- & $0.5$ \\
 \midrule
 % source: outputs/experiments/round5_defense/side_effect_llama3b.json -> metrics.* (gate 30/30, probe 0/30; B0 from
 % round3_e8_llama3b/recomputed post-fix records 1/30)

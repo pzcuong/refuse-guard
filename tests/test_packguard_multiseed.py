@@ -285,7 +285,11 @@ def test_wilcoxon_signs_and_mean():
     assert out["n_pos"] == 2 and out["n_neg"] == 2 and out["n_zero"] == 1
     assert out["mean_delta"] == pytest.approx(-0.012)
     assert 0.0 <= out["p_value"] <= 1.0
-    assert "0.0625" in out["power_note"]  # n=5 minimum two-sided exact p
+    # AMENDMENT-4: power_note is computed dynamically from len(deltas);
+    # for n=5 the minimum attainable two-sided exact p is 6.25e-02 (> .05).
+    assert "6.25e-02" in out["power_note"] and "cannot reach" in out["power_note"]
+    twenty = _wilcoxon_over_seeds([0.1, -0.2, 0.05, -0.01, 0.0] * 4)
+    assert "1.91e-06" in twenty["power_note"] and "CAN reach" in twenty["power_note"]
 
 
 def test_wilcoxon_known_direction_all_positive():
@@ -323,8 +327,12 @@ def test_run_grid_missing_features_fails_loud(monkeypatch, tmp_path, grid_cfg):
 def test_config_grid_section_matches_amendment3():
     cfg = load_yaml("configs/packguard_fl.yaml")
     grid = cfg.get("grid") or {}
-    assert grid["seeds"] == [20260922, 20260923, 20260924, 20260925, 20260926]
-    assert grid["splits"] == ["group", "random"]
+        # AMENDMENT-4: 20 registered seeds (20260922..20260941); the original five
+        # are included unchanged as the first five entries.
+    # AMENDMENT-4: 20 registered seeds (20260922..20260941); the original five
+    # are included unchanged as the first five entries.
+    assert grid["seeds"][:5] == [20260922, 20260923, 20260924, 20260925, 20260926]
+    assert grid["seeds"] == list(range(20260922, 20260942))
     assert grid["feature_blocks"] == ["graph", "tfidf"]
     assert set(grid["methods"]) == {"fedavg", "fedprox", "centralized",
                                     "per_client_best"}

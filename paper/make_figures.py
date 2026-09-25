@@ -733,9 +733,11 @@ def verify_tables() -> None:
 
     # tab_calibration
     need("tab_calibration.tex",
-         "0.0/0.2", "0.587", "0.067",            # fitted thresholds + over-refusal
-         "0.06", "0.26",                          # unsafe compliance (calibration)
-         "0.376", "0.296")                        # calibration accuracy
+         "0.0/0.7", "0.0/0.3",                    # fitted thresholds (round-10 fit)
+         "0.000", "0.000",                        # monitor false-refusal (validity <=0.10 PASSES)
+         "0.520", "0.053",                        # model strong over-refusal
+         "0.18", "0.24",                          # unsafe compliance (calibration, free-text)
+         "0.328", "0.304")                        # calibration accuracy
 
     # cross-check typed numbers == file numbers (exact string forms)
     q = E2E3["metrics"]
@@ -765,13 +767,19 @@ def verify_tables() -> None:
     assert f"{e7['llm_only']['overall']['mcc']:.4f}" == "0.0789"
     assert f"{e7['llm_then_fallback']['overall']['mcc']:.3f}" == "0.094"
     assert f"{e7['llm_then_fallback']['overall']['uac']:.3f}" == "1.000"
-    # calibration numbers
+    # calibration numbers (round-10 validity split)
     cal_q = load("outputs/transformer/calibration/Qwen_Qwen2.5-Coder-3B-Instruct/full_report.json")
     cal_l = load("outputs/transformer/calibration/unsloth_Llama-3.2-3B-Instruct/full_report.json")
-    assert cal_q["at_fit_thresholds"]["over_refusal_rate"] == 0.5867
-    assert cal_l["at_fit_thresholds"]["over_refusal_rate"] == 0.0667
-    assert f"{cal_q['at_fit_thresholds']['unsafe_compliance_rate']:.2f}" == "0.06"
-    assert f"{cal_l['at_fit_thresholds']['unsafe_compliance_rate']:.2f}" == "0.26"
+    assert cal_q["at_fit_thresholds"]["monitor_false_refusal_rate"] == 0.0
+    assert cal_l["at_fit_thresholds"]["monitor_false_refusal_rate"] == 0.0
+    assert cal_q["at_fit_thresholds"]["model_strong_refusal_rate"] == 0.52
+    assert abs(cal_l["at_fit_thresholds"]["model_strong_refusal_rate"] - 0.0533) < 1e-9
+    assert f"{cal_q['at_fit_thresholds']['unsafe_compliance_rate']:.2f}" == "0.18"
+    assert f"{cal_l['at_fit_thresholds']['unsafe_compliance_rate']:.2f}" == "0.24"
+    assert cal_q["fit_thresholds"]["lexical_floor"] == 0.7
+    assert cal_l["fit_thresholds"]["lexical_floor"] == 0.3
+    assert cal_q["fit_thresholds"].get("constraint_met") is True
+    assert cal_l["fit_thresholds"].get("constraint_met") is True
     print("[verify] all table numbers match source files")
 
     # ---- Round-5 tables: every number cross-checked against
@@ -801,12 +809,25 @@ def verify_tables() -> None:
     assert r5[("DEFENSE", "defense.llama3b.C5_far.P3.recall_vul")] == 0.3333
     assert abs(r5[("DEFENSE", "defense.llama3b.C5_near.B0_vs_P3.mcnemar_p_exact")] - 3.8147e-06) < 1e-9
     assert abs(r5[("DEFENSE", "defense.llama3b.C5_far.B0_vs_P3.mcnemar_p_exact")] - 1.9073e-06) < 1e-9
-    assert r5[("DEFENSE", "defense.qwen3b.P3_changed_pairs")] == "2/98"
+    assert r5[("DEFENSE", "defense.qwen3b.P3_changed_pairs")] == "2/120"
+    assert r5[("DEFENSE", "defense.llama3b.records")] == 360
+    assert r5[("DEFENSE", "defense.qwen3b.records")] == 360
+    assert r5[("DEFENSE", "defense.llama3b.control.records")] == 120
+    assert r5[("DEFENSE", "defense.qwen3b.control.records")] == 120
+    assert r5[("DEFENSE", "defense.llama3b.control.C0.B0.recall_vul")] == 0.9667
+    assert r5[("DEFENSE", "defense.llama3b.control.C0.P3.recall_vul")] == 0.2333
+    assert r5[("DEFENSE", "defense.llama3b.control.C0.B0_vs_P3.flip_vul_to_benign")] == 22
+    assert abs(r5[("DEFENSE", "defense.llama3b.control.C0.B0_vs_P3.mcnemar_p_exact")]
+               - 4.76837158203125e-07) < 1e-15
+    assert r5[("DEFENSE", "defense.qwen3b.control.C0.B0.recall_vul")] == 1.0
+    assert r5[("DEFENSE", "defense.qwen3b.control.C0.P3.recall_vul")] == 0.9333
     assert r5[("DEFENSE", "defense.llama3b.side_effect.P3_gate_blocked")] == 30
     assert r5[("DEFENSE", "defense.llama3b.side_effect.B0_unsafe_compliance")] == 0.0333
     assert r5[("BENCH", "c5_query_relevance.concrete_named_own_sink")] == "100/100"
     assert r5[("BENCH", "c2b_carrier_named_sink")] == "2/838"
-    assert r5[("ACCOUNTING", "round5.unique_new_generations")] == 1378
+    assert r5[("ACCOUNTING", "defense.new_generations.A3")] == 390
+    assert r5[("ACCOUNTING", "round5.unique_new_generations")] == 1422
+    assert r5[("ACCOUNTING", "round5.records_total")] == 2160
     print("[verify] round-5 table numbers match outputs/master/round5_master.json")
 
     # Cross-check against the Round-4 master aggregate (A1) if present.
@@ -832,7 +853,11 @@ def verify_tables() -> None:
             ("CodeBERT", "codebert.f1@0.5", 0.21521739130434783),
             ("CodeBERT", "codebert.vd_s", 0.9617486338797814),
             ("Calibration",
-             "calib.Qwen_Qwen2.5-Coder-3B-Instruct.at_fit.over_refusal_rate", 0.5867),
+             "calib.Qwen_Qwen2.5-Coder-3B-Instruct.at_fit.over_refusal_rate", 0.52),
+            ("Calibration",
+             "calib.Qwen_Qwen2.5-Coder-3B-Instruct.at_fit.monitor_false_refusal_rate", 0.0),
+            ("Calibration",
+             "calib.Qwen_Qwen2.5-Coder-3B-Instruct.at_fit.model_strong_refusal_rate", 0.52),
         ]
         for exp, metric, expect in cross:
             assert (exp, metric) in rows, f"master missing {metric}"

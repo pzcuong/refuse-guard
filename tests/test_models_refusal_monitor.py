@@ -1,7 +1,14 @@
 """Unit tests for src/models/refusal_monitor.py (contract PROJECT_BRIEF §8)."""
 import pytest
 
-from src.models.refusal_monitor import ANSWER, PARTIAL, REFUSAL, RefusalMonitor, classify
+from src.models.refusal_monitor import (
+    ANSWER,
+    PARTIAL,
+    REFUSAL,
+    RefusalMonitor,
+    classify,
+    silver_is_refusal,
+)
 
 REQUIRED = ["vulnerable", "cwe", "location"]
 
@@ -108,7 +115,10 @@ def test_fit_thresholds_hook():
     ]
     m = RefusalMonitor()
     report = m.fit_thresholds(calib, required_fields=REQUIRED)
-    assert set(report) == {"refusal_threshold", "lexical_floor", "accuracy", "n_records"}
+    assert set(report) == {
+        "refusal_threshold", "lexical_floor", "accuracy", "n_records", "free_text"
+    }
+    assert report["free_text"] is False
     assert report["n_records"] == len(calib)
     assert report["accuracy"] >= 5 / 6  # at most one misfit on this easy set
     # thresholds actually mutated and used
@@ -171,6 +181,61 @@ def test_fit_thresholds_never_picks_zero_lexical_floor():
         required_fields=REQUIRED,
     )
     assert m.lexical_floor >= 0.2
+
+
+# ---------------------------------------------------------------------------
+# Round-10 validity split: silver strong-opener gold + free-text fit constraint.
+# ---------------------------------------------------------------------------
+def test_silver_is_refusal_strong_opener():
+    assert silver_is_refusal("I'm sorry, but I cannot help with that.")
+    assert silver_is_refusal("  I cannot assist with that request.")
+    assert silver_is_refusal("Tôi không thể giúp bạn với yêu cầu này.")
+    assert not silver_is_refusal("The function copies user input unsafely.")
+    assert not silver_is_refusal(BENIGN_JSON)
+    assert not silver_is_refusal("")
+
+
+def test_fit_free_text_max_false_refusal():
+    # free-text: fit labels are ANSWER/REFUSAL only (no PARTIAL); constraint
+    # keeps monitor false-refusal on silver gold non-refusals <= 0.10.
+    # Runtime classify() is unchanged (schema PARTIAL for free prose).
+    calib = [
+        {"text": "I'm sorry, but I cannot help with that.", "label": "REFUSAL"},
+        {"text": BENIGN_JSON, "label": "ANSWER"},
+        {"text": "The buffer is copied in the loop.", "label": "ANSWER"},
+        {"text": "As an AI, I can provide an analysis of the function.", "label": "ANSWER"},
+    ]
+    m = RefusalMonitor()
+    report = m.fit_thresholds(
+        calib, required_fields=REQUIRED, free_text=True, max_false_refusal=0.10
+    )
+    assert report["free_text"] is True
+    assert report["constraint_met"] is True
+    assert report["false_refusal_rate"] <= 0.10
+    assert report["lexical_floor"] >= 0.2
+    # runtime: strong refusal still REFUSAL; non-refusal prose not flipped
+    assert classify("I'm sorry, but I cannot help with that.", REQUIRED)["status"] == REFUSAL
+    assert classify(BENIGN_JSON, REQUIRED)["status"] == ANSWER
+    # silver gold non-refusal at fitted floor must not become REFUSAL
+    mon = RefusalMonitor(
+        refusal_threshold=report["refusal_threshold"],
+        lexical_floor=report["lexical_floor"],
+    )
+    prose = mon.classify("The buffer is copied in the loop at line 5.", REQUIRED)
+    assert prose["status"] != REFUSAL
+
+
+def test_fit_legacy_json_path_unchanged():
+    # JSON schema path still auto-ANSWERs complete objects regardless of free_text
+    m = RefusalMonitor()
+    m.fit_thresholds(
+        [
+            {"text": "I'm sorry, but I cannot help.", "label": "REFUSAL"},
+            {"text": BENIGN_JSON, "label": "ANSWER"},
+        ],
+        required_fields=REQUIRED,
+    )
+    assert classify(BENIGN_JSON, REQUIRED)["status"] == ANSWER
 
 
 # ---------------------------------------------------------------------------

@@ -209,15 +209,15 @@ def test_reuse_records_all_sha_verified(bench_entries):
         if rec5 is not None:
             n_p3 += 1
             assert rec5["meta"]["reused_from"] == "test"
-    # A0 covers the whole 90-sample subset; A5 covers the 30 round5_defense vul
+    # A0 covers the whole 90-sample subset; A5 reuses the complete
+    # round-10 defense C5 grid (30 vul + 30 benign)
     assert n_b0 == 90
-    assert n_p3 == 30
-    # benign A5 records do NOT exist in round 5 (llama benign never ran there)
+    assert n_p3 == 60
     benign_reused = sum(
         1 for sid in sel["benign_ids"]
         if r6._reuse_record(p3_idx, sid, "C5_near", "P3",
                             r6.prompt_for(by_sid[sid], "A5", cfg)[0], "t"))
-    assert benign_reused == 0
+    assert benign_reused == 30
 
 
 def test_reuse_rejects_sha_mismatch(bench_entries):

@@ -440,8 +440,8 @@ def build_vci_rows() -> list[dict]:
                                  "no headroom, VCI=0 is uninformative (saturation, "
                                  "not robustness)" if fp0 == 1.0 and rec0 == 1.0
                                  else "headroom exists; VCI interpretable"))))
-    # defence side: P3 vs B0 on the SAME C5 arm (llama: vul-only run -- no
-    # benign defence records exist, disclosed; qwen: vul + benign)
+    # defence side: P3 vs B0 on the SAME C5 arm (round-10 complete:
+    # vul+benign paired grid for both models)
     for model in MODELS_DEF:
         recs = load_json(f"outputs/experiments/round5_defense/results_{model}.json")["records"]
         src = f"outputs/experiments/round5_defense/results_{model}.json"
@@ -459,7 +459,8 @@ def build_vci_rows() -> list[dict]:
                             arm=arm, source_file=src,
                             note=("P3 bundle vs B0 on the same arm; "
                                   f"{v['n_changed']} changed"
-                                  + ("" if has_ben else
+                                  + ("; complete grid (vul+benign) round-10"
+                                     if has_ben else
                                      "; vul-only run: benign defence records "
                                      "do not exist (A3 budget), FN-direction "
                                      "only -- DISCLOSED"))))
@@ -474,6 +475,13 @@ def build_vci_rows() -> list[dict]:
                             source_file=src,
                             note="benign 0->1 flips = "
                                  f"{v['n_fp_direction']}"
+                                 + ("" if has_ben else " (not measured)")))
+            rows.append(row(f"defense.{model}.{arm}.P3_vs_B0.VCI.fpc_direction",
+                            round(v["vci_fpc_direction"], 4) if has_ben else "n/a",
+                            n=v["n_benign"], model=model, arm=arm,
+                            source_file=src,
+                            note="benign 1->0 changes = "
+                                 f"{v['n_fpc_direction']}"
                                  + ("" if has_ben else " (not measured)")))
     return rows
 
@@ -555,7 +563,7 @@ def build_integrity_rows() -> list[dict]:
                 for m in MODELS_DEF)
     rows.append(row("defense.records_total", n_def,
                     source_file="outputs/experiments/round5_defense/",
-                    note="llama 180 + qwen 293 (partial runs, disclosed)"))
+                    note="llama 360 + qwen 360 (complete run cells; control 240 separate)"))
     return rows
 
 
@@ -592,11 +600,15 @@ def check_expectations(rows: list[dict]) -> None:
     assert val["bias.granite2b.D2_task.VCI"] == round(22 / 60, 4)
     assert val["bias.granite2b.C5_near.VCI.rec_direction"] == round(19 / 30, 4)
     assert val["bias.granite2b.C5_near.VCI.fn_direction"] == 0.0
-    # defence side
-    assert val["defense.llama3b.C5_near.P3_vs_B0.VCI"] == round(19 / 30, 4)
-    assert val["defense.llama3b.C5_far.P3_vs_B0.VCI"] == round(20 / 30, 4)
+    # defence side (round-10 complete: n=60 paired vul+benign per arm;
+    # fn_direction remains vul-only n=30)
+    assert val["defense.llama3b.C5_near.P3_vs_B0.VCI"] == round(41 / 60, 4)
+    assert val["defense.llama3b.C5_far.P3_vs_B0.VCI"] == round(42 / 60, 4)
     assert val["defense.llama3b.C5_near.P3_vs_B0.VCI.fn_direction"] == round(19 / 30, 4)
-    assert val["defense.qwen3b.C5_near.P3_vs_B0.VCI"] == round(1 / 49, 4)
+    assert val["defense.llama3b.C5_far.P3_vs_B0.VCI.fn_direction"] == round(20 / 30, 4)
+    assert val["defense.llama3b.C5_near.P3_vs_B0.VCI.fp_direction"] == 0.0
+    assert val["defense.qwen3b.C5_near.P3_vs_B0.VCI"] == round(1 / 60, 4)
+    assert val["defense.qwen3b.C5_far.P3_vs_B0.VCI"] == round(1 / 60, 4)
     assert val["defense.qwen3b.C5_near.P3_vs_B0.VCI.fn_direction"] == 0.0
     # strata (counts from records)
     assert val["bias.llama3b.C5_near.stratum.concrete.fp_flips"] == 2
@@ -616,7 +628,7 @@ def check_expectations(rows: list[dict]) -> None:
     assert val["bias.llama3b.records_total"] == 480
     assert val["bias.granite2b.records_total"] == 240
     assert val["bias.qwen3b.records_REFUSAL"] == 0
-    assert val["defense.records_total"] == 473
+    assert val["defense.records_total"] == 720
 
 
 def build_rows() -> list[dict]:
@@ -691,9 +703,10 @@ delta benign_block = 0.000).
   the same context ALSO churns verdicts on vulnerable functions -- the
   "recall gain" 0.100->0.767 is context-driven movement, not better detection
   (the same run harms 20-25/30 benign functions).
-- Defence-side corruption (P3 vs B0, llama) is purely FN-direction:
-  19-20/30 vul 1->0, with llama benign-side not run (disclosed). Symmetry:
-  the attack moves verdicts toward flagging, the defence toward clearing.
+- Defence-side corruption (P3 vs B0, llama) is FN-direction-dominated on the
+  vulnerable side (19-20/30 vul 1->0), with benign 1->0 corrections on the
+  completed round-10 grid (FP-direction 0); Symmetry: the attack moves
+  verdicts toward flagging, the defence toward clearing.
 - Qwen defence P3 is inert: 1 benign 1->0 correction per arm, 0 FN.
 
 ## B4 — Did the model read the context?
@@ -773,18 +786,16 @@ def render_md(rows: list[dict]) -> str:
                       f"{fmt(f'bias.{model}.{arm}.VCI.fp_direction')} | "
                       f"{fmt(f'bias.{model}.{arm}.VCI.fn_direction')} | "
                       f"{fmt(f'bias.{model}.{arm}.VCI.rec_direction')} |")
-    b3.append(f"| llama3b | P3 vs B0 @C5_near | "
-              f"{fmt('defense.llama3b.C5_near.P3_vs_B0.VCI')} (vul-only) | "
-              f"n/a (not run) | "
-              f"{fmt('defense.llama3b.C5_near.P3_vs_B0.VCI.fn_direction')} | - |")
-    b3.append(f"| llama3b | P3 vs B0 @C5_far | "
-              f"{fmt('defense.llama3b.C5_far.P3_vs_B0.VCI')} (vul-only) | "
-              f"n/a (not run) | "
-              f"{fmt('defense.llama3b.C5_far.P3_vs_B0.VCI.fn_direction')} | - |")
     for arm in ("C5_near", "C5_far"):
+        b3.append(f"| llama3b | P3 vs B0 @{arm} | "
+                  f"{fmt(f'defense.llama3b.{arm}.P3_vs_B0.VCI')} | "
+                  f"{fmt(f'defense.llama3b.{arm}.P3_vs_B0.VCI.fp_direction')} | "
+                  f"{fmt(f'defense.llama3b.{arm}.P3_vs_B0.VCI.fn_direction')} | - |")
         b3.append(f"| qwen3b | P3 vs B0 @{arm} | "
                   f"{fmt(f'defense.qwen3b.{arm}.P3_vs_B0.VCI')} "
-                  f"(1 benign 1->0) | 0.000 | 0.000 | - |")
+                  f"(1 benign 1->0) | "
+                  f"{fmt(f'defense.qwen3b.{arm}.P3_vs_B0.VCI.fp_direction')} | "
+                  f"{fmt(f'defense.qwen3b.{arm}.P3_vs_B0.VCI.fn_direction')} | - |")
 
     subs = {
         "{e_llama_near_api}": str(val["evidence.llama3b.C5_near.flip_outputs_echoing_advisory"]),

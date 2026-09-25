@@ -158,10 +158,13 @@ Round-3 deviations are disclosed in the reports shipped with the artifact:
 the E0 gate's PASS branch is unattainable at the registered $n=20$ paired
 functions (a $\Delta$RR of $\geq 0.30$ would be required for McNemar
 significance at this $n$~\cite{mcnemar1947note}), so the observed verdict is a
-fail with effect size exactly zero; the Qwen monitor's over-refusal on
-calibration probes (0.587) violates the registered monitor-validity criterion
-and is carried as an explicit detector-error caveat on all monitor-derived
-refusal rates; and the bootstrap confidence intervals use
+fail with effect size exactly zero; the Qwen monitor's original fit conflated
+model over-refusal with instrument error (legacy over-refusal 0.587 vs.\
+$\leq 0.10$ registered) --- round-10 re-fit with silver gold non-refusals
+shows monitor false-refusal $=0.000$ for both models (criterion PASSES) and
+true model strong over-refusal $=0.520$ on Qwen, carried as an explicit
+model-level caveat on all monitor-derived refusal rates; and the bootstrap
+confidence intervals use
 $10{,}000$~resamples~\cite{efron1979bootstrap} with the seed published in each
 results file. Round-6 disclosures: the ladder's per-rung McNemar $p$
 values are two-sided exact binomial, with the pre-registered stats

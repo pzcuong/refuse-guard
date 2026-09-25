@@ -101,7 +101,7 @@ def test_select_subset_rule_deterministic(cfg):
 # ---------------------------------------------------------------------------
 def test_thresholds_qwen_from_models_yaml(cfg):
     thr, src = resolve_thresholds(cfg, "Qwen/Qwen2.5-Coder-3B-Instruct")
-    assert thr == {"refusal_threshold": 0.0, "lexical_floor": 0.2}
+    assert thr == {"refusal_threshold": 0.0, "lexical_floor": 0.7}  # round-10 free-text fit
     assert "models.yaml" in src
 
 

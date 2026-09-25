@@ -12,8 +12,9 @@ on 20 paired vulnerability-analysis functions per arm) and contrast-probe behavi
 arm). Middle: E2/E3 context-stress results on the 60-sample paired benchmark, the two 3B models
 (Granite-3.3-2B replicates the same RR 0.000 / UAC 1.000 pattern with recall 0.033--0.367; released
 artifacts). Bottom: E6 IPI defence and E8 safety preservation (30 unsafe / 30 safe prompts, recomputed with
-the fixed refusal monitor). $\Delta$RR is invariant to the
-Qwen monitor's over-refusal error because it pumps both arms symmetrically (paired McNemar).}
+the fixed refusal monitor). $\Delta$RR is invariant to residual monitor error because it pumps
+both arms symmetrically (paired McNemar); monitor false-refusal is separately constrained
+$\leq 0.10$ on the calibration half (Table~\ref{tab:calibration}).}
 \label{tab:main}
 \small
 \begin{tabular}{@{}llcccccc@{}}

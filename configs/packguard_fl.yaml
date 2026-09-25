@@ -54,7 +54,9 @@ ablations:
 # Run: .venv/bin/python -m packguard.eval --grid
 # ---------------------------------------------------------------------------
 grid:
-  seeds: [20260922, 20260923, 20260924, 20260925, 20260926]
+  # AMENDMENT-4: 20 seeds (was 5). Registered BEFORE the 20-seed run; the 5-seed
+  # results were already known when this was written — disclosed, not double-blind.
+  seeds: [20260922, 20260923, 20260924, 20260925, 20260926, 20260927, 20260928, 20260929, 20260930, 20260931, 20260932, 20260933, 20260934, 20260935, 20260936, 20260937, 20260938, 20260939, 20260940, 20260941]
   splits: [group, random]            # group = PRIMARY (AMENDMENT-1), random = secondary
   feature_blocks: [graph, tfidf]     # tfidf fit on TRAIN of each (seed, split)
   methods: [fedavg, fedprox, centralized, per_client_best]
