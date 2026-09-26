@@ -43,8 +43,8 @@ H-R3: benign direction consistency vs.\ the same-model benign check
 (C0 vs.\ B0-on-C5\_near; smallest passing configuration 6/30,
 $p=0.03125$; saturated C0 uninformative). Refusal rate is asserted 0.000
 across all round-7 records and is never mapped to benign. Every numeric cell
-is taken verbatim from \texttt{outputs/master/round7\_token\_map.json}
-(\texttt{scripts/collect\_master\_round7.py}, re-read verified); the benign
+is taken verbatim from \code{outputs/master/round7_token_map.json}
+(\code{scripts/collect_master_round7.py}, re-read verified); the benign
 FP column is populated only at A0 via the registered benign check
 ($n{=}30$) --- the A1/A5 benign arms were not run ($n{=}0$).}
 \label{tab:round7}
@@ -92,9 +92,9 @@ POOLED ($n{=}80$)
   & 51/0
   & $8.88{\times}10^{-16}$ \\
 % source: outputs/master/round7_master.json -> verdict.RQ8.granite2b.* (rule-computed)
-\multicolumn{6}{@{}l@{}}{Verdict (by rule): GENERALIZES (family\_pass\_count 4/4 of 4; H-G1 SUPPORTED, H-G2 SUPPORTED)} \\
+\multicolumn{6}{@{}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-2\tabcolsep\relax}@{}}{Verdict (by rule): GENERALIZES (family\_pass\_count 4/4 of 4; H-G1 SUPPORTED, H-G2 SUPPORTED)} \\
 % source: verdict.RQ8.llama3b.* (secondary replication, headroom-caveated)
-\multicolumn{6}{@{}l@{}}{\footnotesize Llama-3.2-3B secondary (headroom-caveated):
+\multicolumn{6}{@{}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-2\tabcolsep\relax}@{}}{\footnotesize Llama-3.2-3B secondary (headroom-caveated):
 GENERALIZES-pooled-driven (family\_pass\_count 2/4 of 4; H-G1 NOT\_SUPPORTED, H-G2 SUPPORTED)} \\
 \midrule
 \multicolumn{6}{@{}l@{}}{\textbf{RQ9: reassertion-harm replication at 7B}
@@ -124,11 +124,11 @@ A5 & + system reassertion ($=$ full P3)
 \multicolumn{6}{@{}l@{}}{Verdicts (by rule, fixed branch order):
 NOT\_SUPPORTED-ABSENT $\cdot$ H-R2 SAFE $\cdot$ H-R3 CONSISTENT} \\
 % source: scale.qwen7b.prompt_identity.vs_round6 (+ qwen-3B family caveat note)
-\multicolumn{6}{@{}l@{}}{\footnotesize Prompt identity vs.\ Round-6
+\multicolumn{6}{@{}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-2\tabcolsep\relax}@{}}{\footnotesize Prompt identity vs.\ Round-6
 (same prompt, different model):
 120/120 of the overlapping (sample, rung) prompts match the Round-6 prompt SHAs byte-for-byte (same prompt, different model).
 Null readings carry the mandatory family caveat (Qwen-3B inert, Amendment-1
-§0b(i)) --- see \texttt{docs/round7\_prereg.md}.} \\
+§0b(i)) --- see \code{docs/round7_prereg.md}.} \\
 \bottomrule
 \end{tabular}
 \end{table*}

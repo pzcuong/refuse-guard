@@ -35,8 +35,9 @@ pre-registered framing (concentration: the rung with the largest single-step
 flip count; ``distributed'' if no rung holds $\geq$50\% of the total
 A5-vs-A0 flips) is reported alongside.}
 \label{tab:round6ablation}
-\small
-\begin{tabular}{@{}llcccc@{}}
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.28\columnwidth}cccc@{}}
 \toprule
 Rung & Added component & recall (vul) & FP-rate (benign) & $\Delta$ vs.\ A0 & $p$ (vs.\ prev.) \\
 \midrule
@@ -70,23 +71,23 @@ A5 & + reassertion ($=$ full P3)
   & $7.45{\times}10^{-9}$ \\
 \midrule
 % source: outputs/master/round6_ablation.json -> verdict.* rows (rule-computed, both pre-registered framings)
-\multicolumn{6}{@{}l@{}}{Pre-registered verdicts: H-M1 SUPPORTED $\cdot$
+\multicolumn{6}{@{}>{\raggedright\arraybackslash}p{\dimexpr\columnwidth-2\tabcolsep\relax}@{}}{Pre-registered verdicts: H-M1 SUPPORTED $\cdot$
 H-M2 SUPPORTED $\cdot$ concentration framing:
 the reassertion rung (A5) holds 28/34 = 82\% of the net A5-vs-A0 flips
 $\cdot$ guidance
 G1 (H-M1 supported, H-M2 supported: keep the minimal wrapper, drop the rest)} \\
 % source: verdict.concentration.share_of_net_flips + note; valid under the saturated B0 baseline (recall 1.000), not an additive decomposition
-\multicolumn{6}{@{}l@{}}{\footnotesize The 82\% is a share of \emph{net} flips, valid because A0 is
+\multicolumn{6}{@{}>{\raggedright\arraybackslash}p{\dimexpr\columnwidth-2\tabcolsep\relax}@{}}{The 82\% is a share of \emph{net} flips, valid because A0 is
 saturated (recall 1.000); not an additive component decomposition (A4
 recovers 3 flips). At A5 the $\chi^2$-continuity variant of the same tests
 gives $3.35{\times}10^{-7}$ (vs.\ A4) and $1.52{\times}10^{-8}$ (vs.\ A0).} \\
 % source: ablation.llama3b.C5_far.* rows (C5_far re-run of the culprit rung only, pre-reg conditional)
-\multicolumn{6}{@{}l@{}}{C5\_far confirmation of the culprit rung:
+\multicolumn{6}{@{}>{\raggedright\arraybackslash}p{\dimexpr\columnwidth-2\tabcolsep\relax}@{}}{C5\_far confirmation of the culprit rung:
 re-running A5 alone on C5\_far gives recall 0.390 (59/60 parsed) with
 36/59 paired vulnerable 1$\to$0 flips against B0 in the same arm --- the
 harm is not advisory-proximity-dependent} \\
 % source: ablation.qwen3b.* rows (A1-vs-A5 spot check, clean re-run after the cross-model-reuse quarantine)
-\multicolumn{6}{@{}l@{}}{Qwen spot-check (A1 vs A5, model-specificity):
+\multicolumn{6}{@{}>{\raggedright\arraybackslash}p{\dimexpr\columnwidth-2\tabcolsep\relax}@{}}{Qwen spot-check (A1 vs A5, model-specificity):
 recall stays 1.000 at both A1 and A5 with 0/60 paired vulnerable flips
 ($p=1.0$) --- Qwen2.5-Coder-3B is inert at this scale on its saturated
 baseline} \\

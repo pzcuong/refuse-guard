@@ -4,7 +4,7 @@
 
 \subsection{Data: PrimeVul v0.1 mirror}
 We use the official PrimeVul splits~\cite{ding2025primevul} from the
-\texttt{starsofchance/PrimeVul} Hugging Face mirror, whose card states it is
+\code{starsofchance/PrimeVul} Hugging Face mirror, whose card states it is
 built on the \textbf{v0.1} release. Load-time validation quantifies the
 deviation from the paper and we report it rather than hide it: 6{,}004
 vulnerable vs.\ $\sim$6{,}968 functions ($-13.8\%$), 218{,}529 vs.\ 229{,}794
@@ -48,8 +48,8 @@ defence cells completed (run 360/360 and control 120/120 records for each of
 Qwen and Llama). Pre-registered gate
 rules (thresholds, McNemar $\alpha=0.05$, bootstrap CI exclusion,
 $\geq$2/3-model aggregation, and the 0/3 $\Rightarrow$ model-scale-limitation
-clause) were frozen in \code{configs/attack\_v2.yaml},
-\code{configs/round5\_e0v2.yaml}, and \code{configs/round5\_defense.yaml}
+clause) were frozen in \code{configs/attack_v2.yaml},
+\code{configs/round5_e0v2.yaml}, and \code{configs/round5_defense.yaml}
 before the corresponding generation runs. Monitor thresholds come from the
 same per-model configuration as earlier rounds; Granite again uses a
 disclosed fallback (no calibration fit), mitigated by the fact that every
@@ -74,9 +74,9 @@ Round-7 extensions add \textbf{Qwen2.5-Coder-7B-Instruct} (snapshot
 \texttt{c03e6d35}, bfloat16, no dtype fallback) as the 7B replication rung
 (\S\ref{sec:rq9}), and the four-family \texttt{bench\_attack\_v2} registry
 (CWE-476/416/190/200) as the RQ8 CWE-generalization bench
-(\S\ref{sec:rq8}), both run under \texttt{docs/round7\_prereg.md}
+(\S\ref{sec:rq8}), both run under \code{docs/round7_prereg.md}
 (+ Amendment-1). B4 is
-\texttt{microsoft/codebert-base} fine-tuned for 3 epochs (effective batch 32,
+\code{microsoft/codebert-base} fine-tuned for 3 epochs (effective batch 32,
 lr 2e-5, seed 1234) on all 4{,}862 mirror-vulnerable train functions plus a
 seeded 25{,}000-function benign subsample, validated on 10{,}000 functions
 (593 vulnerable); the best checkpoint is selected by validation MCC.

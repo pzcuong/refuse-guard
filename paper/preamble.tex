@@ -18,5 +18,23 @@
 % ---- theorem-like environments used by method/protocol sections ----
 \newtheorem{remark}{Remark}
 
-% ---- convenience inline formatting ----
-\newcommand{\code}[1]{\texttt{\small #1}}
+% ---- layout hardening (round-10 layout pass; content-neutral) ----
+\usepackage{array} % p-columns with \raggedright in tables
+\usepackage{etoolbox}
+\usepackage{balance} % balance the last page's columns (issued via \balance)
+% Inline code/paths must be breakable at "/", "_" and "." so long file paths
+% never overflow the narrow sigconf columns (\texttt alone cannot break).
+% \path (url, already loaded by acmart) does exactly that. NOTE: arguments
+% must use raw "_" (url semantics); multi-word shell commands stay \texttt.
+% \robustify makes \code safe inside \caption moving arguments.
+\newcommand{\code}[1]{{\small\begingroup\urlstyle{tt}\path{#1}\endgroup}}
+\robustify\code
+% Emergency stretch only engages when a line cannot be broken otherwise;
+% kills residual overfull boxes without changing any wording.
+\emergencystretch=2.5em
+\tolerance=2000
+% Layout-only: with the class default \flushbottom, a column whose material
+% falls ~5 lines short had all its slack injected into one \paragraph skip,
+% producing a mid-column whitespace hole (visual-judge audit, page 6).
+% \raggedbottom lets that column end naturally at its last line instead.
+\raggedbottom

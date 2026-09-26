@@ -54,7 +54,7 @@ headers, boundary annotations) is a different intervention from one that
 \emph{re-frames the task} around the label (system reassertion, retry
 loops), and the two should be evaluated --- and shipped --- separately. The
 Round-6 ladder operationalizes that split into a keep/drop decision made by
-rule, not taste (\texttt{docs/round6\_ablation\_prereg.md}, frozen before
+rule, not taste (\code{docs/round6_ablation_prereg.md}, frozen before
 the ablation ran). The branch that fires is G1: \emph{keep the minimal
 wrapper, drop the rest}. Boundary labelling alone did not reproduce the harm (1/60 flips, $p=1.0$; the same holds on the Qwen spot check), while the system task-intent reassertion --- the component that reframes the task rather than labelling the input --- carries 28 of the 34 net B0$\to$P3-full flips (exact $p=7.45{\times}10^{-9}$; replicated on C5\_far at 36/59). Ship provenance labels; keep reassertion off for verdict-critical analysis, re-measure it per model, and re-run the paired flip ledger whenever the wrapper changes.
 
@@ -137,7 +137,7 @@ security-tool evaluations.
 \label{sec:round7scope}
 Both channels were established on one bench family mix and one model
 scale, so Round 7 extends each along exactly one axis under a frozen
-pre-registration (\texttt{docs/round7\_prereg.md}): RQ8 moves the C5
+pre-registration (\code{docs/round7_prereg.md}): RQ8 moves the C5
 advisory to the four executed CWE families (NULL dereference CWE-476,
 use-after-free CWE-416, integer overflow CWE-190, information exposure
 CWE-200; the pre-registered F-PATH/CWE-22 slot was replaced by CWE-200 in

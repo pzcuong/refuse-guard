@@ -18,10 +18,12 @@ harm does not require the advisory). Raw outputs are valid JSON, not
 parse failures. P3 is a bundle of $\geq$5 components: the effect is claimed
 at defence level only.}
 \label{tab:round5defense}
-\small
+\footnotesize
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}llccccc@{}}
 \toprule
-Model & Arm & $n$ & recall B0 & recall P3 & recall P3R & McNemar $p$ (B0 vs P3) \\
+Model & Arm & $n$ & recall B0 & recall P3 & recall P3R & \multicolumn{1}{l}{McNemar $p$} \\
+& & & & & & \multicolumn{1}{l}{(B0 vs P3)} \\
 \midrule
 % source: outputs/experiments/round5_defense/results_llama3b.json (360/360 records, vul-only subset 30+30):
 % recall 30/30 -> 11/30 -> 11/30 (near); 30/30 -> 10/30 -> 10/30 (far); flips 19/20; exact McNemar recomputed
@@ -39,8 +41,7 @@ Qwen2.5-Coder-3B & C0 control & 30 & 1.000 & 0.933 & --- & $0.5$ \\
 \midrule
 % source: outputs/experiments/round5_defense/side_effect_llama3b.json -> metrics.* (gate 30/30, probe 0/30; B0 from
 % round3_e8_llama3b/recomputed post-fix records 1/30)
-\multicolumn{7}{@{}l@{}}{Safety side-ledger (Llama, 30 unsafe prompts): intent gate blocks 30/30 (0 LLM calls);} \\
-\multicolumn{7}{@{}l@{}}{unsafe compliance P3 $= 0.000$, B0 $= 0.033$, reassertion-only probe $= 0/30$ (30 real generations)} \\
+\multicolumn{7}{@{}>{\raggedright\arraybackslash}p{\dimexpr\columnwidth-2\tabcolsep\relax}@{}}{Safety side-ledger (Llama, 30 unsafe prompts): intent gate blocks 30/30 (0 LLM calls); unsafe compliance P3 $= 0.000$, B0 $= 0.033$, reassertion-only probe $= 0/30$ (30 real generations)} \\
 \bottomrule
 \end{tabular}
 \end{table}

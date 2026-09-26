@@ -16,7 +16,9 @@
 
 \begin{document}
 
-\title{RefuseGuard: Robust LLM-Based Vulnerability Detection under Safety-Induced Blocking, Untrusted Code Context, and the Defence Itself}
+% Short title (running heads on odd pages) kept ~45 chars so it cannot
+% collide with the "Conference'17" footer text on the right of the header.
+\title[RefuseGuard: Robust LLM Vulnerability Detection]{RefuseGuard: Robust LLM-Based Vulnerability Detection under Safety-Induced Blocking, Untrusted Code Context, and the Defence Itself}
 
 % Anonymous submission: identities withheld via the `anonymous` class option.
 \author{Anonymous Author(s)}
@@ -67,5 +69,8 @@
 
 % ---- artifact / reproducibility appendix (A3-R4) ----
 \InputIfFileExists{appendix_repro}{}{\missingsection{appendix_repro}}
+
+% Balance the columns of the final page (layout-only; loaded in preamble).
+\balance
 
 \end{document}

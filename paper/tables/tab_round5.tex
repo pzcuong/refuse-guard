@@ -17,7 +17,8 @@ pre-registered gates return NOT\_SUPPORTED 0/3 models for H-A (blocking
 transfers), H-B (utility cost on vulnerable), and H-C (query-relevant beats
 naive).}
 \label{tab:round5}
-\small
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}llccccc@{}}
 \toprule
 Model & RR / benign-block & \multicolumn{4}{c}{recall(vul)} & flip benign$\to$vul \\
@@ -35,9 +36,9 @@ Llama-3.2-3B & 0.000 / 0.000 & 0.933 & 1.000 & 1.000 & 1.000 & 10 / 11 / 11 \\
 Granite-3.3-2B & 0.000 / 0.000 & 0.100 & 0.433 & 0.733 & 0.767 & 10 / 20 / 25 \\
 \midrule
 % source: outputs/experiments/round5_e0v2/verdict.json -> aggregate.H_A/H_B/H_C = NOT_SUPPORTED, models_pass 0/3
-\multicolumn{7}{@{}l@{}}{Gates: H-A NOT\_SUPPORTED (0/3) $\cdot$ H-B NOT\_SUPPORTED (0/3) $\cdot$ H-C NOT\_SUPPORTED (0/3)} \\
+\multicolumn{7}{@{}>{\raggedright\arraybackslash}p{\dimexpr\columnwidth-2\tabcolsep\relax}@{}}{Gates: H-A NOT\_SUPPORTED (0/3) $\cdot$ H-B NOT\_SUPPORTED (0/3) $\cdot$ H-C NOT\_SUPPORTED (0/3)} \\
 % source: results_* stratification by has_risky_api: concrete-minus-generic benign_block delta = 0.000 (both main models)
-\multicolumn{7}{@{}l@{}}{Concrete-vs-generic advisory: $\Delta$ benign-block $= 0.000$ (no query-relevance trace on blocking)} \\
+\multicolumn{7}{@{}>{\raggedright\arraybackslash}p{\dimexpr\columnwidth-2\tabcolsep\relax}@{}}{Concrete-vs-generic advisory: $\Delta$ benign-block $= 0.000$ (no query-relevance trace on blocking)} \\
 \bottomrule
 \end{tabular}
 \end{table}

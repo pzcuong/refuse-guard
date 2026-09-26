@@ -97,69 +97,87 @@ assert SIDE_EFFECT["metrics"]["P3_gate_blocked"] == 30
 # Figure 1: conditions + defenses pipeline (schematic, no data numbers)
 # ---------------------------------------------------------------------------
 def fig_conditions() -> None:
-    fig, ax = plt.subplots(figsize=(7.0, 2.6))
+    fig, ax = plt.subplots(figsize=(7.16, 2.8))
     ax.axis("off")
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    pairs = []  # (text_artist, rect) — overflow self-check below
 
-    def box(x, y, w, h, text, fc, fs=7.0, bold=False, ec="#333333"):
-        ax.add_patch(plt.Rectangle((x, y), w, h, facecolor=fc, edgecolor=ec,
-                                   linewidth=0.9, zorder=2))
-        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center",
-                fontsize=fs, zorder=3, weight="bold" if bold else "normal")
+    def box(x, y, w, h, text, fc, fs=6.0, bold=False, ec="#333333"):
+        rect = plt.Rectangle((x, y), w, h, facecolor=fc, edgecolor=ec,
+                             linewidth=0.9, zorder=2)
+        ax.add_patch(rect)
+        t = ax.text(x + w / 2, y + h / 2, text, ha="center", va="center",
+                    fontsize=fs, zorder=3, weight="bold" if bold else "normal",
+                    linespacing=1.25)
+        pairs.append((t, (x, y, w, h)))
 
     def arrow(x1, y1, x2, y2, ls="-", color="#333333"):
         ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
                     arrowprops=dict(arrowstyle="-|>", linestyle=ls,
-                                    color=color, linewidth=1.0))
+                                    color=color, linewidth=1.0,
+                                    shrinkA=0, shrinkB=0))
 
     # Row 1: sample -> context conditions -> task-intent gate
-    box(0.15, 1.62, 1.30, 0.85, "PrimeVul\nfunction\n(clean C0)", "#f0f0f0", fs=7.0)
-    box(1.75, 1.62, 2.10, 0.85, "C1 defensive\nprompt framing", "#fff3e0", fs=7.0)
-    box(4.05, 1.62, 2.35, 0.85, "C2a/C2b benign carriers\n(near/far comment,\ndocstring, string)",
-        "#fff3e0", fs=7.0)
-    box(6.60, 1.62, 2.45, 0.85, "C3 instruction-like\ncontext (IPI)\n", "#fff3e0", fs=7.0)
-    ax.text(5.3, 2.62, "tree-sitter semantics gate: executable AST unchanged by C2/C3",
-            ha="center", fontsize=6.6, style="italic", color="#555555")
-    arrow(1.45, 2.05, 1.75, 2.05)
-    arrow(3.85, 2.05, 4.05, 2.05)
-    arrow(6.40, 2.05, 6.60, 2.05)
+    box(0.10, 1.72, 1.30, 0.86, "PrimeVul\nfunction\n(clean C0)", "#f0f0f0", fs=6.2)
+    box(1.82, 1.72, 1.75, 0.86, "C1 defensive\nprompt framing", "#fff3e0", fs=6.2)
+    box(3.99, 1.72, 2.30, 0.86, "C2a/C2b benign\ncarriers: near/far\ncomment, docstring,\nstring",
+        "#fff3e0", fs=6.2)
+    box(6.71, 1.72, 1.90, 0.86, "C3 instruction-\nlike context (IPI)", "#fff3e0", fs=6.2)
+    ax.text(5.3, 2.76, "tree-sitter semantics gate: executable AST unchanged by C2/C3",
+            ha="center", fontsize=6.4, style="italic", color="#555555")
+    arrow(1.40, 2.15, 1.82, 2.15)
+    arrow(3.57, 2.15, 3.99, 2.15)
+    arrow(6.29, 2.15, 6.71, 2.15)
 
     # Task-intent gate (right)
-    box(9.35, 1.62, 1.85, 0.85, "Task-intent gate\ndefensive /\nambiguous /\nout-of-scope",
-        "#e8f0fe", fs=6.6)
-    arrow(9.05, 2.05, 9.35, 2.05)
+    box(9.03, 1.72, 2.00, 0.86, "Task-intent gate\ndefensive /\nambiguous /\nout-of-scope",
+        "#e8f0fe", fs=6.2)
+    arrow(8.61, 2.15, 9.03, 2.15)
 
     # Row 2: defenses -> LLM -> monitor -> recovery
-    box(0.15, 0.42, 2.20, 0.85,
-        "Defences\nB1 reframe / B2 comment strip\nB3 aggressive removal\nP1 semantic isolation",
-        "#eef7ee", fs=6.4)
-    box(2.75, 0.42, 1.95, 0.85,
+    box(0.10, 0.42, 2.05, 0.92,
+        "Defences\nB1 reframe /\nB2 comment strip\nB3 aggressive removal\nP1 semantic isolation",
+        "#eef7ee", fs=5.9)
+    box(2.57, 0.42, 2.05, 0.92,
         "LLM analyzer\nlocked JSON schema\n(vulnerable, CWE,\nlocation, confidence)",
-        "#f0f0f0", fs=6.4)
-    box(5.10, 0.42, 1.95, 0.85,
+        "#f0f0f0", fs=5.9)
+    box(5.04, 0.42, 2.05, 0.92,
         "Refusal monitor\nANSWER / PARTIAL /\nREFUSAL\n(calibrated thresholds)",
-        "#fdeef0", fs=6.4)
-    box(7.45, 0.42, 1.95, 0.85,
-        "Recovery\nstructured retry;\nREFUSED_UNSAFE if gate\nflags unsafe prompt",
-        "#eef7ee", fs=6.4)
-    arrow(2.35, 0.85, 2.75, 0.85)
-    arrow(4.70, 0.85, 5.10, 0.85)
-    arrow(7.05, 0.85, 7.45, 0.85)
-    arrow(10.27, 1.62, 10.27, 1.27)
-    arrow(10.27, 1.27, 8.42, 1.27)
-    arrow(8.42, 1.27, 8.42, 0.85)
+        "#fdeef0", fs=5.9)
+    box(7.51, 0.42, 1.90, 0.92,
+        "Recovery\nstructured retry;\nREFUSED_UNSAFE\nif gate flags\nunsafe prompt",
+        "#eef7ee", fs=5.9)
+    arrow(2.15, 0.88, 2.57, 0.88)
+    arrow(4.62, 0.88, 5.04, 0.88)
+    arrow(7.09, 0.88, 7.51, 0.88)
+    # gate -> recovery: down, across the inter-row band, ending ON the top edge
+    arrow(10.03, 1.72, 10.03, 1.50)
+    arrow(10.03, 1.50, 8.46, 1.50)
+    arrow(8.46, 1.50, 8.46, 1.34)
 
     # Row 3: transformer fallback
-    box(2.75, -0.75, 4.30, 0.80,
-        "B4 transformer fallback (CodeBERT, independent prior)\n"
-        "when LLM output is REFUSAL/PARTIAL after retry",
-        "#eef7ee", fs=6.6)
-    arrow(8.42, 0.42, 8.42, -0.35)
-    arrow(8.42, -0.35, 7.05, -0.35)
+    box(2.57, -0.66, 4.52, 0.80,
+        "B4 transformer fallback (CodeBERT,\nindependent prior) when LLM output\nis REFUSAL/PARTIAL after retry",
+        "#eef7ee", fs=6.2)
+    arrow(8.46, 0.42, 8.46, -0.26)
+    arrow(8.46, -0.26, 7.09, -0.26)
 
-    ax.text(5.7, 3.05, "RefuseGuard pipeline: conditions (top) and defences (bottom)",
+    ax.text(6.0, 3.12, "RefuseGuard pipeline: conditions (top) and defences (bottom)",
             ha="center", fontsize=8.5, weight="bold")
-    ax.set_xlim(0, 11.4)
-    ax.set_ylim(-0.9, 3.2)
+    ax.set_xlim(0, 12.0)
+    ax.set_ylim(-0.8, 3.3)
+
+    # overflow self-check: every node label must sit strictly inside its box
+    fig.canvas.draw()
+    inv = ax.transData.inverted()
+    eps = 0.02
+    for t, (bx, by, bw, bh) in pairs:
+        bb = t.get_window_extent(fig.canvas.get_renderer())
+        (x0, y0), (x1, y1) = inv.transform([(bb.x0, bb.y0), (bb.x1, bb.y1)])
+        assert x0 >= bx - eps and x1 <= bx + bw + eps and \
+            y0 >= by - eps and y1 <= by + bh + eps, \
+            f"label overflows box ({bx},{by},{bw},{bh}): " \
+            f"text=({x0:.2f},{y0:.2f})-({x1:.2f},{y1:.2f}) {t.get_text()[:30]!r}"
     fig.savefig(FIG / "fig_conditions.pdf")
     plt.close(fig)
 
@@ -364,9 +382,10 @@ def fig_codebert() -> None:
         ax1.text(i, v + 0.02, f"{v:.3f}", ha="center", fontsize=7)
     ax1.set_ylim(0, 1.05)
     ax1.set_ylabel("Score")
+    # subtitle kept short + small so it cannot overlap the "Score" ylabel
     ax1.set_title(f"(a) B4 CodeBERT @0.5 (549 vul + 20,000 benign)\n"
-                  f"VD-S (FNR @ FPR$\\leq$0.5%) = {vd_s:.3f} → detects "
-                  f"{1 - vd_s:.1%} of vulns")
+                  f"VD-S (FNR@FPR$\\leq$0.5%) = {vd_s:.3f} → detects "
+                  f"{1 - vd_s:.1%} of vulns", fontsize=7.0)
     ax2.bar(pl, pv, width=0.55, color=C_MID)
     for i, v in enumerate(pv):
         ax2.text(i, v + 0.012, f"{v:.3f}", ha="center", fontsize=7)
@@ -432,7 +451,8 @@ def fig_round5() -> None:
     arms = ["D2_task", "C5_near", "C5_far"]
     labels = ["D2\n(wording)", "C5 near", "C5 far"]
     models = ["qwen3b", "llama3b", "granite2b"]
-    name = {"qwen3b": "Qwen-3B", "llama3b": "Llama-3.2-3B", "granite2b": "Granite-3.3-2B"}
+    name = {"qwen3b": "Qwen2.5-Coder-3B", "llama3b": "Llama-3.2-3B",
+            "granite2b": "Granite-3.3-2B"}
     color = {"qwen3b": C_B0, "llama3b": C_DEF, "granite2b": C_MID}
     x = list(range(len(arms)))
     w = 0.26
@@ -446,8 +466,9 @@ def fig_round5() -> None:
     ax1.set_xticklabels(labels)
     ax1.set_ylim(0, 30)
     ax1.set_ylabel("Paired benign$\\to$vulnerable flips")
-    ax1.set_title("(a) C5 attack: no blocking (RR = 0.000,\n"
-                  "benign-block = 0.000) but verdicts drift to ``vulnerable''",
+    # title kept to short lines so it cannot reach panel (b)'s rotated ylabel
+    ax1.set_title("(a) C5 attack: no blocking (RR = 0.000),\n"
+                  "verdicts drift to “vulnerable”",
                   fontsize=7.2)
     ax1.legend(loc="upper left", frameon=False, fontsize=6.0)
 
@@ -465,17 +486,22 @@ def fig_round5() -> None:
     # arrow: the defence pushes verdicts down (vul -> benign), annotate total flips
     ax2.annotate("", xy=(1.0, 0.40), xytext=(1.0, 0.97),
                  arrowprops=dict(arrowstyle="-|>", color=C_DEF, linewidth=1.2))
-    ax2.text(1.06, 0.66, "39/60 paired\nvul$\\to$benign flips\n(McNemar $p \\leq 3.8{\\times}10^{-6}$)",
-             fontsize=6.2, color=C_DEF, va="center")
+    ax2.text(1.90, 0.66, "39/60 paired\nvul$\\to$benign flips\n(McNemar $p \\leq 3.8{\\times}10^{-6}$)",
+             fontsize=6.2, color=C_DEF, va="center", ha="right")
     ax2.set_xticks(xs)
     ax2.set_xticklabels(["C5 near", "C5 far"])
-    ax2.set_ylim(0, 1.15)
+    ax2.set_xlim(-0.5, 1.95)   # headroom so the flips annotation stays inside the spine
+    ax2.set_ylim(0, 1.32)
     ax2.set_ylabel("Vulnerable recall (Llama-3.2-3B, $n{=}30$/arm)")
     ax2.set_title("(b) P3 defence: same context, opposite drift\n"
                   "(Qwen inert; recovery never triggers)", fontsize=7.2)
-    ax2.legend(loc="lower left", frameon=False, fontsize=6.2)
+    # framed opaque legend in the free top band — never printed over the bars
+    ax2.legend(loc="upper center", ncol=2, frameon=True, framealpha=1.0,
+               edgecolor="#bbbbbb", fontsize=6.0, labelspacing=0.9,
+               handlelength=1.3, columnspacing=1.0)
 
     fig.tight_layout()
+    fig.subplots_adjust(wspace=0.52)  # room for (b)'s rotated ylabel
     fig.savefig(FIG / "fig_round5.pdf")
     plt.close(fig)
 
@@ -561,9 +587,10 @@ def fig_round6() -> None:
                         color=color, clip_on=False)
     ax.set_xticks(x)
     ax.set_xticklabels(R6_STEP_LABELS, fontsize=5.8)
-    ax.set_ylim(0, 1.18)
+    ax.set_ylim(0, 1.32)
     ax.set_ylabel("Vulnerable recall (Llama-3.2-3B)")
-    ax.legend(loc="lower left", frameon=False, fontsize=6.2)
+    # legend above the bars in the empty top band (lower-left collided with A0)
+    ax.legend(loc="upper center", ncol=2, frameon=False, fontsize=6.2)
     ax.set_title("P3 ablation ladder: rungwise recall\n"
                  "(* = pre-registered harm: $\\Delta \\geq 0.20$, $p<0.05$)",
                  fontsize=7.2)
@@ -594,6 +621,10 @@ def fig_round7() -> None:
     for r in r7["results"]:
         assert r.get("experiment") in ("RQ8", "RQ9"), r
         val[r["metric"]] = r["value"]
+    # The plotted numbers come from outputs/master/round7_token_map.json — the
+    # SAME mapped strings that fill Table 8 (tab_round7.tex) — so the figure
+    # and the table cannot drift apart; round7_master.json is cross-checked.
+    tm = load("outputs/master/round7_token_map.json")
     models_rq8 = sorted({m.split(".")[1] for m in val
                          if m.startswith("cwe.")})
     models_rq9 = sorted({m.split(".")[1] for m in val
@@ -601,75 +632,90 @@ def fig_round7() -> None:
     if not models_rq8 and not models_rq9:
         raise AssertionError("round-7 master present but has neither RQ8 "
                              "cwe.* nor RQ9 scale.* rows")
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.5),
-                             gridspec_kw={"width_ratios":
-                                          [max(1, len(models_rq8)), 1.2]})
     drew = False
 
-    # ---- panel (a): RQ8 per-family FP-rate, C0 vs C5_near --------------
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.5),
+                             gridspec_kw={"width_ratios": [2.6, 1.0]})
+
+    # ---- panel (a): RQ8 per-family benign FP-rate, C0 vs C5_near -------
+    # EXACTLY the two series of Table 8 (Granite-3.3-2B primary); families in
+    # the table's registered order CWE-476/416/190/200.
     ax = axes[0] if models_rq8 else None
     if ax is not None:
-        fams = sorted({m.split(".")[2] for m in val
-                       if m.startswith(f"cwe.{models_rq8[0]}.")
-                       and m.endswith(".fp_rate_C0")
-                       and not m.startswith(f"cwe.{models_rq8[0]}.POOLED")})
-        assert fams, "RQ8 rows present but no per-family fp_rate_C0"
+        model = "granite2b"
+        assert model in models_rq8, (model, models_rq8)
+        fams = ["CWE-476", "CWE-416", "CWE-190", "CWE-200"]
+        c0, c5, stars = [], [], []
+        for f in fams:
+            tok_c0 = tm[f"tab.rq8.{model}.{f}.c0"]
+            tok_c5 = tm[f"tab.rq8.{model}.{f}.c5"]
+            # token map vs master cross-check (both sources must agree)
+            assert tok_c0 == f"{float(val[f'cwe.{model}.{f}.fp_rate_C0']):.3f}", \
+                (f, tok_c0, val[f"cwe.{model}.{f}.fp_rate_C0"])
+            assert tok_c5 == f"{float(val[f'cwe.{model}.{f}.fp_rate_C5_near']):.3f}", \
+                (f, tok_c5, val[f"cwe.{model}.{f}.fp_rate_C5_near"])
+            c0.append(float(tok_c0))
+            c5.append(float(tok_c5))
+            stars.append(tm[f"tab.rq8.{model}.{f}.family"].endswith("*"))
         x = list(range(len(fams)))
         w = 0.38
-        for model_i, model in enumerate(models_rq8):
-            c0 = [float(val[f"cwe.{model}.{f}.fp_rate_C0"]) for f in fams]  # type: ignore[arg-type]
-            c5 = [float(val[f"cwe.{model}.{f}.fp_rate_C5_near"]) for f in fams]  # type: ignore[arg-type]
-            off = -w / 2 if model_i == 0 else w / 2
-            ax.bar([xi + off for xi in x], c0, width=w, color=C_MID,
-                   label=f"{model}: C0" if model_i == 0 else None)
-            ax.bar([xi + off for xi in x], c5, width=w, color=C_B0,
-                   label=f"{model}: C5_near" if model_i == 0 else None)
-            for xi, (a, b) in enumerate(zip(c0, c5)):
-                star = "*" if val.get(f"cwe.{model}.{fams[xi]}.family_pass") \
-                    else ""
-                ax.text(xi + off, max(a, b) + 0.02, f"{b:.2f}{star}",
-                        ha="center", fontsize=5.6, rotation=90)
+        ax.bar([xi - w / 2 for xi in x], c0, width=w, color=C_MID,
+               label="C0 (raw)")
+        ax.bar([xi + w / 2 for xi in x], c5, width=w, color=C_B0,
+               label="C5$_{near}$ (attack)")
+        for xi in x:
+            ax.text(xi - w / 2, c0[xi] + 0.02, f"{c0[xi]:.2f}", ha="center",
+                    fontsize=5.8, rotation=90)
+            ax.text(xi + w / 2, c5[xi] + 0.02, f"{c5[xi]:.2f}"
+                    + ("*" if stars[xi] else ""), ha="center",
+                    fontsize=5.8, rotation=90)
         ax.set_xticks(x)
         ax.set_xticklabels(fams, fontsize=6)
-        ax.set_ylim(0, 1.18)
+        ax.set_ylim(0, 1.22)
         ax.set_ylabel("Benign FP-rate")
-        ax.set_title("RQ8: verdict-bias across new CWE families\n"
+        ax.set_title("RQ8: verdict-bias across new CWE families "
+                     "(Granite-3.3-2B)\n"
                      "(* = family-level exact McNemar $p<0.05$, FP direction)",
                      fontsize=7.2)
-        ax.legend(loc="upper left", frameon=False, fontsize=6)
+        ax.legend(loc="upper center", ncol=2, frameon=True, framealpha=1.0,
+                  edgecolor="#bbbbbb", fontsize=6, labelspacing=0.9)
         drew = True
 
     # ---- panel (b): RQ9 minimal replication ladder ----------------------
     if models_rq9:
         ax = axes[1] if models_rq8 else axes[0]
+        model = models_rq9[0]
         x = list(range(len(RQ9_RUNGS)))
-        w = 0.7 / len(models_rq9)
-        for model_i, model in enumerate(models_rq9):
-            vals = []
-            for rung in RQ9_RUNGS:
-                key = f"scale.{model}.{rung}.recall_vul"
-                assert key in val, f"round-7 master missing {key} (strict)"
-                v = float(val[key])  # type: ignore[arg-type]
-                assert 0.0 <= v <= 1.0, (key, v)
-                vals.append(v)
-            off = (model_i - (len(models_rq9) - 1) / 2) * w
-            ax.bar([xi + off for xi in x], vals, width=w,
-                   color=C_DEF if model_i == 0 else C_MID, label=model)
-            for xi, v in zip(x, vals):
-                ax.text(xi + off, v + 0.02, f"{v:.2f}", ha="center",
-                        fontsize=5.6, rotation=90)
-            if str(val.get(f"verdict.RQ9.{model}.H_R1")) == "SUPPORTED":
-                ax.text(x[-1] + off, -0.16, "*", ha="center", fontsize=9,
-                        color=C_DEF if model_i == 0 else C_MID, clip_on=False)
+        w = 0.6
+        vals = []
+        for rung in RQ9_RUNGS:
+            key = f"scale.{model}.{rung}.recall_vul"
+            assert key in val, f"round-7 master missing {key} (strict)"
+            v = float(val[key])  # type: ignore[arg-type]
+            tok = tm[f"tab.rq9.{model}.{rung}.recall"]
+            assert tok == f"{v:.3f}", (rung, tok, v)
+            assert 0.0 <= v <= 1.0, (key, v)
+            vals.append(v)
+        ax.bar(x, vals, width=w, color=C_DEF, label="Qwen2.5-Coder-7B-Instruct")
+        for xi, v in zip(x, vals):
+            ax.text(xi, v + 0.02, f"{v:.2f}", ha="center",
+                    fontsize=5.8, rotation=90)
+        if str(val.get(f"verdict.RQ9.{model}.H_R1")) == "SUPPORTED":
+            ax.text(x[-1], -0.16, "*", ha="center", fontsize=9,
+                    color=C_DEF, clip_on=False)
         ax.set_xticks(x)
         ax.set_xticklabels(["A0\nB0 raw", "A1\nboundary only",
-                            "A5\nreassertion\n(= P3)"], fontsize=6)
-        ax.set_ylim(0, 1.18)
-        ax.set_ylabel("Vulnerable recall (Qwen-7B)")
+                            "A5\nreassertion\n(= P3)"], fontsize=5.5)
+        ax.set_ylim(0, 1.32)
+        disp = {"qwen7b": "Qwen-7B"}.get(model, model)
+        ax.set_ylabel(f"Vulnerable recall ({disp})")
         ax.set_title("RQ9: reassertion harm at 7B\n"
                      "(* = H-R1 harm: $\\Delta \\geq 0.20$, $p<0.05$)",
                      fontsize=7.2)
-        ax.legend(loc="lower left", frameon=False, fontsize=6)
+        # framed opaque legend, clear of the bars, roomier line spacing
+        ax.legend(loc="upper left", frameon=True, framealpha=1.0,
+                  edgecolor="#bbbbbb", fontsize=6, labelspacing=1.1,
+                  handlelength=1.4)
         drew = True
 
     if not drew:
@@ -829,6 +875,26 @@ def verify_tables() -> None:
     assert r5[("ACCOUNTING", "round5.unique_new_generations")] == 1422
     assert r5[("ACCOUNTING", "round5.records_total")] == 2160
     print("[verify] round-5 table numbers match outputs/master/round5_master.json")
+
+    # ---- Round-7 (Table 8): every mapped token in round7_token_map.json
+    # (the same strings the figure plots) must appear verbatim in
+    # paper/tables/tab_round7.tex ----
+    tm7 = load("outputs/master/round7_token_map.json")
+    for key, tok in sorted(tm7.items()):
+        # the table typesets the primary-model RQ8 rows (Granite-3.3-2B) and
+        # the RQ9 ladder; the Llama secondary per-family cells are summarized
+        # as a verdict row, so their tokens are intentionally not typeset
+        if not (key.startswith("tab.rq8.granite2b.")
+                or key.startswith("tab.rq9.")):
+            continue
+        if key.endswith(".verdict") or key.endswith(".verdicts"):
+            continue  # prose verdicts are checked by scripts/verify_repro.sh
+        assert tok in tabs["tab_round7.tex"], f"tab_round7: missing {key}={tok!r}"
+    # figure data == table data (fig_round7 reads the same tokens)
+    for f in ("CWE-476", "CWE-416", "CWE-190", "CWE-200"):
+        assert tm7[f"tab.rq8.granite2b.{f}.c0"] in tabs["tab_round7.tex"]
+    print(f"[verify] {sum(1 for k in tm7 if k.startswith('tab.rq8.granite2b.') or k.startswith('tab.rq9.'))} Table-8 "
+          f"tokens match outputs/master/round7_token_map.json")
 
     # Cross-check against the Round-4 master aggregate (A1) if present.
     master_path = ROOT / "outputs/master/master_results.json"
