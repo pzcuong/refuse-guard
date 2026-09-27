@@ -155,6 +155,33 @@ XONG TOÀN BỘ** (chi tiết + bằng chứng: `reports/round11/{W1,W2,V1,V2,F}
   KB-entry ablation 20-seed, effect sizes + CI cho stabilized arm.
 <!-- % SRC: outputs/packguard/p0/p0_results.json (360 rows, AMENDMENT-5); outputs/packguard/trivial/trivial_results.json; paper2/p0_macros/numbers.tex (336 macros); reports/round11/{W1,W2,V1,V2,F}_report.md -->
 
+Cập nhật 2026-09-28 (vòng 13, F — FINAL): **R9/P2-11 DONE (đổi thiết kế thành
+leave-cluster-out, xem mục R9)**; **P3-15/16 DONE** (paper2 rewrite theo thesis
+mới "The Advisory Inside", 8 token {{R13:LFO_*}} đã điền bằng số đã audit,
+protocol §5.4 sửa LFO→LCO khớp artifact). Kết quả LCO (đều từ
+`outputs/packguard/lco/lco_results.json`, 480 rows mock=false, V1 audit
+bit-exact + Wilcoxon exact 4/4): cả graph lẫn hashing sụt jointly
+(dg −.0383±.0675 / dt −.0289±.0879, primary thr 0.30, strong-centralized,
+n=20); dd = −.0095±.0803, 95% CI [−.047,+.028], exact Wilcoxon p=.368
+(FedAvg −.0139±.0794, p=.674; sensitivity thr 0.50: −.0033/−.0121,
+p=.985/.430) → **không hỗ trợ ranking robustness giữa 2 biểu diễn; claim
+viết joint 2 chiều**; power ≈.75 tại differential .05-F1; equivalence ở
+margin ±.02 KHÔNG pass, pass ở ±.05. Hard-negative expansion +200 benign
+npm (RANDOM draw, 17/200 hard-negative profile) — **disclosed, KHÔNG nhập
+grid/corpus đã đăng ký**; manifest +200 sha256 đã verify (V1). Gates: pytest
+**732/0** (708 cũ + 24 LCO), gen_paper_numbers --check OK 336 macros,
+tectonic paper2 exit 0 (8 trang), verify_repro.sh **30/30 exit 0** (manifest
+45 file: +lco_results.json, +summary.md, +clusters_t0*.json,
++benign_expansion_v1.json), 0 "R13:"/0 round-N/0 AMENDMENT trong PDF; 4 note
+refs.bib đã trung tính hóa; render_summary loop-bug đã fix (re-render: 1
+header, 34/34 dòng số byte-identical); PackGuard_final.pdf đã tái xuất.
+Còn mở: **P1-7 BLOCKED (user OSF)**, **P1-8 BLOCKED (user API key)**,
+**P1-10 Deferred (7B removed theo directive <4B)**, **P2-12/13 Deferred**
+(SecAgg/DP giữ nguyên vai trò simulation disclosure — ra khỏi contribution
+chính sau rewrite), **P2-14 resolved-by-removal** (same), R3b/R5b/effect-size
+CI vẫn pending nếu còn vòng.
+<!-- % SRC: outputs/packguard/lco/lco_results.json; reports/round13/{W1,W2,V1,V2,F}_report.md; docs/packguard_prereg.md AMENDMENT-7 -->
+
 ## 0. Quy tắc bất di bất dịch
 
 - **AMENDMENT-4 trước khi chạy** (mục 1): mọi thay đổi thiết kế/statistic phải
@@ -859,23 +886,42 @@ set: r6 A5 prompt-hash (0/60; cache-hit proven) + r8 selection-stats
 > (6) FedProx: vòng thứ 5 liên tiếp chưa chạy; 20-seed inference: thứ 7.
 <!-- % SRC: outputs/packguard/r10/r7_mechanism_ablation/{mechanism_metrics.json,mechanism_batch.jsonl}; scripts/r10/r7_mechanism_ablation.py:68-73; audit round 7 (issues + verdict "verified with one wording correction") -->
 
-## R9. Leave-families-out family shift — **P2**
+## R9. Leave-families-out family shift — **P2 — DONE vòng 13 (đổi thiết kế: leave-CLUSTER-out)**
 
-- **What**: 5-fold leave-K-families-out trên features_v2 + manifest; chạy
-  graph-vs-tfidf qua grid primitives; pre-register rule TRƯỚC: graph
-  degradation < tfidf degradation ⇒ claim "robust under family shift";
-  ngược lại boundary chặt hơn cho negative #2. KHÔNG temporal split
-  (out-of-scope; MPI corpus chưa probe — docs/literature_2026_refresh.md §A1/§D).
+- **Trạng thái: DONE (2026-09-27/28, W1 + V1 audit + F điền vào paper2)**.
+  Thiết kế thực chạy khác kế hoạch dưới đây ở cấp đơn vị holdout: KHÔNG dùng
+  "fold theo family metadata" mà **leave-cluster-out (LCO)** — MinHash
+  (128 perm, seed 20260922) trên code 3-grams + name patterns, ngưỡng 0.30
+  (cuối thung lũng similarity; sensitivity 0.50) + package closure
+  (union-find; 0/67 multi-version package bị xẻ; 0 mixed-label unit),
+  20 seeds × randomized ~20% cluster hold-outs/stratum; đăng ký
+  **AMENDMENT-7 TRƯỚC khi chạy metric nào**. Pre-register rule 2 chiều
+  được giữ: kết quả **null có power** — dd(graph−text) = −.0095±.0803,
+  exact Wilcoxon p=.368 (95% CI [−.047,+.028]; FedAvg p=.674; thr .5
+  p=.985/.430; power ≈.75 tại δ=.05) → KHÔNG ranking robustness được
+  hỗ trợ; paper §5.4 đã viết joint claim. Chi tiết: `reports/round13/
+  {W1,V1}_report.md`; số: `outputs/packguard/lco/lco_results.json`.
+- **What (kế hoạch gốc, đã thay bởi LCO)**: 5-fold leave-K-families-out
+  trên features_v2 + manifest; chạy graph-vs-tfidf qua grid primitives;
+  pre-register rule TRƯỚC: graph degradation < tfidf degradation ⇒ claim
+  "robust under family shift"; ngược lại boundary chặt hơn cho negative #2.
+  KHÔNG temporal split (out-of-scope; MPI corpus chưa probe —
+  docs/literature_2026_refresh.md §A1/§D).
 - **Why**: audit novelty-8 (accepted): group split hiện chỉ chặn
   version-leakage trong cùng package (AMENDMENT-1); family metadata tồn tại
   trong sample ids; AUC .9605/.9260 đọc trực tiếp results.jsonl (multi-seed
   .8970/.8537).
-- **Cost**: **CPU phút** (grid primitives).
+- **Cost**: **CPU phút** (grid primitives). Thực tế: ~12 phút CPU cho 480 rows.
 - **Expected evidence**: bảng 'F1/AUC degradation under family shift:
   graph vs tfidf' trong §Results; boundary condition Discussion đã dựng khung.
+  Thực tế: §5.4 paper2 (sec:lco) + bảng degradation trong
+  outputs/packguard/lco/summary.md.
 - **Commands**: script mới `scripts/family_shift_cv.py` (mới; đọc
   features_v2 + dataset_v2 manifest, fold theo family) → chạy qua
   `packguard.eval` primitives → prereg rule trước khi nhìn kết quả.
+  Thực tế: `packguard/clusters.py` + `packguard/lco.py` +
+  `configs/packguard_lco.yaml`
+  (`.venv/bin/python -m packguard.lco --config configs/packguard_lco.yaml`).
 
 ## R10 (tùy chọn, cần quyết định riêng). 8B out-of-stack — **P3**
 

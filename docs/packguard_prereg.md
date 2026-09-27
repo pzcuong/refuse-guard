@@ -512,3 +512,134 @@ are seen.
   real run.
 - Exclusions (gate FAIL or draw shrinkage) are disclosed in the metrics
   meta with counts; no silent replacement, no resampling.
+
+---
+
+## AMENDMENT-7 (round 13, agent W1 — leave-CLUSTER-out split (MinHash) +
+## hard-negative expansion); registered 2026-09-27T20:42:55Z, BEFORE any
+## round-13 LCO evaluation run
+
+Reason: rounds 9-11 measured graph-vs-text on the PACKAGE-group split;
+the open robustness question stated by the paper itself is "graph vs
+TF-IDF degradation under family shift must decide any robustness claim".
+Near-duplicate DIFFERENT packages (typosquat families, copies) can still
+straddle a package-group split. This amendment locks the clustering and
+the leave-cluster-out (LCO) protocol BEFORE any LCO metric is computed.
+Ordering disclosure: the clustering diagnostic (UNSUPERVISED — labels are
+never read by packguard.clusters) and its similarity histogram were
+computed BEFORE this amendment was written; the threshold selection rule
+below is stated on that distribution, and NO train/test evaluation (no
+F1/AUC/p) existed at registration time.
+
+### A7.1 MinHash family clustering (`packguard/clusters.py`, new)
+
+- Unit: the SAMPLE (603, features_v2). Shingle set = word 3-grams of the
+  code text (`outputs/packguard/features/text_v2.json`, lower-cased,
+  whitespace tokens) + name-pattern shingles: package name lower-cased,
+  npm scope stripped to its own `scope:` token, separator-split tokens
+  with common filler PREFIX/SUFFIX tokens iteratively removed
+  (fillers = js, py, core, lib, node, python, package, pkg, npm — never
+  stripped from the middle); remaining tokens as `nme:tok:` shingles +
+  character 3-grams of the de-scoped name (`nme:cg:`) + the full
+  normalized name (`nme:full:`). Name shingles keep the 43 empty-text
+  samples clusterable and implement the typosquat prefix/suffix handling.
+- MinHash: 128 permutations, seed 20260922, NO external library. Base
+  hash = md5(shingle)[:4] as little-endian uint32 (process-stable, unlike
+  salted built-in hash()). Family h_j(x) = (a_j*x + b_j) mod (2^31 - 1),
+  a_j in [1,2^31-1), b_j in [0,2^31-1), ONE draw from
+  numpy.default_rng(20260922). Jaccard estimate = fraction of the 128
+  matching components. Same inputs -> identical signatures/clusters
+  cross-process (unit-tested).
+- **Threshold rule (registered on the observed histogram)**: the pairwise
+  off-diagonal distribution (step .05) has 179,254 of 181,489 pairs in
+  [0,0.05), a valley of 840 pairs across [0.05,0.30), and takeoff from
+  0.30 upward (~1,400 pairs; the 0.90+ mass = exact near-duplicates).
+  PRIMARY threshold = **0.30** (the elbow: first bin where family mass
+  takes off). SENSITIVITY threshold = **0.50** (both are pre-stated;
+  neither was chosen after seeing any downstream metric).
+- **Package closure (part of the unit definition)**: holdout UNIT =
+  connected component of {Jaccard >= threshold} U {same-package edges}.
+  Registered BEFORE the LCO runs with its reason: at 0.30, 25/67
+  multi-version packages split across similarity clusters because some
+  versions genuinely differ (e.g. @antoncallahan/aws-user-helper v2.13/
+  v2.14 vs v1.x), so a pure-similarity draw could straddle a package.
+  Closure makes the unit strictly stronger than the round-11 group split:
+  no package straddle AND no near-duplicate straddle. At 0.30: 356
+  similarity clusters -> 326 units; at 0.50: 400 -> 342; 0 mixed-label
+  units at BOTH thresholds (disclosed: stratification never faces a
+  mixed unit in this corpus). Known-family gate (verified, C1): all 31
+  archives of @antoncallahan/aws-user-helper -> 1 unit at both
+  thresholds; the 4 round-12 versions (1.0.0/1.0.3/1.0.6/1.0.7) co-cluster
+  by SIMILARITY alone (c0150) at 0.30; 0/67 multi-version packages split
+  after closure.
+- Clustering is UNSUPERVISED and deterministic; labels enter only the
+  (i) majority-label stratification and (ii) descriptive composition.
+
+### A7.2 Leave-cluster-out protocol (`packguard/lco.py`, new)
+
+- Per seed s in 20260922..20260941 (AMENDMENT-4 set): hold out
+  round(20%) of UNITS per majority-label stratum (rng seed = s) as TEST;
+  train = the rest. Hard asserts (fail loudly): train/test share NO unit,
+  NO package, NO sample_id.
+- Validity: a seed's LCO split is VALID iff test carries BOTH labels
+  (train almost surely does; checked). Only valid seeds enter aggregates;
+  invalid seeds are emitted as `lco_invalid` rows (disclosed, counted,
+  never silently dropped).
+- Methods: `strong_centralized` and `fedavg` under the round-11 strong
+  recipe EXACTLY (A5.1/A5.2: sklearn lbfgs LR max_iter=5000 tol=1e-6,
+  StandardScaler fit on pooled TRAIN, C in {0.01,0.1,1,10} by 3-fold
+  stratified train-only CV, FedAvg = local lbfgs fits + n-weighted
+  average over the ecosystem partition, rounds=2 fixed point). A
+  single-class FL client under LCO marks the fedavg metric null with a
+  `skipped_reason` (disclosed) — never fabricated.
+- Blocks: `graph` (frozen 18 features), `hashing_tfidf` (stateless
+  HashingVectorizer 2^18, A5.5), `trivial` (the r11 5-metadata shortcut
+  set: n_files, parse_fail_files, empty_graph_flag, has_setup,
+  has_postinstall; empty_graph_flag derived from n_nodes==0). Trivial is
+  a DESCRIPTIVE third arm (no multiplicity claim).
+
+### A7.3 Degradation endpoint (registered)
+
+- **Pairing basis**: per (seed, block, method), degradation
+  d = metric(LCO split) - metric(group split), where the group split =
+  `packguard.fl.make_group_split` computed INSIDE this run under the
+  identical recipe/plumbing (registered pairing basis). The stored
+  round-11 `p0_results.json` group numbers are cited as an external
+  consistency check only (same protocol; different run).
+- **Primary comparison** (the paper's question): dd = d(graph) -
+  d(hashing_tfidf) per seed per method; exact two-sided Wilcoxon
+  signed-rank over the 20 paired dd (F1 primary, AUC secondary); sign
+  counts reported. Positive dd => the GRAPH representation degrades MORE
+  under family shift. BOTH directions are honest outcomes: if the text
+  arm degrades LESS than graph, that is the finding and will be written
+  as such (this was the pre-stated purpose of the round).
+- Power: n=20 -> minimum attainable exact two-sided p = 2/2^20 ~ 1.91e-6
+  < .05, so the seed-level test CAN reach alpha (unlike the 5-seed grid).
+  No multiplicity correction across the 2 methods x 2 metrics; raw p
+  reported per test, and the two methods (centralized / FedAvg) are
+  reported as separate families, not pooled.
+- Split-validity count (seeds with both test labels) is reported per
+  threshold.
+
+### A7.4 Hard-negative expansion (time-boxed, separately disclosed)
+
+- Target: +100-200 benign npm packages drawn RANDOMLY (NOT popularity-
+  ranked) from the live registry, preferring packages with install
+  scripts / network calls (hard negatives for the FP channel). Labels
+  carry the SAME disclosed caveat as the round-8 benign pool ("assumed
+  benign via registry presence; not individually audited"). Manifest with
+  per-sample source URL + sha256; features via the UNCHANGED v2 pipeline.
+  Network failure/throttle within the 25-minute time-box => recorded as
+  NOT-FEASIBLE-this-session with the realized count (including 0); no
+  partial merge into the corpus without the manifest.
+- The expansion does NOT enter the registered LCO grid unless the
+  manifest is complete before the run; otherwise it is reported as a
+  standalone dataset contribution for a later round.
+
+### A7.5 Provenance
+
+- Outputs: `outputs/packguard/lco/{clusters_t030.json, clusters_t050.json,
+  signatures.npz, lco_results.json, summary.md}`; config
+  `configs/packguard_lco.yaml`; every row carries {mock:false, seed,
+  threshold, block, method, split, date, config_sha16}; tests
+  `tests/test_packguard_lco.py` must pass before the real run.

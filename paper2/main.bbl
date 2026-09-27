@@ -1,0 +1,219 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{11}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{}, \showDOI{}, and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showDOI}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showDOI #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showDOI      \undefined \def \showDOI       #1{#1}\fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[{Anonymous}(2026)]%
+        {refuseguard2026}
+\bibfield{author}{\bibinfo{person}{{Anonymous}}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Measuring and Mitigating Safety-Layer Interference in
+  {LLM} Vulnerability Analysis}.
+\newblock \bibinfo{howpublished}{Anonymous manuscript under double-blind
+  review}.
+\newblock
+\newblock
+\shownote{Unpublished companion measurement study; no public identifier as of
+  this submission. An earlier bibliography entry mistakenly attached
+  arXiv:2603.01246 (which is Campbell et al., ``Defensive Refusal Bias'') ---
+  corrected in the round-11 audit.}.
+
+
+\bibitem[Campbell et~al\mbox{.}(2026)]%
+        {campbell2026drb}
+\bibfield{author}{\bibinfo{person}{David Campbell}, \bibinfo{person}{Neil
+  Kale}, \bibinfo{person}{Udari~Madhushani Sehwag}, \bibinfo{person}{Bert
+  Herring}, \bibinfo{person}{Nick Price}, \bibinfo{person}{Dan Borges},
+  \bibinfo{person}{Alex Levinson}, {and} \bibinfo{person}{Christina~Q Knight}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \showarticletitle{Defensive Refusal Bias: How Safety Alignment Fails
+  Cyber Defenders}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2603.01246}}
+  (\bibinfo{year}{2026}).
+\newblock
+\newblock
+\shownote{arXiv record verified 2026-09-27 (v2)}.
+
+
+\bibitem[Duan et~al\mbox{.}(2021)]%
+        {duan2021maloss}
+\bibfield{author}{\bibinfo{person}{Ruian Duan}, \bibinfo{person}{Omar Alrawi},
+  \bibinfo{person}{Ranjita Pai~Kasturi}, \bibinfo{person}{Ryan Elder},
+  \bibinfo{person}{Brendan Saltaformaggio}, {and} \bibinfo{person}{Wenke Lee}.}
+  \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{Towards Measuring Supply Chain Attacks on Package
+  Managers for Interpreted Languages}. In \bibinfo{booktitle}{\emph{Proceedings
+  of the Network and Distributed System Security Symposium (NDSS)}}.
+\newblock
+\newblock
+\shownote{arXiv:2002.01139 (arXiv comment: ``To appear in NDSS Symposium
+  2021''); MalOSS collection; authors and venue corrected in round-11 audit}.
+
+
+\bibitem[Gao et~al\mbox{.}(2025)]%
+        {gao2025malguard}
+\bibfield{author}{\bibinfo{person}{Xingan Gao}, \bibinfo{person}{Xiaobing Sun},
+  \bibinfo{person}{Sicong Cao}, \bibinfo{person}{Kaifeng Huang},
+  \bibinfo{person}{Di Wu}, \bibinfo{person}{Xiaolei Liu},
+  \bibinfo{person}{Xingwei Lin}, {and} \bibinfo{person}{Yang Xiang}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{MalGuard}: Towards Real-Time, Accurate, and
+  Actionable Detection of Malicious Packages in {PyPI} Ecosystem}. In
+  \bibinfo{booktitle}{\emph{34th USENIX Security Symposium (USENIX Security
+  2025)}}.
+\newblock
+\newblock
+\shownote{arXiv:2506.14466; venue per USENIX program, arXiv record verified
+  2026-09-27}.
+
+
+\bibitem[Halder et~al\mbox{.}(2024)]%
+        {halder2024memptec}
+\bibfield{author}{\bibinfo{person}{S. Halder}, \bibinfo{person}{M. Bewong},
+  \bibinfo{person}{A. Mahboubi}, \bibinfo{person}{Y. Jiang},
+  \bibinfo{person}{R. Islam}, \bibinfo{person}{Z. Islam}, \bibinfo{person}{R.
+  Ip}, \bibinfo{person}{E. Ahmed}, \bibinfo{person}{G. Ramachandran}, {and}
+  \bibinfo{person}{A. Babar}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Malicious Package Detection using Metadata
+  Information}. In \bibinfo{booktitle}{\emph{Proceedings of the ACM Web
+  Conference 2024 (WWW '24)}}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3589334.3645543}
+\showDOI{\tempurl}
+\newblock
+\shownote{System name MeMPtec; arXiv:2402.07444; venue corrected from ASE to
+  WWW in round-11 audit}.
+
+
+\bibitem[Huang et~al\mbox{.}(2024)]%
+        {huang2024donapi}
+\bibfield{author}{\bibinfo{person}{Cheng Huang}, \bibinfo{person}{Nannan Wang},
+  \bibinfo{person}{Ziyan Wang}, \bibinfo{person}{Siqi Sun},
+  \bibinfo{person}{Lingzi Li}, \bibinfo{person}{Junren Chen},
+  \bibinfo{person}{Qianchong Zhao}, \bibinfo{person}{Jiaxuan Han},
+  \bibinfo{person}{Zhen Yang}, {and} \bibinfo{person}{Lei Shi}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{DONAPI}: Malicious {NPM} Packages Detector using
+  Behavior Sequence Knowledge Mapping}. In \bibinfo{booktitle}{\emph{33rd
+  USENIX Security Symposium (USENIX Security 2024)}}.
+\newblock
+\newblock
+\shownote{arXiv:2403.08334; arXiv comment confirms USENIX Security 2024
+  acceptance}.
+
+
+\bibitem[Ladisa et~al\mbox{.}(2023)]%
+        {ladisa2023sok}
+\bibfield{author}{\bibinfo{person}{Piergiorgio Ladisa}, \bibinfo{person}{Henrik
+  Plate}, \bibinfo{person}{Matias Martinez}, {and} \bibinfo{person}{Olivier
+  Barais}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{{SoK}: Taxonomy of Attacks on Open-Source Software
+  Supply Chains}. In \bibinfo{booktitle}{\emph{2023 IEEE Symposium on Security
+  and Privacy (S\&P)}}. \bibinfo{pages}{1509--1526}.
+\newblock
+\newblock
+\shownote{arXiv:2204.04008; venue verified 2026-09-27}.
+
+
+\bibitem[Ohm et~al\mbox{.}(2020)]%
+        {ohm2020backstabbers}
+\bibfield{author}{\bibinfo{person}{Marc Ohm}, \bibinfo{person}{Henrik Plate},
+  \bibinfo{person}{Andreas Sykosch}, {and} \bibinfo{person}{Michael Meier}.}
+  \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{Backstabber's Knife Collection: A Review of Open
+  Source Software Supply Chain Attacks}. In \bibinfo{booktitle}{\emph{Detection
+  of Intrusions and Malware, and Vulnerability Assessment (DIMVA)}}.
+\newblock
+\newblock
+\shownote{arXiv:2005.09535 (ID corrected in round-11 audit; 2005.09561 is an
+  unrelated paper); BKC dataset}.
+
+
+\bibitem[Zahan et~al\mbox{.}(2025)]%
+        {zahan2025npm}
+\bibfield{author}{\bibinfo{person}{Nusrat Zahan}, \bibinfo{person}{Philipp
+  Burckhardt}, \bibinfo{person}{Mikola Lysenko}, \bibinfo{person}{Feross
+  Aboukhadijeh}, {and} \bibinfo{person}{Laurie Williams}.}
+  \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Leveraging Large Language Models to Detect {npm}
+  Malicious Packages}. In \bibinfo{booktitle}{\emph{47th IEEE/ACM International
+  Conference on Software Engineering (ICSE 2025)}}.
+\newblock
+\newblock
+\shownote{arXiv:2403.12196 (v1 title: ``Shifting the Lens: Detecting Malware in
+  npm Ecosystem with Large Language Models'')}.
+
+
+\bibitem[Zhang et~al\mbox{.}(2025)]%
+        {zhang2025cerebro}
+\bibfield{author}{\bibinfo{person}{Junan Zhang}, \bibinfo{person}{Kaifeng
+  Huang}, \bibinfo{person}{Yiheng Huang}, \bibinfo{person}{Bihuan Chen},
+  \bibinfo{person}{Ruisi Wang}, \bibinfo{person}{Chong Wang}, {and}
+  \bibinfo{person}{Xin Peng}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Killing Two Birds with One Stone: Malicious Package
+  Detection in {NPM} and {PyPI} using a Single Model of Malicious Behavior
+  Sequence}.
+\newblock \bibinfo{journal}{\emph{ACM Transactions on Software Engineering and
+  Methodology}} \bibinfo{volume}{34}, \bibinfo{number}{4}
+  (\bibinfo{year}{2025}), \bibinfo{pages}{1--28}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3705304}
+\showDOI{\tempurl}
+\newblock
+\shownote{System name Cerebro; arXiv:2309.02637; CrossRef record verified
+  2026-09-27}.
+
+
+\bibitem[Zhou et~al\mbox{.}(2024)]%
+        {zhou2024vulfl}
+\bibfield{author}{\bibinfo{person}{Peiheng Zhou}, \bibinfo{person}{Ming Hu},
+  \bibinfo{person}{Xingrun Quan}, \bibinfo{person}{Yawen Peng},
+  \bibinfo{person}{Xiaofei Xie}, \bibinfo{person}{Yanxin Yang},
+  \bibinfo{person}{Chengwei Liu}, \bibinfo{person}{Yueming Wu}, {and}
+  \bibinfo{person}{Mingsong Chen}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{An Empirical Study of Vulnerability Detection using
+  Federated Learning}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2411.16099}}
+  (\bibinfo{year}{2024}).
+\newblock
+\newblock
+\shownote{No journal ref as of 2026-09-27; cited as preprint}.
+
+
+\end{thebibliography}

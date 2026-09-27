@@ -83,6 +83,19 @@ FILES: list[str] = [
     "outputs/packguard/defense/defense_analysis.json",
     "outputs/packguard/defense/defense_metrics.json",
     "outputs/packguard/r10/r8_safety_expand/safety_metrics_n100.json",
+    # round-13 leave-cluster-out robustness (F): paper2 sec:lco numbers
+    # (lco_results.json = 480-row source), split diagnostics
+    # (clusters_t0*.json: histogram, known-family check, unit counts) and
+    # the rendered summary. benign_expansion_v1.json is kept for integrity
+    # of the 200-sample hard-negative expansion (each sample carries
+    # source_url + sha256); at ~15 MB it EXCEEDS the manifest's usual
+    # <1 MB size policy -- included deliberately as the expansion's
+    # integrity anchor; it is NOT part of the registered corpus/grid.
+    "outputs/packguard/lco/lco_results.json",
+    "outputs/packguard/lco/summary.md",
+    "outputs/packguard/lco/clusters_t030.json",
+    "outputs/packguard/lco/clusters_t050.json",
+    "data/packguard/manifests/benign_expansion_v1.json",
 ]
 
 HEADER = (
