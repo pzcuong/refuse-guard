@@ -76,6 +76,13 @@ FILES: list[str] = [
     "outputs/packguard/p0/p0_results.json",
     "outputs/packguard/trivial/trivial_results.json",
     "paper2/p0_macros/numbers.tex",
+    # round-12 attack-defense pairing (F): paper2 sec:safety-defense numbers
+    # source (defense_analysis.json) + W1 metrics + n=100 FP provenance.
+    # The raw batches (defense_batch.jsonl, safety_batch_n100.jsonl) stay
+    # excluded per the manifest policy (large raw jsonl payloads).
+    "outputs/packguard/defense/defense_analysis.json",
+    "outputs/packguard/defense/defense_metrics.json",
+    "outputs/packguard/r10/r8_safety_expand/safety_metrics_n100.json",
 ]
 
 HEADER = (

@@ -86,6 +86,21 @@ shows the reassertion harm replicates at 2B (malicious recall
 $.76\to.07$, $p{\approx}4{\times}10^{-10}$) with a benign verdict
 false-positive bias ($0\to20/30$, $p{\approx}2{\times}10^{-6}$) ---
 same model, opposite domain signature.
+% Round-12 attack-defense pairing (resolved by F from
+% outputs/packguard/defense/defense_analysis.json, status ok, mock=false,
+% 2026-09-27T20:08:02Z; pooled shift descriptive -- opposite per-model
+% signs, per-model table is the primary read; framing set from the
+% measured direction: neutralized on granite, not restored on llama).
+An initial attack--defense pairing asks whether input sanitization can
+neutralize this channel: an AST-gated comment/docstring strip moves
+pooled malicious recall from $.438$ (attack) to $.340$ (defended; exact
+McNemar $p=.219$) --- a descriptive shift that hides opposite per-model
+outcomes: on granite-3.3-2B the strip fully neutralizes the channel
+(all four attack-induced flips revert to the neutral baseline; benign
+FP $0$), while on Llama-3.2-3B it restores nothing --- the four
+detections it loses are byte-identical snippets of a single package
+family whose own comments the defense also strips, a defense cost we
+pre-registered as a possible outcome.
 % SRC: outputs/experiments/r10_granite_ladder/metrics_round9.json (audit round 6,
 % verdict "verified": recall/flips/p-values recomputed from 240 raw records).
 We report all negative and null results, including that an earlier
@@ -926,6 +941,145 @@ zero-refusal blocking outcome, and direction --- not effect size.
 % selection auditor-verified; sample import read-only with label==1 assert,
 % scripts/r10/r7_mechanism_ablation.py:68-73).
 
+\subsection{Can sanitization neutralize the channel?}\label{sec:safety-defense}
+%% SRC (round 12): outputs/packguard/defense/defense_batch.jsonl (W1 run) ->
+%% outputs/packguard/defense/defense_analysis.json (scripts/r12_defense_analysis.py;
+%% recall table + exact paired McNemar + two-directional restoration flips + FP benign).
+%% RESOLVED (round 12, agent F): every R12 token below was replaced from
+%% outputs/packguard/defense/defense_analysis.json (status ok, mock=false,
+%% 2026-09-27T20:08:02Z; scripts/r12_defense_analysis.py after the audited
+%% sample_id + pooled-merge fixes) cross-checked against W1's
+%% defense_metrics.json and the independent audit recomputes (V1/V2).
+%% AMENDMENT-6 verified in docs/packguard_prereg.md (A6.1-A6.5, registered
+%% 2026-09-27T18:46:28Z, before any generation). Attack-arm benign FP is
+%% NOT in the r12 batch (no P2 benign arm) and is quoted from the n=100
+%% expansion: outputs/packguard/r10/r8_safety_expand/safety_metrics_n100.json.
+%% Power: the granite P0-vs-P2+D1 comparison has 0 discordant pairs (23
+%% parsed) -> p=1.0 by construction; EVERY p in this subsection is
+%% descriptive.
+The pairing closes the loop the expansion left open: P2 showed that
+untrusted in-package content shifts detection sensitivity
+(\S\ref{sec:safety}), so a defender's first move is to remove that
+content. Defense \textbf{D1} (AMENDMENT-6, registered before any
+round-12 generation) strips comments and Python docstrings from the
+package file before analysis --- string literals are never removed ---
+under an AST-equivalence gate: the stripped file must re-parse to a
+canonical AST signature identical to the original's, where the
+signature prunes exactly the node classes D1 removes; a gate failure
+excludes the sample, disclosed rather than silently dropped. Removal is
+line-aware, so the prepended one-line advisory strips back to the
+byte-identical original file; and since the P0 and P2 (undefended) arms
+of this round are verified cache hits of the expansion batch, the
+defended arm is exactly ``attack removed,'' not a rephrasing: on all
+$38$ gate-passing samples the stripped attack file equals the stripped
+original byte-for-byte (so P2+D1 $\equiv$ P0+D1 at the byte level), with
+byte-identical P2+D1 vs.\ P0 prompts --- and temperature-0 completions
+--- for the $10$ comment-free originals.
+The registered hypotheses are deliberately two-directional: H-D1
+(restoration) holds where the defense lifts recall back to at least the
+neutral level within $.05$; H-D2 (neutralization) where
+$|\mathrm{recall}(\mathrm{P2{+}D1}) - \mathrm{recall}(\mathrm{P0})|
+\le .10$; per-model pass/fail is reported either way, and because one
+model's recall \emph{rose} under the attack, the defense-cost check
+(does stripping the advisory lose the extra detections?) is registered
+alongside --- restore-gain and restore-loss flips are both counted and
+neither is folded into an ``other'' bucket. The measured subsets are
+the seeded draw's gate-passers (registered $30$ malicious + $15$
+benign; realized $24$ malicious + $14$ benign per model after $7$ of
+the $45$ drawn snippets --- $6$ malicious, $1$ benign --- are
+comment-only, strip to empty, and are excluded and disclosed per the
+A6.1 gate; exclusion is label-independent, Fisher $p=.40$; coarse
+single-sample resolution, disclosed), with exact paired McNemar for (P2 vs
+P2+D1) and (P0 vs P2+D1), benign false positives per arm, and
+refusals --- as everywhere in this section --- never mapped to a
+verdict.
+% Measured results (round 12) -- resolved by F from
+% outputs/packguard/defense/defense_analysis.json (status ok, mock=false,
+% analysis 2026-09-27T20:08:02Z; analyzed 200 batch rows). Pooled numbers
+% are DESCRIPTIVE (opposite per-model signs; loss 5 vs gain 1) -- the
+% per-model table below is the primary read.
+Table~\ref{tab:safety-defense} reports the pairing over $76$ paired real
+packages ($38$ gate-passing samples $\times$ two models; realized $24$
+malicious + $14$ benign per model; $47$ parsed malicious pairs pooled;
+\texttt{mock=false}): pooled attack recall $.438$ ($21/48$) vs.\
+defended $.340$ ($16/47$; one granite P2+D1 output unparseable,
+disclosed), neutral $.417$ ($20/48$); restore-gain $1$, restore-loss
+$5$ (exact McNemar $p=.219$, $n{=}47$, $1$ vs.\ $5$ discordant, against
+the attack arm; $p=.375$, $1$ vs.\ $4$, against the neutral arm); benign
+FP $0/28$ defended (the attack arm carries no benign rows in this batch;
+at the $n{=}100$ expansion the advisory caused $2/100$ benign FPs, all
+granite --- quoted from that expansion, not re-measured here). Every
+pooled statistic is descriptive: the pool adds opposite per-model
+movements (loss $5$ vs.\ gain $1$) and no paired comparison in this
+round reaches significance.
+
+\begin{table}[t]
+\centering\small
+\caption{Attack--defense pairing (P2 advisory vs.\ the D1
+comment/docstring strip, AST-equivalence gated). Recall on the
+malicious subset; $+g/{-}l$ = restore-gain ($0{\to}1$) /
+restore-loss ($1{\to}0$) flips of D1 vs.\ the attack arm; $p$ = exact
+paired McNemar (P2 vs P2+D1); FP = benign false positives
+(attack $\to$ defended). Realized subsets after the A6.1 gate: $24$
+malicious + $14$ benign per model ($7$ of the $45$ drawn snippets are
+comment-only, strip to empty, and are excluded and disclosed ---
+$6$ malicious, $1$ benign; Fisher $p=.40$, no label bias). P0 and P2
+arms are verified cache hits of the $n{=}100$ expansion; the attack-arm
+FP column is quoted from that expansion (the r12 batch has no P2 benign
+arm). One granite P2+D1 output was unparseable (disclosed;
+baseline-positive). Granite P0 vs.\ P2+D1 has $0$ discordant pairs
+($23$ parsed; exact upper 95\% bound on the discordant rate $\approx$
+$12\%$), so every reported $p$ is descriptive.}
+\label{tab:safety-defense}
+\begin{tabular}{lcccccc}
+\toprule
+Model & rec P0 & rec P2 & rec P2+D1 & $+g/{-}l$ & $p$ & FP \\
+\midrule
+llama-3.2-3B &
+$.167$ &
+$.042$ &
+$.042$ &
+$1/1$ &
+$1.0$ &
+$0/50{\to}0/14$ \\
+granite-3.3-2B &
+$.667$ &
+$.833$ &
+$.652$ &
+$0/4$ &
+$.125$ &
+$2/50{\to}0/14$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% SRC (round 12): per_model blocks of
+% outputs/packguard/defense/defense_analysis.json + W1 defense_metrics.json
+% hypotheses (HD1/HD2 "supported" only at the registered >=1/2-model rule;
+% the per-model split below is the primary read). Family counts and the
+% byte-identity of the four llama P0-positive snippets audit-verified
+% (reports/round12/V1_report.md: 24 malicious gate-passers = 19 families;
+% the 4 @antoncallahan/aws-user-helper archive versions share byte-identical
+% 2500-char snippets).
+\textbf{Per-model outcome.} On granite-3.3-2B, where the advisory had
+\emph{raised} recall ($.667\to.833$) while inducing four
+benign$\to$malicious verdict flips, D1 fully neutralizes the advisory
+channel: P2+D1 verdicts are identical to the neutral baseline on every
+parseable pair ($23/23$; the single unparseable P2+D1 output was
+baseline-positive) and all four attack-induced flips revert, at zero
+benign FP ($0/14$) --- H-D1 and H-D2 pass on this model. On
+Llama-3.2-3B, where the advisory had \emph{suppressed} recall
+($.167\to.042$), D1 does not restore detections ($.042$): the four lost
+detections are byte-identical $2500$-character snippets from four
+archive versions of a single package family ($19$ distinct families in
+the subset) whose own comment the defense also strips --- a defense
+cost we pre-registered as a possible outcome --- and the one detection
+the advisory itself had supplied is lost again (the single P2+D1
+detection is yet another family, not a recovered one; at family
+granularity llama detects $1/19$ in every condition). Pooled contrasts
+are therefore descriptive throughout, and the llama restoration failure
+is a one-family observation at this draw.
+
 \section{Discussion}\label{sec:discussion}
 \textbf{When graphs beat, and lose to, cheap signals.} Under the
 corrected baseline, raw text ranks higher on the leakage-prone random
@@ -1082,6 +1236,22 @@ replacement); LLM-built knowledge bases are measurable, with a now
 complete ($100\%$-coverage) gated API universe whose robust yield is
 explanation rather than F1; and the safety-layer third threat is real but
 \emph{recall-perturbing} in this domain, with zero refusals at 2--3B.
+% Round-12 attack-defense pairing (resolved by F from
+% outputs/packguard/defense/defense_analysis.json, status ok, mock=false;
+% pooled numbers descriptive, per-model split is the primary read).
+The first attack--defense pairing gives sanitization a measured
+answer: the AST-gated strip moves pooled malicious recall
+$.438\to.340$ against the advisory attack (exact McNemar $p=.219$;
+benign FP $0/28$ defended; the attack arm is not re-run in this batch
+--- at the $n{=}100$ expansion the advisory caused $2/100$ benign FPs,
+all granite) --- and the decisive read is again per-model: full
+neutralization on granite-3.3-2B (verdicts identical to the neutral
+baseline on all $23$ parseable pairs; all four attack-induced flips
+revert; benign FP $0$) versus no restoration on Llama-3.2-3B, whose
+four lost detections are byte-identical snippets of one package family
+whose own comment the strip also removes --- a defense cost we
+pre-registered as a possible outcome; every reported $p$ is
+descriptive at this pilot scale.
 Limitations: pilot scale (CI widths ${\pm}.05$--$.08$ F1), simulation-only
 trust mechanisms, two languages, popularity-derived benign labels,
 hand-curated mappings, an LLM-KB whose
