@@ -53,6 +53,7 @@ outputs bundle 48 file checksummed, pre-registrations, audit trail).
 |---|---|---|
 | P1-7 | OSF upload + timestamp cho artifact bundle | **Blocked-by-user** (cần OSF từ user) |
 | P1-8 | Frontier-API consult record (ChatGPT-MCP) | **Blocked-by-user** (not_authenticated nhiều vòng; cần login) |
+  - READY-TO-RUN: scripts/frontier_safety_runner.py (OpenAI/Anthropic/Gemini, stdlib-only) + submission/osf_registration_bundle.md (AMENDMENT-1..8, ready to paste) — chỉ chờ key/account từ user.
   - P1-10 (A5 trên GPU): DEFERRED — ràng buộc model <4B (7B/8B weights đã dọn); cần GPU runtime khác để mở lại.
 | KB human-κ | Human validation / annotator agreement cho KB entries + refusal monitor | **Blocked-by-user** (theo tasking vòng 15; không có artifact nguồn trong repo — ghi nhận trung thực) |
 
