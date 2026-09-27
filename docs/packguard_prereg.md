@@ -310,3 +310,74 @@ mock: false, config_sha16, date}. Outputs:
 - Holm correction trên 4 comparison chính (group/random × graph/tfidf), báo kèm raw p.
 - Chưa làm (roadmap tiếp): AUC-PR, ECE/threshold sweep, variance decomposition
   (thuộc stats-5, chạy sau khi grid 20-seed có prob dump).
+
+## AMENDMENT-5 (round 11, agent W1 — P0 baseline/algorithm fixes; registered
+## 2026-09-27T16:39:29Z, BEFORE any round-11 P0 run)
+
+Reason: round-11 audit findings L1 (centralized LR collapse = undertrain),
+W2-audit (FedProx bit-identical FedAvg 160/160), L2 (tfidf-FedAvg degenerate
+all-malicious baseline). Every change below is a fix, registered before the
+re-run; the old 5-seed and 20-seed results are NOT deleted — they move to the
+historical-comparison section of reports/round11/W1_report.md.
+
+- **A5.1 Strong centralized baseline.** centralized = sklearn
+  `LogisticRegression(solver="lbfgs", max_iter=5000, tol=1e-6)` on
+  `StandardScaler`-standardized features, scaler fit on the TRAIN pool of the
+  (seed, split) only (never on test). C selected from {0.01, 0.1, 1.0, 10.0}
+  by 3-fold stratified CV ON THE TRAIN POOL ONLY (shuffle,
+  random_state=seed); tie-break by mean CV AUC, then by grid order
+  (stronger regularization first). The old torch-SGD centralized
+  (lr=0.1, 15x2 epochs, raw features) is retired to history: its
+  1/40-cell collapse (F1 .375, round-9 random/graph) and .326 cells are
+  UNDERTRAINING of a convex problem, not a data property.
+- **A5.2 FedAvg under the strong recipe.** FL clients fit sklearn
+  LogisticRegression (lbfgs, same C as centralized — C selected ONCE per
+  (seed, split, block) on the POOLED TRAIN, disclosed as centrally-chosen
+  hyperparameter, no test leak) on their OWN standardized partition share,
+  then FedAvg = n-weighted parameter average. Multi-round loop kept
+  (rounds=2 recorded): with full local convergence of a convex problem the
+  aggregate is a fixed point from round 2 (verified and disclosed). This
+  replaces the torch-SGD FedAvg as the PRIMARY FL arm; the torch path stays
+  in fl.py, now with the mu-routing fix (A5.4).
+- **A5.3 TOST equivalence margin.** FedAvg-vs-strong-centralized,
+  group split, graph block (PRIMARY cell): paired over 20 seeds on F1.
+  Equivalence holds iff mean ΔF1 (FedAvg − centralized) with its 90% CI
+  (t distribution, df = n−1) lies ENTIRELY inside (−0.02, +0.02).
+  Pre-stated reading: PASS = "FedAvg equivalent to strong centralized at
+  ±0.02 F1"; FAIL in the negative direction = "strong centralized
+  significantly better" → status framing-change-needed for the paper.
+- **A5.4 FedProx fix + sweep.** fl.py bug fix (registered before the run):
+  run_federated computed `mu` per algo but FedClient.local_update read
+  cfg.mu, so "FedAvg" rows ran FedProx(mu=0.01) whenever cfg.mu>0 — the
+  160/160 bit-identity. Fix routes mu per algo (fedavg → 0) and adds
+  `legacy_mu_routing` flag to reproduce the old behavior exactly. Under the
+  strong recipe, FedProx local objective = sklearn L2 objective (same C)
+  + (mu/2)*||theta − theta_global||^2 (theta includes intercept; Li et al.
+  2020 form), solved by scipy L-BFGS-B (jac analytic, tol 1e-8) from the
+  global init each round, rounds=15, n-weighted average. Sweep
+  mu ∈ {0.01, 0.1, 1.0}, GROUP split only, both blocks (20x3x2 = 120 runs).
+  Unit tests lock the fix: mu=1.0 → FedProx != FedAvg; mu=1e-9 → ≈ FedAvg;
+  legacy flag → old bit-identity reproduced; regression cell vs round-9
+  JSON.
+- **A5.5 Hashing text features (replaces the TfidfVectorizer arm).**
+  `HashingVectorizer(n_features=2**18, alternate_sign=False, norm="l2")`,
+  word analyzer — STATELESS, no vocabulary fit: every client applies the
+  identical transform (FL-valid; the old pooled-vocab TF-IDF leaked
+  cross-client corpus knowledge by design). Standardization for this sparse
+  block = StandardScaler(with_mean=False) fit on pooled TRAIN only
+  (scale-only; disclosed). The centralized arm uses the SAME hashing
+  transform (fair comparison). Old TF-IDF arm results remain as history.
+- **A5.6 Comparisons + multiplicity.** Wilcoxon exact two-sided over the 20
+  per-seed ΔF1 (FedAvg-strong vs strong-centralized) for the 4 registered
+  comparisons (group/random x graph/hashing), Holm correction across the 4,
+  raw p reported alongside. mu-sweep table is DESCRIPTIVE (no multiplicity
+  claim). per-client-best keeps the AMENDMENT-3 oracle-routing definition.
+- **A5.7 Disclosure.** Old results (round-9 5-seed + AMENDMENT-4 20-seed
+  grid, torch path, old centralized, old TF-IDF) are superseded for claims
+  but PRESERVED verbatim in outputs/packguard/fl_multiseed/ and cited in the
+  round-11 before/after table. Re-running `packguard.eval --grid` after the
+  fix produces CHANGED fedavg rows (they are now true FedAvg, not
+  FedProx(0.01)); this is the registered, intended effect of A5.4.
+- **A5.8 Provenance.** Outputs: outputs/packguard/p0/p0_results.json +
+  summary.md; every row carries {seed, split, block, method, mu?, mock:false,
+  C_selected, config_sha16, date}. 20 seeds 20260922..20260941 unchanged.

@@ -23,11 +23,13 @@ CLI: .venv/bin/python -m packguard.eval --config configs/packguard_fl.yaml
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+import numpy as np
 import yaml
 
 from packguard import fl as flm
@@ -863,6 +865,359 @@ def run_grid(cfg: dict, out_dir: Path = GRID_OUT_DEFAULT,
     }
 
 
+# ---------------------------------------------------------------------------
+# Round-11 P0 (AMENDMENT-5; W1) — strong baselines, FedProx fix check,
+# hashing text arm, 20-seed re-run, TOST equivalence. Registered in
+# docs/packguard_prereg.md AMENDMENT-5 BEFORE execution. The round-9 grid
+# above is untouched (still re-runnable, with the registered mu-routing fix
+# now changing its "fedavg" arm to true FedAvg — AMENDMENT-5 A5.7).
+# ---------------------------------------------------------------------------
+def tost_equivalence(deltas: Sequence[float], margin: float = 0.02,
+                     alpha: float = 0.10) -> dict:
+    """Registered equivalence rule (AMENDMENT-5 A5.3): the mean of paired
+    deltas with its two-sided 100(1-alpha)% CI (t, df=n-1) must lie ENTIRELY
+    inside (-margin, +margin). alpha=0.10 => 90% CI."""
+    from scipy import stats as sps
+
+    d = np.asarray([float(x) for x in deltas], dtype=float)
+    n = int(len(d))
+    mean = float(d.mean()) if n else float("nan")
+    if n < 2:
+        return {"n": n, "mean_delta": mean, "ci_low": None, "ci_high": None,
+                "margin": margin, "equivalent": False,
+                "method": "TOST via 90% t CI (insufficient n)", "alpha": alpha}
+    sd = float(d.std(ddof=1))
+    tcrit = float(sps.t.ppf(1.0 - alpha / 2.0, n - 1))
+    half = tcrit * sd / np.sqrt(n)
+    lo, hi = mean - half, mean + half
+    return {
+        "n": n, "mean_delta": mean, "sd": sd, "t_crit": tcrit,
+        "ci_low": float(lo), "ci_high": float(hi), "margin": float(margin),
+        "equivalent": bool(lo > -margin and hi < margin),
+        "ci_within": "(-%.3f, +%.3f)" % (margin, margin),
+        "method": "TOST via 90% t CI (paired over seeds)", "alpha": alpha,
+    }
+
+
+def holm_adjust(pvals: Sequence[float]) -> list[float]:
+    """Holm step-down adjusted p-values (monotone, clipped to 1)."""
+    m = len(pvals)
+    order = sorted(range(m), key=lambda i: float(pvals[i]))
+    adj = [0.0] * m
+    prev = 0.0
+    for rank, idx in enumerate(order):
+        val = min(1.0, (m - rank) * float(pvals[idx]))
+        val = max(val, prev)          # enforce monotonicity
+        prev = val
+        adj[idx] = float(val)
+    return adj
+
+
+P0_OUT_DEFAULT = PROJECT_ROOT / "outputs" / "packguard" / "p0"
+
+
+def run_p0_grid(cfg: dict, out_dir: Path = P0_OUT_DEFAULT,
+                features_dir: Optional[Path] = None) -> dict:
+    """Round-11 P0 grid (AMENDMENT-5, registered before execution).
+
+    Per (seed, split, block): strong_centralized + fedavg + per_client_best
+    (+ fedprox mu sweep on the registered split) via
+    packguard.strong_baseline.run_p0_cell — one shared split / scaler /
+    train-only C per cell. Real features only (mock refused)."""
+    p0_cfg = dict(cfg.get("p0", {}) or {})
+    seeds = [int(s) for s in p0_cfg.get("seeds", [])]
+    splits = list(p0_cfg.get("splits", ["group", "random"]))
+    blocks = list(p0_cfg.get("blocks", ["graph", "hashing_tfidf"]))
+    mu_values = [float(m) for m in p0_cfg.get("mu_values", [0.01, 0.1, 1.0])]
+    fedprox_split = str(p0_cfg.get("fedprox_split", "group"))
+    fedavg_rounds = int(p0_cfg.get("fedavg_rounds", 2))
+    fedprox_rounds = int(p0_cfg.get("fedprox_rounds", 15))
+    margin = float(p0_cfg.get("tost_margin", 0.02))
+    if not seeds:
+        raise ValueError("config p0.seeds is empty")
+
+    records, feat_meta = load_feature_records(
+        features_dir or ((cfg.get("data", {}) or {}).get(
+            "features_dir", FEATURES_DIR_DEFAULT)))
+    if feat_meta.get("mock", False):
+        raise RuntimeError("run_p0_grid refuses mock data (AMENDMENT-5)")
+
+    # stateless corpus-wide hash matrix: transform ONCE, slice per split
+    precomputed = None
+    text_cache: dict[str, str] = {}
+    if "hashing_tfidf" in blocks:
+        cache_path = PROJECT_ROOT / str(p0_cfg.get(
+            "text_cache", "outputs/packguard/features/text_v2.json"))
+        if not cache_path.exists():
+            raise FileNotFoundError(f"hashing arm needs the text cache {cache_path}")
+        with cache_path.open() as f:
+            text_cache = json.load(f)
+        from packguard.strong_baseline import HashingTextFeaturizer
+
+        vec = HashingTextFeaturizer()
+        H = vec.transform([text_cache.get(str(r["sample_id"]), "") or ""
+                           for r in records])
+        index = {str(r["sample_id"]): i for i, r in enumerate(records)}
+        precomputed = (H, index)
+
+    cfg_sha = config_sha16(cfg)
+    base_meta = {
+        "seed": "multi", "seeds": seeds, "config_sha16": cfg_sha,
+        "date": _now(), "pipeline": "packguard.eval.run_p0_grid",
+        "mock": False, "features_source": feat_meta.get("source"),
+        "amendment": "AMENDMENT-5 (docs/packguard_prereg.md): strong "
+                     "centralized + fixed FedProx + hashing text arm + TOST; "
+                     "registered before execution",
+        "mu_values": mu_values, "fedprox_split": fedprox_split,
+        "tost_margin": margin,
+    }
+
+    frac = float(((cfg.get("data", {}) or {}).get("test_fraction", 0.2)))
+    from packguard import strong_baseline as sb_mod
+
+    all_rows: list[dict] = []
+    cells: list[dict] = []
+    total = len(seeds) * len(splits) * len(blocks)
+    done = 0
+    for seed in seeds:
+        for split_mode in splits:
+            recs = copy.deepcopy(records)
+            if split_mode == "group":
+                train, test = make_group_split(recs, frac, seed=seed)
+            elif split_mode == "random":
+                train, test = make_global_test_split(recs, frac, seed=seed)
+            else:
+                raise ValueError(f"unknown split mode {split_mode!r}")
+            for block in blocks:
+                done += 1
+                mus = mu_values if split_mode == fedprox_split else ()
+                print(f"[p0 {done}/{total}] seed={seed} split={split_mode} "
+                      f"block={block} mus={mus}", flush=True)
+                cell = sb_mod.run_p0_cell(
+                    train, test, block, seed=seed, split=split_mode,
+                    text_cache=text_cache, precomputed=precomputed,
+                    mu_values=mus, fedavg_rounds=fedavg_rounds,
+                    fedprox_rounds=fedprox_rounds)
+                f1_avg = cell.methods["fedavg"]["final_metrics"]["f1"]
+                f1_cent = cell.methods["strong_centralized"]["final_metrics"]["f1"]
+                cell_summary = {
+                    "seed": seed, "split": split_mode, "block": block,
+                    "n_train": cell.n_train, "n_test": cell.n_test,
+                    "C_selected": cell.C_selected,
+                    "fedavg_f1": f1_avg,
+                    "strong_centralized_f1": f1_cent,
+                    "f1_delta_fedavg_minus_central": f1_avg - f1_cent,
+                }
+                cells.append(cell_summary)
+                for method, res in sorted(cell.methods.items()):
+                    m = res["final_metrics"]
+                    mu = None
+                    name = method
+                    if method.startswith("fedprox_mu"):
+                        mu = float(method[len("fedprox_mu"):])
+                    all_rows.append({
+                        "kind": "run",
+                        "name": f"p0__{split_mode}__{block}__{name}__seed{seed}",
+                        "meta": dict(base_meta),
+                        "seed": seed, "method": name, "features": block,
+                        "split": split_mode, "partition": "ecosystem",
+                        "mock": False, "mu": mu,
+                        "config_sha16": cfg_sha, "date": base_meta["date"],
+                        "C_selected": cell.C_selected,
+                        "cv_table": cell.cv_table,
+                        "scaler": cell.meta["scaler"],
+                        "client_sizes": cell.meta["client_sizes"],
+                        "f1": m.get("f1"), "auc": m.get("auc"),
+                        "precision": m.get("precision"),
+                        "recall": m.get("recall"),
+                        "n_train": cell.n_train, "n_test": cell.n_test,
+                        "n_test_malicious": m.get("n_test_malicious"),
+                        "method_detail": {k: v for k, v in res.items()
+                                          if k != "final_metrics"},
+                    })
+
+    agg = _aggregate_p0(all_rows, cells, margin)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    results_path = out_dir / "p0_results.json"
+    with results_path.open("w", encoding="utf-8") as f:
+        json.dump({"meta": base_meta, "n_runs": len(all_rows),
+                   "rows": all_rows, "per_seed_cells": cells,
+                   "aggregate": agg}, f, indent=1, default=str)
+    summary_path = out_dir / "summary.md"
+    summary_path.write_text(_render_p0_summary(base_meta, agg, len(all_rows)),
+                            encoding="utf-8")
+    return {"meta": base_meta, "n_runs": len(all_rows),
+            "rows_written": str(results_path),
+            "summary_written": str(summary_path),
+            "tost_primary": agg["tost_primary"],
+            "comparisons": agg["comparisons"]}
+
+
+def _aggregate_p0(all_rows: list[dict], cells: list[dict],
+                  margin: float) -> dict:
+    """P0 aggregation (AMENDMENT-5 A5.6): mean+-std cells; FedAvg-vs-strong-
+    centralized Wilcoxon exact + Holm over the 4 registered comparisons;
+    TOST on all 4 cells (PRIMARY = group/graph); descriptive mu sweep."""
+    def _ms(vals):
+        v = [float(x) for x in vals if x is not None]
+        if not v:
+            return {"mean": None, "std": None, "n": 0}
+        mu = sum(v) / len(v)
+        return {"mean": mu, "std": (sum((x - mu) ** 2 for x in v) / len(v)) ** 0.5,
+                "n": len(v)}
+
+    groups: dict[tuple, list[dict]] = {}
+    for r in all_rows:
+        groups.setdefault((r["split"], r["features"], r["method"]), []).append(r)
+    agg_cells = {}
+    for (split, block, method), rs in sorted(groups.items()):
+        rs = sorted(rs, key=lambda r: r["seed"])
+        agg_cells[f"{split}__{block}__{method}"] = {
+            "split": split, "block": block, "method": method,
+            "seeds": [r["seed"] for r in rs],
+            "f1": _ms([r["f1"] for r in rs]),
+            "auc": _ms([r["auc"] for r in rs]),
+            "precision": _ms([r["precision"] for r in rs]),
+            "recall": _ms([r["recall"] for r in rs]),
+            "C_selected": _ms([r.get("C_selected") for r in rs]),
+        }
+
+    # per-seed comparisons: FedAvg vs strong-centralized (4 registered cells)
+    comps = {}
+    raw_ps = []
+    keys = []
+    for (split, block) in (("group", "graph"), ("group", "hashing_tfidf"),
+                           ("random", "graph"), ("random", "hashing_tfidf")):
+        cs = sorted([c for c in cells if c["split"] == split
+                     and c["block"] == block], key=lambda c: c["seed"])
+        deltas = [c["f1_delta_fedavg_minus_central"] for c in cs]
+        w = _wilcoxon_over_seeds(deltas)
+        # exact method per AMENDMENT-4/5, fallback disclosed
+        p_exact = None
+        try:
+            from scipy import stats as sps
+            res = sps.wilcoxon(deltas, method="exact")
+            p_exact = float(res.pvalue)
+        except Exception as exc:
+            w["exact_error"] = f"{type(exc).__name__}: {exc}"
+        w["p_value_exact"] = p_exact
+        tost = tost_equivalence(deltas, margin=margin)
+        comps[f"{split}__{block}"] = {
+            "split": split, "block": block, "n_seeds": len(cs),
+            "per_seed": cs, "deltas": deltas,
+            "delta_mean_std": _ms(deltas),
+            "wilcoxon": w, "tost": tost,
+        }
+        raw_ps.append(w.get("p_value_exact") if p_exact is not None
+                      else (w.get("p_value") or 1.0))
+        keys.append(f"{split}__{block}")
+    adj = holm_adjust(raw_ps)
+    for k, a in zip(keys, adj):
+        comps[k]["wilcoxon"]["p_holm"] = a
+        comps[k]["wilcoxon"]["significant_holm_0.05"] = bool(a < 0.05)
+
+    # TOST primary cell (registered)
+    agg = {"cells": agg_cells, "comparisons": comps,
+           "tost_primary": comps["group__graph"]["tost"]}
+
+    # descriptive mu sweep (group split): fedprox(mu) - fedavg per seed
+    per_seed_f1: dict[tuple, dict[int, float]] = {}
+    for r in all_rows:
+        per_seed_f1.setdefault((r["split"], r["features"]), {})[
+            (r["seed"], r["method"])] = r["f1"]
+    sweep = {}
+    for block in ("graph", "hashing_tfidf"):
+        for mu in (0.01, 0.1, 1.0):
+            key = f"fedprox_mu{mu:g}"
+            ds = []
+            for (split, blk), d in per_seed_f1.items():
+                if split != "group" or blk != block:
+                    continue
+                for (seed, method), f1 in d.items():
+                    if method == key:
+                        base = d.get((seed, "fedavg"))
+                        if base is not None:
+                            ds.append(f1 - base)
+            if ds:
+                w = _wilcoxon_over_seeds(ds)
+                sweep[f"{block}__mu{mu:g}"] = {
+                    "block": block, "mu": mu, "deltas_fedprox_minus_fedavg": ds,
+                    "delta_mean_std": _ms(ds),
+                    "wilcoxon_descriptive": w,
+                }
+    agg["mu_sweep"] = sweep
+    return agg
+
+
+def _render_p0_summary(base_meta: dict, agg: dict, n_runs: int) -> str:
+    lines: list[str] = []
+    lines.append("# PackGuard P0 — strong baselines + FedProx fix + TOST "
+                 "(round 11, AMENDMENT-5)")
+    lines.append("")
+    lines.append(f"- date: {base_meta['date']}")
+    lines.append(f"- config sha16: {base_meta['config_sha16']}; seeds: "
+                 f"{base_meta['seeds']}")
+    lines.append(f"- runs: {n_runs} (mock=false, features_v2, 603-sample corpus)")
+    lines.append(f"- mu sweep: {base_meta['mu_values']} on split="
+                 f"{base_meta['fedprox_split']}; TOST margin "
+                 f"±{base_meta['tost_margin']} F1 (A5.3)")
+    lines.append("")
+    lines.append("## Final metrics (global held-out test; mean±std over 20 seeds)")
+    lines.append("")
+    lines.append("| split | block | method | F1 | AUC | C (mean) |")
+    lines.append("|---|---|---|---|---|---|")
+    for key, d in sorted(agg["cells"].items()):
+        fmt = lambda x: ("n/a" if x.get("mean") is None
+                         else f"{x['mean']:.4f}±{x['std']:.4f}")
+        c = d["C_selected"]
+        lines.append(f"| {d['split']} | {d['block']} | {d['method']} "
+                     f"| {fmt(d['f1'])} | {fmt(d['auc'])} | {c['mean']:.3g} |")
+    lines.append("")
+    lines.append("## TOST + Wilcoxon (FedAvg − strong-centralized, per seed)")
+    lines.append("")
+    lines.append("| split | block | ΔF1 mean±std | 90% CI | TOST ±0.02 "
+                 "| Wilcoxon p (exact) | p Holm |")
+    lines.append("|---|---|---|---|---|---|---|")
+    for key, comp in sorted(agg["comparisons"].items()):
+        t = comp["tost"]
+        w = comp["wilcoxon"]
+        ms = comp["delta_mean_std"]
+        pe = w.get("p_value_exact")
+        pe_s = "n/a" if pe is None else f"{pe:.4g}"
+        ph = w.get("p_holm")
+        ph_s = "n/a" if ph is None else f"{ph:.4g}"
+        lines.append(
+            f"| {comp['split']} | {comp['block']} "
+            f"| {ms['mean']:+.4f}±{ms['std']:.4f} "
+            f"| [{t['ci_low']:+.4f}, {t['ci_high']:+.4f}] "
+            f"| {'PASS' if t['equivalent'] else 'FAIL'} | {pe_s} | {ph_s} |")
+    lines.append("")
+    lines.append("## FedProx mu sweep (group split; ΔF1 = FedProx(μ) − FedAvg) "
+                 "— DESCRIPTIVE")
+    lines.append("")
+    lines.append("| block | mu | ΔF1 mean±std | n_pos/n_neg/n_zero | "
+                 "Wilcoxon p |")
+    lines.append("|---|---|---|---|---|")
+    for key, s in sorted(agg["mu_sweep"].items()):
+        w = s["wilcoxon_descriptive"]
+        ms = s["delta_mean_std"]
+        p = "n/a" if w.get("p_value") is None else f"{w['p_value']:.4g}"
+        lines.append(f"| {s['block']} | {s['mu']:g} "
+                     f"| {ms['mean']:+.4f}±{ms['std']:.4f} "
+                     f"| {w['n_pos']}/{w['n_neg']}/{w['n_zero']} | {p} |")
+    lines.append("")
+    lines.append("## Notes (honest)")
+    lines.append("- Old round-9 arms are NOT deleted: the torch-path grid "
+                 "stays in outputs/packguard/fl_multiseed/; its \"fedavg\" "
+                 "arm was FedProx(0.01) by the mu-routing bug (A5.4).")
+    lines.append("- Shared preprocessing disclosed: ONE StandardScaler per "
+                 "(seed, split) fit on pooled TRAIN, shared by FL clients; "
+                 "C selected by 3-fold CV on pooled TRAIN only.")
+    lines.append("- hashing block: StandardScaler(with_mean=False) (sparse-safe, "
+                 "scale-only); HashingVectorizer is stateless (FL-valid).")
+    return "\n".join(lines)
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="PackGuard FL pilot harness")
     ap.add_argument("--config", default=str(CONFIG_DEFAULT))
@@ -873,8 +1228,23 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--grid", action="store_true",
                     help="round-9 multi-seed grid (AMENDMENT-3); writes "
                          "outputs/packguard/fl_multiseed/{grid_results.json,summary.md}")
+    ap.add_argument("--p0", action="store_true",
+                    help="round-11 P0 strong-baseline grid (AMENDMENT-5); "
+                         "writes outputs/packguard/p0/{p0_results.json,summary.md}")
     args = ap.parse_args(argv)
     cfg = load_yaml(args.config)
+    if args.p0:
+        out_dir = Path(args.out_dir) if args.out_dir else P0_OUT_DEFAULT
+        summary = run_p0_grid(cfg, out_dir=out_dir,
+                              features_dir=Path(args.features_dir)
+                              if args.features_dir else None)
+        print(f"p0 rows -> {summary['rows_written']} ({summary['n_runs']} runs)")
+        print(f"p0 summary -> {summary['summary_written']}")
+        t = summary["tost_primary"]
+        print(f"TOST primary (group/graph, ±{t['margin']}): equivalent="
+              f"{t['equivalent']} mean ΔF1={t['mean_delta']:+.4f} "
+              f"90%CI=[{t['ci_low']:+.4f}, {t['ci_high']:+.4f}]")
+        return 0
     if args.grid:
         out_dir = Path(args.out_dir) if args.out_dir else GRID_OUT_DEFAULT
         summary = run_grid(cfg, out_dir=out_dir,

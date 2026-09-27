@@ -99,6 +99,12 @@ class FLConfig:
     dp_delta: float = 1e-5
     dp_clip: float = 1.0             # per-client update L2 clip (DP-FedAvg)
     feature_block: str = "graph"     # which named feature block to vectorize
+    # round-11 AMENDMENT-5 A5.4 reproducibility flag. False (fixed default):
+    # run_federated routes mu per algo (fedavg -> 0, fedprox -> cfg.mu).
+    # True: BOTH algos use cfg.mu — the pre-round-11 behavior in which the
+    # "fedavg" arm silently ran FedProx(cfg.mu); kept ONLY to reproduce the
+    # old grid_results.json bit-identities (never for new claims).
+    legacy_mu_routing: bool = False
     extra_meta: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -474,14 +480,21 @@ class FedClient:
         cfg: FLConfig,
         round_idx: int,
         seed: int = DEFAULT_SEED,
+        mu: Optional[float] = None,
     ) -> tuple[list[torch.Tensor], int]:
-        """Train locally from the broadcast global weights; return (params, n)."""
+        """Train locally from the broadcast global weights; return (params, n).
+
+        `mu` (round-11 AMENDMENT-5 A5.4): the proximal coefficient actually
+        used. None -> cfg.mu (backward-compat for direct callers, e.g. the
+        round-8/9 unit tests). run_federated passes the per-algo value so
+        FedAvg can no longer inherit cfg.mu when cfg.mu > 0."""
         model = build_model(
             {"type": cfg.model_type, "hidden_dim": cfg.hidden_dim}, self.input_dim
         )
         with torch.no_grad():
             for p, g in zip(model.parameters(), global_params):
                 p.copy_(g.to(p.dtype))
+        eff_mu = float(cfg.mu) if mu is None else float(mu)
         # per-(round) stable seed, identical for every client: clients with
         # IDENTICAL data then produce IDENTICAL updates (midpoint property
         # unit-tested). zlib.crc32, NOT hash() (salted per process).
@@ -490,7 +503,7 @@ class FedClient:
             model, self.X, self.y,
             epochs=cfg.local_epochs, lr=cfg.lr, batch_size=cfg.batch_size,
             global_params=[g.to(self.X.dtype) for g in global_params],
-            mu=cfg.mu, seed=local_seed,
+            mu=eff_mu, seed=local_seed,
         )
         return params_to_cpu_list(model.state_dict()), self.n_samples
 
@@ -642,10 +655,21 @@ def _model_params(input_dim: int, cfg: FLConfig, seed: int) -> list[torch.Tensor
 def run_federated(clients: Sequence[FedClient], test: FedClient, cfg: FLConfig,
                   algo: str = "fedavg", seed: int = DEFAULT_SEED) -> dict:
     """Round-based FedAvg (mu=0) or FedProx (mu>0) with the trust-mechanism
-    simulations toggled by cfg. Returns history + final metrics + meta."""
+    simulations toggled by cfg. Returns history + final metrics + meta.
+
+    round-11 AMENDMENT-5 A5.4 BUG FIX: before this fix the per-algo `mu`
+    computed below was never passed down — FedClient.local_update read
+    cfg.mu, so with cfg.mu > 0 (config mu_fedprox=0.01) BOTH the "fedavg"
+    and "fedprox" arms ran FedProx(cfg.mu), producing the audited 160/160
+    bit-identical grid. Now FedAvg forces mu=0.0; FedProx uses cfg.mu.
+    cfg.legacy_mu_routing=True restores the old (buggy) routing exactly for
+    reproducibility of pre-round-11 artifacts."""
     if algo not in ("fedavg", "fedprox"):
         raise ValueError(f"unknown algo {algo!r}")
-    mu = 0.0 if algo == "fedavg" else float(cfg.mu)
+    if cfg.legacy_mu_routing:
+        mu = float(cfg.mu)               # pre-round-11 behavior (both arms)
+    else:
+        mu = 0.0 if algo == "fedavg" else float(cfg.mu)
     input_dim = test.input_dim
     global_params = _model_params(input_dim, cfg, seed)
     history: list[dict] = []
@@ -656,7 +680,8 @@ def run_federated(clients: Sequence[FedClient], test: FedClient, cfg: FLConfig,
     shapes = [tuple(t.shape) for t in global_params]
     last_residual: Optional[float] = None
     for r in range(int(cfg.rounds)):
-        updates = [c.local_update(global_params, cfg, round_idx=r, seed=seed)
+        updates = [c.local_update(global_params, cfg, round_idx=r, seed=seed,
+                                  mu=mu)
                    for c in clients]
         params = [u[0] for u in updates]
         ns = [u[1] for u in updates]

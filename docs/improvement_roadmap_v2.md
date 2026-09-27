@@ -112,6 +112,49 @@ cache split 192 fresh / 48 hits. **ChatGPT unavailable lần 3 liên tiếp**
 để gửi 1 lượt khi session hồi phục. FedProx: vòng thứ 6 liên tiếp chưa chạy.
 <!-- % SRC: outputs/packguard/r10/r8_safety_expand/{safety_metrics_n100.json,safety_batch_n100.jsonl}; audit round 8 (issues + verdict "verified"); trạng thái ChatGPT-MCP từ log vòng 8 -->
 
+Cập nhật 2026-09-27 (vòng 11, P0 theo audit reviewer Q1): **P0-1..P0-6 ĐÃ
+XONG TOÀN BỘ** (chi tiết + bằng chứng: `reports/round11/{W1,W2,V1,V2,F}_report.md`).
+
+- **P0-1 (R2c, FedProx audit) — DONE + BUG TÌM THẤY**: bit-identity 160/160
+  là ROUTING BUG (`mu` không được truyền per-algo; `local_update` đọc
+  `cfg.mu`) → cả 2 arm cũ đều chạy FedProx(μ=.01). Đã fix per-algo routing +
+  unit test 12/12 (`tests/test_packguard_p0.py`) + flag
+  `legacy_mu_routing` tái lập bit-exact. Blocker mở 6 vòng đã đóng.
+- **P0-2 (strong centralized + TOST, thay "p=.312 descriptive") — DONE**:
+  AMENDMENT-5 đăng ký TRƯỚC run (16:39:29Z < 16:56:59Z, 360 runs
+  mock=false). **TOST primary PASS**: group/graph ΔF1 −.0065, 90% CI
+  [−.0133,+.0003] ⊂ ±.02; group/hashing PASS; random/hashing PASS.
+  80/80 strong-centralized cell converged (min F1 .7692) → 2 cell collapse
+  cũ (.375/.326) = undertrain artifact, không phải tính chất dữ liệu.
+- **P0-3 (claim tfidf-degradation) — RETRACTED có kiểm soát**: p=3.8e-06 cũ
+  là artifact (TF-IDFVectorizer fit pooled vocab + undertrain SGD). Với
+  HashingVectorizer stateless + strong baseline: group Δ −.0024 (p=.312),
+  random Δ −.0037 (p=.404) — degradation biến mất; 0/360 row recall≥.999.
+- **Central-win secondary — DISCLOSED**: random/graph strong-centralized
+  thắng FedAvg +.0160 F1 (4+/15−/1, exact p=.0062, Holm .0247, in bài
+  ".025" ở 3 chữ số; TOST FAIL có hướng, CI dưới 0). Primary group split:
+  equivalence PASS.
+- **P0-4 (gen-numbers) — DONE**: 336 macro (trước 178) từ p0_results.json +
+  trivial_results.json + grid cũ; `gen_paper_numbers.py --check` OK và đã
+  chứng minh phát hiện stale thật (inject sai → FAIL).
+- **P0-5 (trivial/shortcut-learning baseline) — DONE + ĐÃ NHẬP paper**:
+  trivial 5-feature F1 .82–.86 (cell means .823–.855); graph (superset) vẫn
+  thắng có ý nghĩa: ΔF1 +.0227 group / +.0487 random (exact p 1.9e-5 /
+  1.9e-6), còn thắng trên subset 500 non-empty (p=.0012/1.9e-6) → không
+  phải shortcut learning; paper định vị graph là "refinement, not
+  replacement".
+- **P0-6 (hygiene) — DONE**: 18 nhãn round-N trong TEXT đã trung tính hóa
+  (0 hit sau strip-comment; cite keys + "% round 2 = FL training round"
+  giữ nguyên — vô hình/kỹ thuật); refs.bib 9/9 fix đúng chiều (V2 audit);
+  de-anon Pass; test_exists_branch đã fix đúng gốc (guard token_map trong
+  `fig_round7`) → **pytest 675/0**, verify_repro.sh 30/30 exit 0, tectonic
+  paper2 exit 0 (PDF 9 trang — tăng từ 8 do nội dung mới, disclosed).
+- Còn mở (P1, khuyến nghị thứ tự): **R9 leave-families-out + attack/defense
+  AST-strip robustness** (con hàng lớn nhất theo reviewer — cạnh sống còn
+  cho claim graph-robustness), rồi R3b validation-locked thresholds, R5b
+  KB-entry ablation 20-seed, effect sizes + CI cho stabilized arm.
+<!-- % SRC: outputs/packguard/p0/p0_results.json (360 rows, AMENDMENT-5); outputs/packguard/trivial/trivial_results.json; paper2/p0_macros/numbers.tex (336 macros); reports/round11/{W1,W2,V1,V2,F}_report.md -->
+
 ## 0. Quy tắc bất di bất dịch
 
 - **AMENDMENT-4 trước khi chạy** (mục 1): mọi thay đổi thiết kế/statistic phải

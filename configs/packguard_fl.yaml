@@ -63,3 +63,27 @@ grid:
   partitions: [ecosystem]            # PRIMARY client partition
   run_client3: true                  # adds the disclosed npm_hook fallback arm (A3.3)
   text_cache: outputs/packguard/features/text_v2.json
+
+# ---------------------------------------------------------------------------
+# Round-11 P0 grid (AMENDMENT-5, docs/packguard_prereg.md; agent W1).
+# Registered BEFORE execution: strong centralized (sklearn lbfgs + Standard-
+# Scaler train-fit + C from {0.01,0.1,1,10} by 3-fold CV on TRAIN), FedAvg =
+# local lbfgs fit + n-weighted average, FedProx = exact prox-augmented local
+# objective (Li et al. 2020) with mu sweep {0.01, 0.1, 1.0} on the GROUP split
+# only, text arm = stateless HashingVectorizer(2^18, alternate_sign=False,
+# norm=l2). TOST margin ±0.02 F1 (90% t-CI) for FedAvg-vs-strong-centralized;
+# PRIMARY cell = group/graph. Seeds unchanged (AMENDMENT-4).
+# Run: .venv/bin/python -m packguard.eval --p0
+# ---------------------------------------------------------------------------
+p0:
+  seeds: [20260922, 20260923, 20260924, 20260925, 20260926, 20260927, 20260928, 20260929, 20260930, 20260931, 20260932, 20260933, 20260934, 20260935, 20260936, 20260937, 20260938, 20260939, 20260940, 20260941]
+  splits: [group, random]                  # group = PRIMARY (AMENDMENT-1)
+  blocks: [graph, hashing_tfidf]           # hashing replaces the TF-IDF arm (A5.5)
+  methods: [strong_centralized, fedavg, fedprox, per_client_best]
+  mu_values: [0.01, 0.1, 1.0]
+  fedprox_split: group                     # mu sweep limited to group split (A5.4)
+  fedavg_rounds: 2                         # fixed point from round 2 (A5.2)
+  fedprox_rounds: 15
+  tost_margin: 0.02
+  tost_alpha: 0.10                         # 90% CI
+  text_cache: outputs/packguard/features/text_v2.json

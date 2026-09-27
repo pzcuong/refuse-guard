@@ -72,6 +72,10 @@ FILES: list[str] = [
     "data/benchmarks/bench_v1/bench_v1_meta.json",
     "data/benchmarks/e0_prompts_v1_meta.json",
     "data/benchmarks/safety_contrast_v1.json",
+    # round-11 P0: corrected-baseline grid + trivial baseline + paper macros
+    "outputs/packguard/p0/p0_results.json",
+    "outputs/packguard/trivial/trivial_results.json",
+    "paper2/p0_macros/numbers.tex",
 ]
 
 HEADER = (

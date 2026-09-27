@@ -1,45 +1,54 @@
-% PackGuard verified references (docs/packguard_literature.md, Round 8 W1).
-% Entries below were verified against the arXiv API / publisher pages on 2026-09-21.
-% Unverified venues are marked as arXiv preprints explicitly in the note field.
+% Verified references (round-11 W2 re-audit, 2026-09-27).
+% Every entry below was re-verified on 2026-09-27 against the arXiv API
+% (export.arxiv.org), CrossRef (api.crossref.org), or publisher pages.
+% Round-10 audit corrections: duan2021maloss (authors + venue NDSS 2021),
+% zahan2025npm (real arXiv ID 2403.12196, ICSE 2025), zhang2025cerebro
+% (year 2025, vol 34(4)), huang2024donapi (first-author name), ohm2020backstabbers
+% (arXiv ID 2005.09535), halder2024memptec (venue WWW 2024), refuseguard2026
+% (fake arXiv attribution removed; DRB paper cited separately as campbell2026drb).
 
 @inproceedings{gao2025malguard,
-  author    = {Gao, Xingan and Sun, Xiaobing and Cao, Sicong and Huang, Kaifeng and Wu, Di},
+  author    = {Gao, Xingan and Sun, Xiaobing and Cao, Sicong and Huang, Kaifeng and Wu, Di and Liu, Xiaolei and Lin, Xingwei and Xiang, Yang},
   title     = {{MalGuard}: Towards Real-Time, Accurate, and Actionable Detection of Malicious Packages in {PyPI} Ecosystem},
   booktitle = {34th USENIX Security Symposium (USENIX Security 2025)},
   year      = {2025},
-  note      = {arXiv:2506.14466; venue per USENIX program, arXiv record verified},
+  note      = {arXiv:2506.14466; venue per USENIX program, arXiv record verified 2026-09-27},
 }
 
 @inproceedings{huang2024donapi,
-  author    = {Huang, Chengqiang and Wang, Nannan and Wang, Ziyan and Sun, Siqi and Li, Lingzi and others},
+  author    = {Huang, Cheng and Wang, Nannan and Wang, Ziyan and Sun, Siqi and Li, Lingzi and Chen, Junren and Zhao, Qianchong and Han, Jiaxuan and Yang, Zhen and Shi, Lei},
   title     = {{DONAPI}: Malicious {NPM} Packages Detector using Behavior Sequence Knowledge Mapping},
   booktitle = {33rd USENIX Security Symposium (USENIX Security 2024)},
   year      = {2024},
-  note      = {arXiv:2403.08334},
+  note      = {arXiv:2403.08334; arXiv comment confirms USENIX Security 2024 acceptance},
 }
 
-@article{zhang2024cerebro,
-  author  = {Zhang, Junan and Huang, Kaifeng and Huang, Yiheng and Chen, Bihuan and Wang, Ruisi and others},
-  title   = {Killing Two Birds with One Stone: Malicious Package Detection in {NPM} and {PyPI} using a Single Model ({Cerebro})},
-  journal = {ACM Transactions on Software Engineering and Methodology (TOSEM)},
-  year    = {2024},
+@article{zhang2025cerebro,
+  author  = {Zhang, Junan and Huang, Kaifeng and Huang, Yiheng and Chen, Bihuan and Wang, Ruisi and Wang, Chong and Peng, Xin},
+  title   = {Killing Two Birds with One Stone: Malicious Package Detection in {NPM} and {PyPI} using a Single Model of Malicious Behavior Sequence},
+  journal = {ACM Transactions on Software Engineering and Methodology},
+  volume  = {34},
+  number  = {4},
+  pages   = {1--28},
+  year    = {2025},
   doi     = {10.1145/3705304},
-  note    = {arXiv:2309.02637},
+  note    = {System name Cerebro; arXiv:2309.02637; CrossRef record verified 2026-09-27},
 }
 
 @article{zhou2024vulfl,
-  author  = {Zhou, Peiheng and Hu, Ming and Quan, Xingrun and Peng, Yawen and Xie, Xiaofei and others},
-  title   = {An Empirical Study of Vulnerability Detection using Federated Learning ({VulFL})},
+  author  = {Zhou, Peiheng and Hu, Ming and Quan, Xingrun and Peng, Yawen and Xie, Xiaofei and Yang, Yanxin and Liu, Chengwei and Wu, Yueming and Chen, Mingsong},
+  title   = {An Empirical Study of Vulnerability Detection using Federated Learning},
   journal = {arXiv preprint arXiv:2411.16099},
   year    = {2024},
-  note    = {Venue not verified; cited as preprint},
+  note    = {No journal ref as of 2026-09-27; cited as preprint},
 }
 
-@article{zahan2024securityai,
-  author  = {Zahan, Nusrat and Burckhardt, Philippe and Lysenko, Maksym and others},
-  title   = {Shifting the Lens: Detecting Malicious {npm} Packages using Large Language Models ({SecurityAI})},
-  journal = {arXiv preprint arXiv:2408.08924},
-  year    = {2024},
+@inproceedings{zahan2025npm,
+  author    = {Zahan, Nusrat and Burckhardt, Philipp and Lysenko, Mikola and Aboukhadijeh, Feross and Williams, Laurie},
+  title     = {Leveraging Large Language Models to Detect {npm} Malicious Packages},
+  booktitle = {47th IEEE/ACM International Conference on Software Engineering (ICSE 2025)},
+  year      = {2025},
+  note      = {arXiv:2403.12196 (v1 title: ``Shifting the Lens: Detecting Malware in npm Ecosystem with Large Language Models'')},
 }
 
 @inproceedings{ladisa2023sok,
@@ -48,7 +57,7 @@
   booktitle = {2023 IEEE Symposium on Security and Privacy (S\&P)},
   pages     = {1509--1526},
   year      = {2023},
-  note      = {arXiv:2204.04008; user proposal said ACSAC 2023 -- venue corrected to IEEE S\&P},
+  note      = {arXiv:2204.04008; venue verified 2026-09-27},
 }
 
 @inproceedings{ohm2020backstabbers,
@@ -56,22 +65,24 @@
   title     = {Backstabber's Knife Collection: A Review of Open Source Software Supply Chain Attacks},
   booktitle = {Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA)},
   year      = {2020},
-  note      = {arXiv:2005.09561; BKC dataset},
+  note      = {arXiv:2005.09535 (ID corrected in round-11 audit; 2005.09561 is an unrelated paper); BKC dataset},
 }
 
 @inproceedings{duan2021maloss,
-  author    = {Duan, Ruian and Altheide, MJ and Joshi, Ashish and Gunter, Devesh and others},
+  author    = {Duan, Ruian and Alrawi, Omar and Pai Kasturi, Ranjita and Elder, Ryan and Saltaformaggio, Brendan and Lee, Wenke},
   title     = {Towards Measuring Supply Chain Attacks on Package Managers for Interpreted Languages},
-  booktitle = {Proceedings of the 21st ACM Internet Measurement Conference (IMC)},
+  booktitle = {Proceedings of the Network and Distributed System Security Symposium (NDSS)},
   year      = {2021},
-  note      = {arXiv:2002.01139; MalOSS collection},
+  note      = {arXiv:2002.01139 (arXiv comment: ``To appear in NDSS Symposium 2021''); MalOSS collection; authors and venue corrected in round-11 audit},
 }
 
 @inproceedings{halder2024memptec,
-  author    = {Halder, Saptarshi and others},
-  title     = {{MeMPtec}: Malicious Package Detection using Metadata Information},
-  booktitle = {39th IEEE/ACM International Conference on Automated Software Engineering (ASE)},
+  author    = {Halder, S. and Bewong, M. and Mahboubi, A. and Jiang, Y. and Islam, R. and Islam, Z. and Ip, R. and Ahmed, E. and Ramachandran, G. and Babar, A.},
+  title     = {Malicious Package Detection using Metadata Information},
+  booktitle = {Proceedings of the ACM Web Conference 2024 (WWW '24)},
   year      = {2024},
+  doi       = {10.1145/3589334.3645543},
+  note      = {System name MeMPtec; arXiv:2402.07444; venue corrected from ASE to WWW in round-11 audit},
 }
 
 @misc{datadog2025mspd,
@@ -82,10 +93,18 @@
   note         = {Accessed 2026-09-21; sample archives zip-encrypted with password ``infected''},
 }
 
-@article{refuseguard2026,
-  author = {{RefuseGuard study (companion paper, this project)}},
-  title  = {RefuseGuard: Measuring and Mitigating Safety-Layer Interference in LLM Vulnerability Analysis},
-  journal = {arXiv preprint arXiv:2603.01246 (Defensive Refusal Bias)},
-  year   = {2026},
-  note   = {Companion 7-round study; internal draft under submission},
+@article{campbell2026drb,
+  author  = {Campbell, David and Kale, Neil and Sehwag, Udari Madhushani and Herring, Bert and Price, Nick and Borges, Dan and Levinson, Alex and Knight, Christina Q},
+  title   = {Defensive Refusal Bias: How Safety Alignment Fails Cyber Defenders},
+  journal = {arXiv preprint arXiv:2603.01246},
+  year    = {2026},
+  note    = {arXiv record verified 2026-09-27 (v2)},
+}
+
+@misc{refuseguard2026,
+  author        = {{Anonymous}},
+  title         = {Measuring and Mitigating Safety-Layer Interference in {LLM} Vulnerability Analysis},
+  howpublished  = {Anonymous manuscript under double-blind review},
+  year          = {2026},
+  note          = {Unpublished companion measurement study; no public identifier as of this submission. An earlier bibliography entry mistakenly attached arXiv:2603.01246 (which is Campbell et al., ``Defensive Refusal Bias'') --- corrected in the round-11 audit.},
 }
