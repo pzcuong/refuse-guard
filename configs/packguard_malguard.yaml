@@ -1,0 +1,19 @@
+# PackGuard MalGuard/Amalfi-style feature baseline (round 15, AMENDMENT-8).
+# Registered BEFORE any round-15 run (docs/packguard_prereg.md, 2026-09-27T22:44:07Z).
+# Run: .venv/bin/python -m packguard.malguard_style --config configs/packguard_malguard.yaml
+seeds: [20260922, 20260923, 20260924, 20260925, 20260926, 20260927, 20260928, 20260929, 20260930, 20260931, 20260932, 20260933, 20260934, 20260935, 20260936, 20260937, 20260938, 20260939, 20260940, 20260941]
+
+# ordered: FIRST = PRIMARY (package-group, AMENDMENT-1); SECONDARY = LCO t=0.30 (AMENDMENT-7)
+splits: [group, lco030]
+
+blocks: [malguard, combined, graph, hashing_tfidf]
+compare_blocks:
+  - [malguard, graph]
+  - [combined, graph]
+
+features: outputs/packguard/features/features_v2.jsonl
+clusters_t030: outputs/packguard/lco/clusters_t030.json
+outdir: outputs/packguard/malguard_style
+
+test_fraction: 0.2
+tost_margin: 0.02

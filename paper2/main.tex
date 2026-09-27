@@ -315,6 +315,20 @@ above is descriptive at our pilot scale.
 % pre-registration in configs/packguard_guarddog.yaml (21:56:31Z, before first scan);
 % FN decomposition 25/81 no-rule + 56/81 medium/low-only per V-audit recompute.
 
+\textbf{MalGuard-style feature reimplementation.} To probe whether our
+graph features merely re-encode a published feature family, we
+reimplemented a MalGuard/Amalfi-style feature set (41 label-blind
+features: per-class sensitive-API ratios, top-API indicators,
+class-pair co-occurrences, entry-point weights, and Amalfi-style text
+and metadata proxies; frozen in AMENDMENT-8 before running). Under the
+same twenty-seed protocol it scores $\Delta$F1 $-.0216$ vs.\ our graph
+features (90\% CI $[-.0407,-.0025]$, exact Wilcoxon $p{=}.044$, not
+surviving Holm), with the gap concentrated on PyPI; appending the two
+sets yields $+.0150$ (n.s.). Our graph features therefore compare
+favorably with a MalGuard-style reimplementation on identical splits,
+while remaining complementary rather than redundant.
+% SRC: outputs/packguard/malguard_style/results.jsonl (320 runs, AMENDMENT-8 registered 22:44Z before runs 22:52Z+);
+% V-audit: permutation test 20x (no label leak), max feature correlation .858, stats exact 1e-9.
 \subsection{Attack: an inert advisory perturbs verdicts in both
 directions}\label{sec:attack}
 % SRC: outputs/packguard/safety/safety_metrics_n60.json (n=60 registered

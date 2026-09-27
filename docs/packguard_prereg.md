@@ -643,3 +643,171 @@ F1/AUC/p) existed at registration time.
   `configs/packguard_lco.yaml`; every row carries {mock:false, seed,
   threshold, block, method, split, date, config_sha16}; tests
   `tests/test_packguard_lco.py` must pass before the real run.
+
+---
+
+## AMENDMENT-8 (round 15, agent W1 — MalGuard/Amalfi-style feature baseline
+## reimplementation; registered 2026-09-27T22:44:07Z, BEFORE any round-15 run)
+
+Reason: reviewer question W5 — "where does a MalGuard/Amalfi-STYLE feature
+set land against our graph features on the SAME corpus and the SAME split
+protocol?". This amendment locks the feature list, the protocol, and the
+comparison rules BEFORE any round-15 metric is computed. Disclosed
+reimplementation differences from MalGuard (arXiv 2404.####, UNVERIFIED
+citation — never quoted numerically): MalGuard uses a commercial LLM API to
+triage packages; here the project's own KB (kb_v0002.jsonl = "KB-v3" state:
+142 entries, 20 seed + 122 LLM-classified by Qwen2.5-Coder-3B, unsure=0,
+join coverage 1.0 over the 137-API corpus universe) is used as a pure dict
+join — NO LLM is invoked at any point of round 15. Features derive ONLY
+from artifacts that already exist (graphs_v2.jsonl.gz, text_v2.json, KB):
+NO archive is re-parsed and no tree-sitter run happens in this round.
+
+### A8.1 Label-blind selection lists (frozen; computed BEFORE registration)
+
+Disclosure (AMENDMENT-7 precedent): the two selection lists below were
+computed on the WHOLE 603-sample corpus UNSUPERVISED (labels never read) at
+2026-09-27T22:40Z, BEFORE this amendment was written; no train/test
+evaluation, F1, AUC or p-value existed at registration time. Both lists are
+frozen here and never re-selected.
+
+- **Top-10 sensitive-API indicators**: candidate pool = unique API names of
+  graphs_v2 with a KB entry. ALL KB risk_level=="high" APIs PRESENT IN THE
+  CORPUS (5): child_process.exec, eval, os.system, subprocess.Popen,
+  subprocess.run. (KB also lists child_process.spawn and "new Function" as
+  high, but neither occurs as a graphs_v2 API name — a constant-0 indicator
+  would be dead weight; disclosed.) Filled to 10 by HIGHEST CORPUS DOCUMENT
+  FREQUENCY among risk_level=="medium" APIs (the same unsupervised criterion
+  the KB build itself used): require (df 333), child_process (127), exec
+  (72), os.environ (42), https.request (41). Ties break alphabetically.
+- **Top-10 class-pair co-occurrences**: all 15 unordered pairs of the 6
+  behavior classes; count = number of SAMPLES whose merged graph contains
+  both classes. Top-10 (count): DYNAMIC_CODE|PROCESS 216, DYNAMIC_CODE|
+  FILE_IO 176, FILE_IO|PROCESS 158, DATA_ACCESS|DYNAMIC_CODE 149,
+  DYNAMIC_CODE|NETWORK 149, DATA_ACCESS|PROCESS 138, DATA_ACCESS|FILE_IO
+  117, CRYPTO|DYNAMIC_CODE 101, NETWORK|PROCESS 89, FILE_IO|NETWORK 87.
+  Tie at 149 broken alphabetically (DATA_ACCESS|DYNAMIC_CODE before
+  DYNAMIC_CODE|NETWORK). Same top-10 either way at the cut.
+
+### A8.2 Frozen feature list — block `malguard` (41 features)
+
+All features are label-blind by construction (the extractor never receives
+`label`), deterministic, and computed from graphs_v2 + text_v2 + KB only.
+Every name/value is disjoint from the frozen 18-feature `graph` block (no
+name coincides; counts-per-class hist_* are NOT duplicated — per-class
+information enters only through ratios of them).
+
+1. ratio_file_io_of_api      = hist_FILE_IO / (n_nodes + 1)
+2. ratio_network_of_api      = hist_NETWORK / (n_nodes + 1)
+3. ratio_process_of_api      = hist_PROCESS / (n_nodes + 1)
+4. ratio_crypto_of_api       = hist_CRYPTO / (n_nodes + 1)
+5. ratio_dynamic_of_api      = hist_DYNAMIC_CODE / (n_nodes + 1)
+6. ratio_data_access_of_api  = hist_DATA_ACCESS / (n_nodes + 1)
+7. kb_high_api_ratio         = share of the sample's unique APIs whose KB
+                               entry has risk_level=="high" (UNSURE/missing
+                               count as non-high; coverage is 1.0 here)
+8. kb_conf_mean              = mean KB confidence over the sample's unique
+                               APIs (seed entries 1.0; LLM entries self-
+                               reported confidence, None -> 0.0)
+9-18. ind_api_{slug}         = binary presence of each A8.1 top-10 API in
+                               the sample's unique API set
+19-28. pair_{A}__{B}         = binary: both classes of each A8.1 pair are
+                               present in the sample's graph
+29. entry_api_share          = sum of per-file n_nodes over files with
+                               entry_kind in {setup, postinstall} divided by
+                               (1 + the same sum over ALL files)
+30. entry_api_count          = that un-normalized numerator (an install-hook
+                               entry-point load measure; a x2 weighting is a
+                               positive scalar multiple of this feature and
+                               is therefore identical for a linear model —
+                               the x2 form is disclosed as absorbed)
+31. n_dirs                   = distinct parent directories of the graphs_v2
+                               file list (deterministic tmp-prefix strip:
+                               leading "tmp/<tmpdir>/" removed)
+32. text_n_functions         = count of regex r"\bdef\s+\w+" plus r
+                               "\bfunction\b" occurrences in the cached text
+33. text_string_literal_count = count of matches of
+                               r"'[^'\n]*'|\"[^\"\n]*\"|`[^`]*`"
+34. text_max_string_len      = longest matched string literal length
+                               (0 if none)
+35. text_base64_like_count   = count of r"[A-Za-z0-9+/]{24,}={0,2}"
+36. text_url_ip_literal_count = count of r"https?://" plus r"\b\d{1,3}(?:\.
+                               \d{1,3}){3}\b"
+37. text_shell_indicator_count = total occurrences of the frozen tokens
+                               {curl, wget, powershell, /bin/sh, chmod}
+38. text_eval_exec_count     = count of r"\b(eval|exec)\s*\("
+39. text_long_string_ratio   = characters inside string literals of length
+                               >= 32 divided by max(total_chars, 1)
+40. text_hex_entropy         = max Shannon entropy (bits, log2) of the char
+                               distribution over r"\b[0-9a-fA-F]{16,}\b"
+                               matches; 0.0 if none
+41. text_avg_line_len        = total_chars / max(n_lines, 1)
+
+Deviation from the tasking band (disclosed): 41 features, one above the
+25-40 planning band — the obfuscation-proxy trio (39/40/41) and the max-
+string-length statistic were kept intact per tasking; the list is FROZEN at
+41 either way. Empty-graph samples (n_nodes=0) and the 43 empty-text samples
+score 0.0 on every derived feature by the formulas above, with ONE formula-
+implied exception (clarified before any run, same registration date):
+n_dirs follows its own definition and may be >= 1 when a parsed file exists
+without classified calls (no special-casing anywhere — both behaviors are
+the direct output of the A8.2 formulas). Block `combined` = sorted(18 graph
+names) + sorted(41 malguard names), one shared scaler.
+
+### A8.3 Protocol (frozen before the run)
+
+- Corpus: the SAME 603-sample features_v2 corpus; rows with
+  extraction_error dropped exactly as packguard.fl.load_feature_records.
+- Seeds: 20260922..20260941 (AMENDMENT-4 set), 20.
+- Splits: (a) group split PRIMARY (make_group_split, package family,
+  test_fraction 0.2); (b) LCO-t0.30 SECONDARY (AMENDMENT-7 clustering,
+  clusters_t030.json, draw_lco_split, TEST_FRACTION 0.2, validity rule and
+  hard no-leak asserts unchanged). The random split is NOT part of this
+  round (its near-duplicate leakage is the documented reason group is
+  primary).
+- Methods (both, every cell): strong_centralized and fedavg under the
+  round-11 recipe EXACTLY (A5.1/A5.2: sklearn LogisticRegression lbfgs
+  max_iter=5000 tol=1e-6; StandardScaler fit on pooled TRAIN of the
+  (seed, split) only; C in {0.01,0.1,1,10} by 3-fold stratified TRAIN-only
+  CV, tie-break mean AUC then grid order; FedAvg = converged local lbfgs
+  fits + n-weighted average, rounds=2). FedProx and per-client arms are out
+  of scope (settled in round 11).
+- Blocks: malguard, combined, graph, hashing_tfidf. `graph` and
+  `hashing_tfidf` are re-run INSIDE this round under the identical recipe so
+  paired per-sample predictions exist for McNemar (the AMENDMENT-7 pairing
+  precedent); stored round-9/round-11 numbers are cited as external
+  consistency checks only.
+- Grid = 20 seeds x 2 splits x 4 blocks x 2 methods = 320 runs, sklearn
+  CPU-only.
+
+### A8.4 Comparisons (registered; both directions honest — no post-hoc
+### direction choice)
+
+- Registered families (8): {group, lco030} x {malguard vs graph, combined
+  vs graph} x {strong_centralized, fedavg}.
+- Per seed and family: per-sample paired correctness on the global held-out
+  test set -> McNemar, exact binomial when discordant pairs < 25, otherwise
+  continuity-corrected chi2 (the round-8 rule).
+- Seed-level: d = F1(malguard-style) - F1(graph) per seed (paired by seed;
+  same split); TOST equivalence at +/-0.02 F1 (90% t CI entirely inside the
+  margin = equivalent), exactly A5.3; AND exact two-sided Wilcoxon over the
+  20 deltas with Holm correction across the 8 registered families. A TOST
+  FAIL is read in its DIRECTION (malguard-style significantly better /
+  significantly worse), never collapsed into "not equivalent".
+- tfidf (hashing_tfidf) enters the headline table as a DESCRIPTIVE column
+  (same split, same run) with no registered test — its role was settled in
+  rounds 9-13.
+- Per-ecosystem F1 (npm / pypi) reported for group split, both methods, all
+  4 blocks (descriptive duty D4 style).
+
+### A8.5 Provenance
+
+- Code: packguard/malguard_style.py (new; imports fl/strong_baseline/lco/kb
+  read-only), configs/packguard_malguard.yaml, tests/test_packguard_malguard.py
+  (must pass BEFORE the real run: feature determinism across two
+  extractions, exact frozen list equality, no-label-leak — the extractor is
+  exercised on inputs with mutated labels and must produce identical
+  features; disjointness from the 18 graph names asserted).
+- Outputs: outputs/packguard/malguard_style/{features_malguard.jsonl,
+  schema.json, results.jsonl, summary.md}; every run row carries {seed,
+  split, block, method, mock:false, C_selected, config_sha16, date}.
+- Honesty rules unchanged: no fabricated numbers; no git commit; no LLM.
