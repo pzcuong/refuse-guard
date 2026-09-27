@@ -781,6 +781,25 @@ confidence, and a hard 2--3B scale ceiling; the leave-cluster-out
 evaluation reported above (\S\ref{sec:lco}) decides the family-shift
 robustness claim.
 
+\section*{Future Work}\label{sec:future}
+Four extensions follow directly from the present scope.
+(1)~\emph{Scale and families.} Every model here is open-weight and
+$\leq$3B; the recall-perturbing channel, its family dependence, and the
+AST-strip defense cost must be re-measured at 7B+ and on frontier API
+models (including whether frontier hardening suppresses the channel
+outright), using a GPU or hosted runtime outside this study's stack.
+(2)~\emph{Corpus.} The 603-sample pilot grows to the 3--5k regime with
+non-popularity benign samples, hard negatives (install hooks, network
+calls, benign obfuscation), an ingested malicious-package feed, and the
+leave-cluster-out evaluation run at that scale --- the ${+}200$ random
+benign expansion reported here is a data release, not a robustness
+result. (3)~\emph{Registration.} The pre-registrations governing these
+protocols (AMENDMENT-1--8) receive public timestamps on OSF before any
+further model runs. (4)~\emph{Knowledge-base validation.} The
+137-entry LLM-built KB receives two-annotator human validation
+(Cohen's $\kappa$), turning the explainability yield into a validated
+artifact.
+
 \section*{Data and provenance}
 \begin{sloppypar}
 Manifest, features, graphs, per-row results with mock flags, audit
