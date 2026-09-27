@@ -1,0 +1,81 @@
+# PACKGUARD Round 14 — GuardDog rule-based baseline (W, P2-12)
+# PRE-REGISTERED 2026-09-27T21:56:03Z — BEFORE any guarddog scan output was
+# observed on the corpus (no scan of any corpus sample had been run at the
+# time of this file's creation; setup G1 only instantiated the Analyzer to
+# count rules). Any later change to this file must be disclosed in
+# reports/round14/W_report.md as a post-hoc deviation.
+
+schema: packguard-guarddog-baseline-v1
+mock: false
+
+environment:
+  tool: guarddog
+  guarddog_version: "3.2.0"          # pip show guarddog, .venv-gd (Python 3.11.15, uv)
+  install: "uv venv --python 3.11 .venv-gd && uv pip install --python .venv-gd/bin/python guarddog"
+  # CLI note (disclosed at pre-registration): tasking quoted an older CLI
+  # (`guarddog scan package-resources --path ...`). guarddog 3.2.0 exposes
+  # `guarddog npm|pypi scan TARGET` and the equivalent Python API
+  # guarddog.analyzer.analyzer.Analyzer(ecosystem).analyze_sourcecode(path).
+  # We use the Python API directly (same rules, same engine) for batching,
+  # timeouts and structured output.
+  ruleset:
+    source_yara_rules_npm: 54
+    source_yara_rules_pypi: 54
+    metadata_detectors_npm: 9
+    metadata_detectors_pypi: 7
+    severity_distribution_per_ecosystem: {high: 28, medium: 14, low: 12}
+    # NOTE: guarddog 3.2.0 defines severities {high, medium, low}; there is
+    # NO "critical" class. Pre-registered "critical+high" therefore maps to
+    # exactly severity == high in this version.
+
+corpus:
+  manifest: data/packguard/manifests/dataset_v2.json   # 603 samples, labels verbatim
+  extracted_root: outputs/packguard/guarddog/extracted  # one dir per sample_id
+
+extraction:
+  malicious_zips_password: "infected"   # DataDog malicious-software-packages-dataset convention
+  safe_paths: true                       # reject absolute/.. member paths
+  nested_archives: expand                # extract nested zip/whl/tgz/tar.gz so YARA sees source
+  timebox_minutes: 30
+
+detector:   # PRIMARY, fixed before scanning
+  # verdict is based on SOURCE (YARA) rules ONLY.
+  severity_threshold: high               # = "critical+high"; critical absent in 3.2.0 (see above)
+  verdict_rule: "malicious iff count(distinct source YARA rules with severity in {critical,high} triggered) >= 1"
+  score_for_auc: "count of distinct source YARA rules with severity in {critical,high} triggered (0..28)"
+  metadata_findings: recorded_separately  # NEVER enter verdict or score
+  rule_source: "GuardDog default ruleset shipped in guarddog 3.2.0 (DataDog/malicious-software-packages-dataset project). No rule added/removed/tuned."
+
+scan:
+  per_sample_timeout_seconds: 120
+  retries: 1                              # one retry per failed/timed-out attempt, in-run
+  statuses: [ok, timeout, error]          # timeout/error are EXCLUDED from P/R/F1/AUC (disclosed per label)
+  resume: "rows with scan_status=ok in findings.jsonl are skipped on re-run; failed rows re-attempted"
+  order: manifest order (alphabetical by sample_id), fixed
+
+splits:   # membership fixed from existing artifacts, reproduced and cross-checked:
+  group_test_seed20260922:
+    definition: "packguard.fl.make_group_split(records, 0.2, seed=20260922, group_key='package')"
+    expected: {n_test: 129, n_test_malicious: 88}   # == grid_results.json ecosystem/group rows
+  lco_test_seed20260922_t030:
+    definition: "packguard.lco.draw_lco_split(records, clusters_t030.assignment, seed=20260922, 0.2)"
+    expected: {n_test: 89, n_test_malicious: 49}    # == lco_results.json rows seed 20260922 thr 0.3
+  lco_test_seed20260922_t050:                        # sensitivity only
+    definition: "packguard.lco.draw_lco_split(records, clusters_t050.assignment, seed=20260922, 0.2)"
+    expected: {n_test: 113, n_test_malicious: 72}
+  membership_file: outputs/packguard/guarddog/split_membership.json
+
+metrics:
+  primary: [precision, recall, f1]        # from binary verdict on scan_status=ok rows
+  auc: "roc_auc on score_for_auc, ok rows only"
+  scopes: [full, group_test_seed20260922, lco_test_seed20260922_t030, lco_test_seed20260922_t050]
+  per_ecosystem: true
+  comparison: "vs graph / hashing_tfidf strong_centralized + fedavg on the SAME splits, numbers quoted verbatim from outputs/packguard/fl_multiseed/grid_results.json (seed 20260922 rows) and outputs/packguard/lco/lco_results.json (20-seed means); GuardDog is a single fixed rule-based system, so no seed variance of its own — compared against per-seed values/mean+-std as available"
+
+disclosed_risks_registered_in_advance:
+  - "Same-origin bias: GuardDog rules AND the corpus's malicious labels both come from
+     DataDog's malicious-software-packages-dataset project. Any GuardDog-vs-ours
+     comparison is optimistic for GuardDog; stated regardless of direction of result."
+  - "Extraction failures are disclosed per label; if concentrated in one class they bias metrics."
+  - "GuardDog scan of an extracted DIRECTORY evaluates the same source tree our graph
+     pipeline parses (post-install scripts included), not a re-fetched registry artifact."

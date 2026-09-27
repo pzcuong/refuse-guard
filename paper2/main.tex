@@ -294,6 +294,27 @@ tables; conclusions close at 2--3B under transformers/MPS decoding.
 
 \section{Results}\label{sec:results}
 
+\textbf{Rule-based SOTA baseline.} We additionally evaluate GuardDog
+v3.2.0~\cite{guarddog2026}, a rule-based npm/PyPI scanner (54 source YARA
+rules per ecosystem; verdict rule pre-registered: $\geq$1 high-severity
+source rule $\Rightarrow$ malicious; score = rule count for ranking),
+on all 602 scannable corpus packages (one archive is empty and is
+excluded). On the group-split test it scores F1 $.866$ / AUC $.874$ ---
+below graph features ($.923$/$.916$ under FedAvg at the same split) and
+below the TF-IDF centralized AUC ($.96$) --- and on the leave-cluster-out
+draw (threshold $.30$) it is the top-scoring system (F1 $.857$ vs.\
+$.735$--$.835$), reversing at threshold $.50$. The fair summary is
+\emph{comparable, not superior}: GuardDog is precision-first (17 false
+positives over 602 packages) with a recall ceiling --- 25 of its 81
+missed malicious packages trigger no rule at all, and 56 more trigger
+only medium/low rules. Two disclosures: GuardDog rules and our
+wild-capture malicious corpus share the same origin (DataDog), which
+plausibly flatters this baseline on the recall side; and the FN analysis
+above is descriptive at our pilot scale.
+% SRC: outputs/packguard/guarddog/metrics.json + findings.jsonl (603 rows, 602 ok);
+% pre-registration in configs/packguard_guarddog.yaml (21:56:31Z, before first scan);
+% FN decomposition 25/81 no-rule + 56/81 medium/low-only per V-audit recompute.
+
 \subsection{Attack: an inert advisory perturbs verdicts in both
 directions}\label{sec:attack}
 % SRC: outputs/packguard/safety/safety_metrics_n60.json (n=60 registered
