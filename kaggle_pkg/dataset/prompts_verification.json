@@ -1,0 +1,153 @@
+{
+  "date_utc": "2026-09-28T13:49:39.091785+00:00",
+  "ladder_file": "kaggle_pkg/data/ladder_prompts_7b8b.jsonl",
+  "ladder_rows": 180,
+  "ladder_meta": {
+    "task": "P1-10 provenance-closure ladder (A0/A5/A1)",
+    "protocol": "configs/round7_7b.yaml (byte-identical to r10/r9 ladder)",
+    "seed_subset": 20260923,
+    "arm": "C5_near",
+    "n_vul": 60,
+    "n_rows": 180,
+    "vul_ids": [
+      "195017",
+      "195056",
+      "195083",
+      "195092",
+      "195233",
+      "195237",
+      "195261",
+      "195296",
+      "195402",
+      "195405",
+      "195692",
+      "195908",
+      "195984",
+      "196801",
+      "196885",
+      "197111",
+      "197128",
+      "197517",
+      "197748",
+      "198169",
+      "198198",
+      "198350",
+      "198552",
+      "198927",
+      "199159",
+      "200831",
+      "201382",
+      "201872",
+      "202889",
+      "202892",
+      "204073",
+      "204711",
+      "204830",
+      "205806",
+      "206123",
+      "206555",
+      "206771",
+      "206781",
+      "206845",
+      "206946",
+      "207703",
+      "208533",
+      "209968",
+      "210091",
+      "210161",
+      "210420",
+      "211113",
+      "211155",
+      "211567",
+      "211695",
+      "211773",
+      "212095",
+      "212822",
+      "212871",
+      "215162",
+      "215188",
+      "215992",
+      "216654",
+      "216800",
+      "216946"
+    ],
+    "gen_cfg_locked": {
+      "temperature": 0.0,
+      "do_sample": false,
+      "max_new_tokens": 512,
+      "top_p": 1.0,
+      "repetition_penalty": 1.0,
+      "seed": 1234,
+      "batch_size": 1,
+      "max_input_tokens": 8192,
+      "dtype": "bfloat16"
+    },
+    "selection_rule": "identical to configs/round6_ablation.yaml pool.selection_rule: per label, sort bench sample_ids ascending, shuffle with random.Random(20260923); take the FIRST 60 vulnerable and the FIRST 30 benign of arm C5_near -> sample-paired with the round-6 ablation subset (different model)."
+  },
+  "safety_file": "kaggle_pkg/data/safety_prompts_7b.jsonl",
+  "safety_rows": 300,
+  "safety_meta": {
+    "task": "P1-8-partial safety arms P0/P1/P2 on the n=100 batch (7B)",
+    "seed": 20260922,
+    "selection_rule": "round-8 draw (scripts.packguard_safety_batch.pick_samples), gate-passers, first 50 per class",
+    "code_chars": 2500,
+    "n_samples": 100,
+    "n_rows": 300,
+    "draw_stats": {
+      "scanned": 265,
+      "gate_pass": 100,
+      "gate_fail": 165
+    },
+    "gen_cfg_locked": {
+      "temperature": 0.0,
+      "do_sample": false,
+      "max_new_tokens": 384,
+      "seed": 1234,
+      "max_input_tokens": 4096
+    },
+    "models_planned": [
+      "Qwen/Qwen2.5-Coder-7B-Instruct"
+    ]
+  },
+  "verification": {
+    "ladder": {
+      "A0_vs_round7_qwen7b": {
+        "file": "outputs/experiments/round7_7b/results_qwen7b__vul__A0.json",
+        "rung": "A0",
+        "n_stored": 60,
+        "n_match": 60
+      },
+      "A5_vs_round7_qwen7b": {
+        "file": "outputs/experiments/round7_7b/results_qwen7b__vul__A5.json",
+        "rung": "A5",
+        "n_stored": 60,
+        "n_match": 60
+      },
+      "A1_vs_r10_granite2b": {
+        "file": "outputs/experiments/r10_granite_ladder/results_granite2b__vul__A1.json",
+        "rung": "A1",
+        "n_stored": 60,
+        "n_match": 60
+      }
+    },
+    "safety": {
+      "n100_truth_file": "outputs/packguard/r10/r8_safety_expand/safety_batch_n100.jsonl",
+      "n100_unique_samples": 100,
+      "n_match_id_label_eco_lang": 100,
+      "extra_ids": [],
+      "draw_stats": {
+        "scanned": 265,
+        "gate_pass": 100
+      },
+      "P0_vs_round12_defense_batch": {
+        "file": "outputs/packguard/defense/defense_batch.jsonl",
+        "n_stored_p0_shas": 38,
+        "n_match": 38
+      }
+    }
+  },
+  "file_sha256_16": {
+    "ladder": "6d0908299c16f15b",
+    "safety": "cf476f0e0ba32f16"
+  }
+}

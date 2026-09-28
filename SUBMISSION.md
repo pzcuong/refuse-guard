@@ -121,3 +121,23 @@ cover letter = **Done (draft)**; venue plan = **Done**; artifact list =
 3. Paper 1 → EMSE hoặc C&S (sau khi Paper 2 có quyết định / venue khác).
 4. Không git commit từ tác nhân (orchestrator lo); bundle đóng gói theo
    `submission/artifact_list.md` sau khi có LICENSE decision.
+
+
+---
+
+## REVISION ITEMS (locked at 2–3B scope — submission submitted as-is; the items below
+## are committed revision commitments, each with its unlock condition)
+
+| # | Revision item | Unlock condition | Prepared artifact |
+|---|---|---|---|
+| REV-1 | OSF public timestamp for AMENDMENT-1..8 (pre-registration credibility) | User provides OSF account | `submission/osf_registration_bundle.md` (ready to paste) |
+| REV-2 | Safety attack on frontier + 7–8B models, FN-directed + FP-directed arms, attack success rate | User provides frontier API key; GPU/cloud runtime for open 7–8B | `scripts/frontier_safety_runner.py` (ready-to-run) |
+| REV-3 | A5 provenance-closure ladder at 7–8B | Same as REV-2 | Round-6/7 ladder machinery staged |
+| REV-4 | Corpus expansion to 3–5k with hard negatives + leave-cluster-out at scale | Network budget / approval for sustained downloads | LCO machinery (`packguard/clusters.py`, `packguard/lco.py`) |
+| REV-5 | KB human validation (Cohen's κ, two annotators) | Two human annotators | 137-entry KB + rubric staged |
+| REV-6 | ≥5-client FL with RDP accounting (or keep SecAgg/DP out of contributions — current choice) | GPU/cloud + decision | FL framework supports N clients |
+
+## SUBMISSION SCOPE (locked)
+Scope: open-weight models 2–3B, two ecosystems (npm/PyPI), pilot corpus 603 (+200 expansion data pack).
+All claims within this scope are pre-registered, audited, and artifact-backed. Out-of-scope items
+are listed above as committed revisions, not as claims.

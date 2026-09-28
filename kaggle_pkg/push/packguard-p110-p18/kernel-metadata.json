@@ -1,0 +1,16 @@
+{
+ "id": "pzcuong/packguard-p110-p18",
+ "title": "packguard-p110-p18",
+ "code_file": "packguard-p110-p18.py",
+ "language": "python",
+ "kernel_type": "script",
+ "is_private": true,
+ "enable_gpu": true,
+ "enable_internet": true,
+ "dataset_sources": [
+  "pzcuong/packguard-prompts-r16"
+ ],
+ "kernel_sources": [],
+ "competition_sources": [],
+ "model_sources": []
+}

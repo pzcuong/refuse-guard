@@ -1,0 +1,56 @@
+# PackGuard round-16 Kaggle run configuration (AMENDMENT-9, registered
+# 2026-09-28T13:54:28Z BEFORE any push). Records WHAT was pushed and with
+# which frozen parameters; the prompt files themselves are the registered
+# artifacts (kaggle_pkg/data/, sha-pinned in prompts_verification.json).
+
+dataset:
+  id: pzcuong/packguard-prompts-r16
+  private: true
+  files:
+    - ladder_prompts_7b8b.jsonl   # 180 rows (60 vul x {A0,A5,A1}, seed 20260923)
+    - safety_prompts_7b.jsonl     # 300 rows (100 n100-batch x {P0,P1,P2}, seed 20260922)
+    - prompts_verification.json   # sha/count verification meta
+
+kernels:
+  packguard-p110-p18:            # primary (P1-10 + P1-8-partial)
+    url: https://www.kaggle.com/code/pzcuong/packguard-p110-p18
+    model: Qwen/Qwen2.5-Coder-7B-Instruct
+    model_slug: qwen7b
+    tasks: [["ladder", ["A0", "A5", "A1"]],
+            ["safety", ["P0_neutral", "P1_offensive_wording",
+                        "P2_advisory_in_package"]]]
+    expected_rows: {ladder: 180, safety: 300}
+  packguard-p110-llama8b:        # secondary (P1-10 ladder only)
+    url: https://www.kaggle.com/code/pzcuong/packguard-p110-llama8b
+    model: unsloth/Llama-3.1-8B-Instruct
+    model_slug: llama8b
+    tasks: [["ladder", ["A0", "A5", "A1"]]]
+    expected_rows: {ladder: 180}
+
+runtime:                         # frozen in both kernels
+  accelerator: "GPU T4 x2 (15 GB x2)"
+  dtype: float16                 # T4 has no bf16 — disclosed in AMENDMENT-9
+  device_map: auto
+  generation: {temperature: 0.0, do_sample: false, seed: 1234}
+  max_new_tokens: {ladder: 512, safety: 384}
+  max_input_tokens: {ladder: 8192, safety: 4096}   # head+tail truncation
+  checkpoint: "append+fsync per record; progress file every 20 rows"
+  soft_wallclock_stop_s: 39600   # 11 h (commit-run cap 12 h)
+  internet: true                 # in-kernel HF download, ungated models
+
+queue_priority: [ladder/A0, ladder/A5, ladder/A1,
+                 safety/P0_neutral, safety/P1_offensive_wording,
+                 safety/P2_advisory_in_package]
+
+quota_note: >-
+  exactly TWO GPU kernels run (user quota 30 GPU-hours/week); v1 of both
+  kernels failed in <1 min (dataset mount race — /kaggle/input empty at
+  worker start), v2 (current) adds a 5-min mount wait + recursive scan and
+  is the only counted run.
+
+monitor:
+  poller: kaggle_pkg/poller.sh   # status every 5 min; auto-download on finish
+  status_log: outputs/packguard/r16_kaggle/monitor.log
+  fetch_cmd: >-
+    kaggle kernels output pzcuong/<slug> -p outputs/packguard/r16_kaggle/<slug>
+  analysis_cmd: .venv/bin/python kaggle_pkg/analysis.py
