@@ -522,6 +522,27 @@ opposite per-model outcomes, reported only to make the pooling visible,
 never as the headline.
 % SRC: defense_analysis.json pooled comparisons (analyzed 200 batch rows).
 
+\textbf{Scale resolution (Kaggle GPU extension).} Two pre-registered
+extensions (AMENDMENT-9) ran the same instruments on 7--8B models on
+Kaggle T4 GPUs (480 + 300 generations, greedy, artifacts released with
+the kernel outputs). (i)~\emph{Defense cost fades with scale.} The
+A0$\to$A5$\to$A1 ladder on Llama-3.1-8B (same 60 vulnerable samples,
+prompt-sha-verified) yields recall $.600\to.550\to.617$: the full-bundle
+cost measured at 3B ($.600\to.433$, exact $p{=}3.4{\times}10^{-7}$) is
+\emph{absent} at 8B ($\Delta-.05$; 6 vs.\ 3 discordant pairs, exact
+McNemar $p{=}.508$), and boundary-only remains cost-free ($+.017$).
+(ii)~\emph{Qwen stays inert at 7B} (ladder $.483/.467/.533$), and the
+seven-billion safety arms show RR $=0.000$ over 300 generations with
+malicious recall $.680\to.620/.620$ (P0$\to$P1/P2) and zero benign false
+positives --- at 7B the advisory perturbation is a small downward recall
+wobble without benign cost. The scale-versus-family confound is
+partially resolved: within Llama, defense harm is a 3B phenomenon that
+fades by 8B; within Qwen, inertness persists across 3B and 7B. What
+remains open is frontier-scale behavior (Future Work).
+% SRC: outputs/packguard/r16_kaggle/{llama8b/results_llama8b_ladder.jsonl,
+% p18/results_qwen7b_ladder.jsonl, p18/results_qwen7b_safety.jsonl} (Kaggle kernels
+% pzcuong/packguard-p110-llama8b, pzcuong/packguard-p110-p18; AMENDMENT-9).
+
 \subsection{Background detector: equivalent under federation, refined over
 trivial structure}\label{sec:detector}
 % SRC: outputs/packguard/p0/p0_results.json (360 rows, mock=false,
@@ -777,17 +798,19 @@ measurements is federation-robust by pre-registered equivalence and a
 significant-but-bounded refinement over trivial structure. Limitations
 travel with every number: pilot scale, simulation-only trust mechanisms,
 two ecosystems, popularity-derived benign labels, self-reported KB
-confidence, and a hard 2--3B scale ceiling; the leave-cluster-out
+confidence, and a scale ceiling partially lifted by the 7--8B Kaggle extension
+(defense-cost and safety arms; detector training data remains 3B-scale);
+the leave-cluster-out
 evaluation reported above (\S\ref{sec:lco}) decides the family-shift
 robustness claim.
 
 \section*{Future Work}\label{sec:future}
 Four extensions follow directly from the present scope.
-(1)~\emph{Scale and families.} Every model here is open-weight and
-$\leq$3B; the recall-perturbing channel, its family dependence, and the
-AST-strip defense cost must be re-measured at 7B+ and on frontier API
-models (including whether frontier hardening suppresses the channel
-outright), using a GPU or hosted runtime outside this study's stack.
+(1)~\emph{Scale and families.} The 7--8B Kaggle extension
+(\S\ref{sec:results}) already resolves the defense-cost question up to
+8B; what remains open is the recall-perturbing channel and the safety
+layer on frontier API models (including whether frontier hardening
+suppresses the channel outright).
 (2)~\emph{Corpus.} The 603-sample pilot grows to the 3--5k regime with
 non-popularity benign samples, hard negatives (install hooks, network
 calls, benign obfuscation), an ingested malicious-package feed, and the
