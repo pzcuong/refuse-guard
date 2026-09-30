@@ -1,0 +1,247 @@
+{
+  "schema": "refuseguard.model_registry/1.0",
+  "generated_utc": "2026-09-29T17:14:42.695666+00:00",
+  "generated_by": "RESEARCH_STATE/AUDITS/build_experiment_registry.py (Experiment Artifact Auditor)",
+  "scope": "all model ids observed in outputs/ metadata + pinned registry configs/models.yaml",
+  "n_models": 14,
+  "models": [
+    {
+      "model_id": "Qwen/Qwen2.5-Coder-0.5B-Instruct",
+      "role": "LLM (local inference, temperature 0, MPS/CUDA)",
+      "revision": "main",
+      "revision_sha_observed": "ea3f2471cf1b1f0db85067f1ef93848e38e88c25",
+      "sha_source": "run metadata revision_sha",
+      "pin_recorded_in": "configs/models.yaml + per-run metadata.revision_sha",
+      "used_in": [
+        "outputs/experiments/harness_recovery_smoke.json",
+        "outputs/experiments/pilot_round2/e0/results.json",
+        "outputs/experiments/pilot_round2/e2/results.json",
+        "outputs/experiments/pilot_round2/e3/results.json",
+        "outputs/experiments/pilot_round2/e5/results.json",
+        "outputs/experiments/pilot_round2/e8/results.json",
+        "outputs/experiments/pilot_round2/summary.json",
+        "outputs/experiments/pilot_round2_recomputed/0.5b/e0/results.json",
+        "outputs/experiments/pilot_round2_recomputed/0.5b/e2/results.json",
+        "outputs/experiments/pilot_round2_recomputed/0.5b/e3/results.json"
+      ],
+      "n_artifacts_using": 17,
+      "notes": ""
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-Coder-3B-Instruct",
+      "role": "LLM (local inference, temperature 0, MPS/CUDA)",
+      "revision": "main",
+      "revision_sha_observed": "488639f1ff808d1d3d0ba301aef8c11461451ec5",
+      "sha_source": "run metadata revision_sha; configs/models.yaml sha 488639f1ff80",
+      "pin_recorded_in": "configs/models.yaml + per-run metadata.revision_sha",
+      "used_in": [
+        "outputs/e0/results.json",
+        "outputs/e1/results.json",
+        "outputs/e2/results.json",
+        "outputs/e3/results.json",
+        "outputs/e4/results.json",
+        "outputs/e5/results.json",
+        "outputs/e6/results.json",
+        "outputs/e7/results.json",
+        "outputs/e8/results.json",
+        "outputs/experiments/pilot_round2_3b/qwen3b/e0/results.json"
+      ],
+      "n_artifacts_using": 39,
+      "notes": ""
+    },
+    {
+      "model_id": "Qwen/Qwen2.5-Coder-7B-Instruct",
+      "role": "LLM (local inference, temperature 0, MPS/CUDA)",
+      "revision": "main",
+      "revision_sha_observed": "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+      "sha_source": "run metadata revision_sha",
+      "pin_recorded_in": "configs/models.yaml + per-run metadata.revision_sha",
+      "used_in": [
+        "outputs/experiments/round7_7b/jobs_status.json",
+        "outputs/experiments/round7_7b/metrics_round7.json",
+        "outputs/experiments/round7_7b/results_qwen7b__benign__B0.json",
+        "outputs/experiments/round7_7b/results_qwen7b__vul__A0.json",
+        "outputs/experiments/round7_7b/results_qwen7b__vul__A1.json",
+        "outputs/experiments/round7_7b/results_qwen7b__vul__A5.json",
+        "outputs/experiments/round7_7b/smoke_7b.json",
+        "outputs/packguard/r16_kaggle/p18/results_qwen7b_ladder.jsonl",
+        "outputs/packguard/r16_kaggle/p18/results_qwen7b_safety.jsonl",
+        "outputs/packguard/r16_kaggle/p18/summary_qwen7b.json"
+      ],
+      "n_artifacts_using": 13,
+      "notes": ""
+    },
+    {
+      "model_id": "ibm-granite/granite-3.3-2b-instruct",
+      "role": "LLM (local inference, temperature 0, MPS/CUDA)",
+      "revision": "main",
+      "revision_sha_observed": "707f574c62054322f6b5b04b6d075f0a8f05e0f0",
+      "sha_source": "run metadata revision_sha; configs/models.yaml sha 707f574c6205",
+      "pin_recorded_in": "configs/models.yaml + per-run metadata.revision_sha",
+      "used_in": [
+        "outputs/experiments/r10_granite_ladder/jobs_status.json",
+        "outputs/experiments/r10_granite_ladder/metrics_round9.json",
+        "outputs/experiments/r10_granite_ladder/results_granite2b__benign__B0.json",
+        "outputs/experiments/r10_granite_ladder/results_granite2b__vul__A0.json",
+        "outputs/experiments/r10_granite_ladder/results_granite2b__vul__A1.json",
+        "outputs/experiments/r10_granite_ladder/results_granite2b__vul__A5.json",
+        "outputs/experiments/round3_e0/gate_verdict.json",
+        "outputs/experiments/round3_e0/granite2b/results.json",
+        "outputs/experiments/round3_e0/summary.json",
+        "outputs/experiments/round3_e2e3/granite2b/e4_breakdown.json"
+      ],
+      "n_artifacts_using": 23,
+      "notes": ""
+    },
+    {
+      "model_id": "unsloth/Llama-3.2-3B-Instruct",
+      "role": "LLM (local inference, temperature 0, MPS/CUDA)",
+      "revision": "main",
+      "revision_sha_observed": "006f5dcd1393c3add266de40994ba96225e9689d",
+      "sha_source": "run metadata revision_sha; configs/models.yaml sha 006f5dcd1393",
+      "pin_recorded_in": "configs/models.yaml + per-run metadata.revision_sha",
+      "used_in": [
+        "outputs/experiments/round3_e0/gate_verdict.json",
+        "outputs/experiments/round3_e0/llama3b/results.json",
+        "outputs/experiments/round3_e0/summary.json",
+        "outputs/experiments/round3_e2e3/llama3b/e4_breakdown.json",
+        "outputs/experiments/round3_e2e3/llama3b/results.json",
+        "outputs/experiments/round3_e2e3/summary.json",
+        "outputs/experiments/round3_e8_llama3b/recomputed/recompute_e8_monitor.json",
+        "outputs/experiments/round3_e8_llama3b/results.json",
+        "outputs/experiments/round5_defense/reclassify_round10.json",
+        "outputs/experiments/round5_defense/results_llama3b.json"
+      ],
+      "n_artifacts_using": 27,
+      "notes": ""
+    },
+    {
+      "model_id": "unsloth/Llama-3.1-8B-Instruct",
+      "role": "LLM (local inference, temperature 0, MPS/CUDA)",
+      "revision": "main",
+      "revision_sha_observed": "4699cc75b550f9c6f3173fb80f4703b62d946aa5",
+      "sha_source": "run metadata revision_sha (kaggle r16 kernels)",
+      "pin_recorded_in": "configs/models.yaml + per-run metadata.revision_sha",
+      "used_in": [
+        "outputs/experiments/round9_8b/probe_8b_light_result.json",
+        "outputs/packguard/r16_kaggle/llama8b/results_llama8b_ladder.jsonl",
+        "outputs/packguard/r16_kaggle/llama8b/summary_llama8b.json",
+        "outputs/packguard/r16_kaggle/packguard-p110-llama8b/results_llama8b_ladder.jsonl",
+        "outputs/packguard/r16_kaggle/packguard-p110-llama8b/summary_llama8b.json"
+      ],
+      "n_artifacts_using": 5,
+      "notes": ""
+    },
+    {
+      "model_id": "mock/Qwen/Qwen2.5-Coder-3B-Instruct",
+      "role": "MOCK stub (dry-run harness)",
+      "revision_sha_observed": "mock0123456789 or 'mock'",
+      "sha_source": "run metadata",
+      "used_in": [
+        "outputs/experiments/round5_e0v2/dry/results_qwen3b.json"
+      ],
+      "n_artifacts_using": 1,
+      "notes": "template responder; any numbers from mock runs are NOT real results"
+    },
+    {
+      "model_id": "mock/round5-dry",
+      "role": "MOCK stub (dry-run harness)",
+      "revision_sha_observed": "mock0123456789 or 'mock'",
+      "sha_source": "run metadata",
+      "used_in": [
+        "outputs/experiments/round6_ablation/dry/results_llama3b__ablation.json",
+        "outputs/experiments/round6_ablation/dry/results_llama3b__extend.json"
+      ],
+      "n_artifacts_using": 2,
+      "notes": "template responder; any numbers from mock runs are NOT real results"
+    },
+    {
+      "model_id": "mock/round7-dry",
+      "role": "MOCK stub (dry-run harness)",
+      "revision_sha_observed": "mock0123456789 or 'mock'",
+      "sha_source": "run metadata",
+      "used_in": [
+        "outputs/experiments/r10_granite_ladder/dry/results_mock7b__benign__B0.json",
+        "outputs/experiments/r10_granite_ladder/dry/results_mock7b__vul__A0.json",
+        "outputs/experiments/r10_granite_ladder/dry/results_mock7b__vul__A1.json",
+        "outputs/experiments/r10_granite_ladder/dry/results_mock7b__vul__A5.json",
+        "outputs/experiments/round7_7b/dry/results_mock7b__benign__B0.json",
+        "outputs/experiments/round7_7b/dry/results_mock7b__vul__A0.json",
+        "outputs/experiments/round7_7b/dry/results_mock7b__vul__A1.json",
+        "outputs/experiments/round7_7b/dry/results_mock7b__vul__A5.json",
+        "outputs/experiments/round9_8b/dry/results_mock7b__benign__B0.json",
+        "outputs/experiments/round9_8b/dry/results_mock7b__vul__A0.json"
+      ],
+      "n_artifacts_using": 12,
+      "notes": "template responder; any numbers from mock runs are NOT real results"
+    },
+    {
+      "model_id": "mock/round7-rq8-dry",
+      "role": "MOCK stub (dry-run harness)",
+      "revision_sha_observed": "mock0123456789 or 'mock'",
+      "sha_source": "run metadata",
+      "used_in": [
+        "outputs/experiments/round7_rq8/dry/results_mockrq8.json"
+      ],
+      "n_artifacts_using": 1,
+      "notes": "template responder; any numbers from mock runs are NOT real results"
+    },
+    {
+      "model_id": "mock/unsloth/Llama-3.2-3B-Instruct",
+      "role": "MOCK stub (dry-run harness)",
+      "revision_sha_observed": "mock0123456789 or 'mock'",
+      "sha_source": "run metadata",
+      "used_in": [
+        "outputs/experiments/round5_e0v2/dry/jobs_status.json",
+        "outputs/experiments/round5_e0v2/dry/results_llama3b.json"
+      ],
+      "n_artifacts_using": 2,
+      "notes": "template responder; any numbers from mock runs are NOT real results"
+    },
+    {
+      "model_id": "microsoft/codebert-base",
+      "role": "transformer baseline (fine-tuned fallback classifier)",
+      "revision_sha_observed": null,
+      "sha_source": "not recorded in eval meta (configs/train_codebert.yaml model_name)",
+      "checkpoint": "models_dir/transformer_baseline/best (best_epoch=1 per final_eval.json)",
+      "used_in": [
+        "outputs/transformer/codebert_eval_pilot_metrics.json",
+        "outputs/transformer/codebert_eval_vd_s_dry200_metrics.json",
+        "outputs/transformer/codebert_eval_vd_s_metrics.json",
+        "outputs/transformer/final_eval.json"
+      ],
+      "n_artifacts_using": 4,
+      "notes": "fallback channel in fusion (outputs/transformer/fallback_threshold.json tau=0.548)"
+    },
+    {
+      "model_id": "sklearn LogisticRegression(solver=lbfgs, max_iter=1000) + StandardScaler",
+      "role": "packguard FL classifier head",
+      "revision_sha_observed": null,
+      "sha_source": "n/a (sklearn pipeline)",
+      "used_in": [
+        "outputs/packguard/p0_macros/gen_numbers_audit.json",
+        "outputs/packguard/trivial/trivial_results.json"
+      ],
+      "n_artifacts_using": 2,
+      "notes": "recorded verbatim in packguard FL run meta"
+    },
+    {
+      "model_id": "guarddog-3.2.0 (source+yara rules, severity>=high)",
+      "role": "external detector baseline (non-LLM)",
+      "revision_sha_observed": null,
+      "sha_source": "detector string in outputs/packguard/guarddog/metrics.json",
+      "used_in": [
+        "outputs/packguard/guarddog/"
+      ],
+      "n_artifacts_using": 1,
+      "notes": "semgrep guarddog 3.2.0"
+    }
+  ],
+  "generation_defaults": {
+    "temperature": 0.0,
+    "do_sample": false,
+    "seed": 1234,
+    "source": "configs/models.yaml env + per-run gen_cfg in results metadata"
+  },
+  "evidence_basis": "harvested from every parsed JSON/JSONL under outputs/ (model_id/revision_sha keys); models.yaml verified against HF Hub API 2026-09-18 per its header comment"
+}

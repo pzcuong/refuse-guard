@@ -1,14 +1,16 @@
 #!/usr/bin/env python
-r"""gen_paper_numbers.py -- single source of truth for every number in paper2.
+r"""gen_paper_numbers.py -- single source of truth for every number in the
+PackGuard manuscript (paper2/packguard_r13_main.tex).
 
 Round 11 (P0-4). Reads ONLY measured artifacts under outputs/ and emits:\\
-  1. paper2/p0_macros/numbers.tex      -- newcommand macros used by paper2/main.tex
+  1. paper2/p0_macros/numbers.tex      -- newcommand macros used by paper2/packguard_r13_main.tex
   2. outputs/packguard/p0_macros/gen_numbers_audit.json -- every value + its artifact source
   3. outputs/packguard/p0_macros/w3_mapping.json -- resolution of the W3 pypi-F1
      contradiction (.833/-.115 vs .851/-.080 vs .790/-.076) with artifact mapping.
 
 --check mode: re-derives every value, diffs against numbers.tex on disk,
-expands the macros over paper2/main.tex and verifies the rendered rows of
+expands the macros over paper2/packguard_r13_main.tex and verifies the
+rendered rows of
 tab:main / tab:stats / tab:safety / tab:kb plus the headline text numbers,
 and scans for known stale literals (W3). Exit 1 on any mismatch.
 
@@ -62,7 +64,11 @@ ROUND5 = ROOT / "outputs/master/round5_master.json"
 STABILIZED = ROOT / "outputs/packguard/r10/r1_stabilized_central/results.jsonl"
 P0 = ROOT / "outputs/packguard/p0/p0_results.json"
 TRIVIAL = ROOT / "outputs/packguard/trivial/trivial_results.json"
-MAIN_TEX = ROOT / "paper2/main.tex"
+# 2026-09-30 re-scope (reviewer ARTIFACT blocker): paper2/main.tex is now the
+# EVIDA paper (literal numbers, % SRC comments, no macros). The macro target
+# is the frozen PackGuard manuscript source restored from git commit
+# fb8988ad1ae9ef486856636c6c71129c54672e00.
+MAIN_TEX = ROOT / "paper2/packguard_r13_main.tex"
 OUT_TEX = ROOT / "paper2/p0_macros/numbers.tex"
 OUT_AUDIT = ROOT / "outputs/packguard/p0_macros/gen_numbers_audit.json"
 OUT_W3 = ROOT / "outputs/packguard/p0_macros/w3_mapping.json"

@@ -1,0 +1,365 @@
+{
+  "schema": "refuseguard.dataset_registry/1.0",
+  "generated_utc": "2026-09-29T17:14:42.695666+00:00",
+  "generated_by": "RESEARCH_STATE/AUDITS/build_experiment_registry.py (Experiment Artifact Auditor)",
+  "scope": "datasets referenced by outputs/ + outputs/packguard/ + kaggle r16 experiments",
+  "n_datasets": 36,
+  "datasets": [
+    {
+      "name": "eval_subset_round1.json",
+      "path": "data/manifests/eval_subset_round1.json",
+      "role": "eval_manifest",
+      "description": "refuseguard eval manifest (sample id subset)",
+      "n_samples_recorded": 835,
+      "bytes": 3297429,
+      "sha256": "b49082feb3ce856e3b260da3bdd36193001f745690b6f758238cd82461eae187",
+      "exists_on_disk": true
+    },
+    {
+      "name": "eval_subset_round2.json",
+      "path": "data/manifests/eval_subset_round2.json",
+      "role": "eval_manifest",
+      "description": "refuseguard eval manifest (sample id subset)",
+      "n_samples_recorded": 838,
+      "bytes": 2348331,
+      "sha256": "122aa6112b1a8966795d20fb7e0cc04dcebb8271e9882321162e6a33bfa478f3",
+      "exists_on_disk": true
+    },
+    {
+      "name": "eval_subset_v1.json",
+      "path": "data/manifests/eval_subset_v1.json",
+      "role": "eval_manifest",
+      "description": "refuseguard eval manifest (sample id subset)",
+      "n_samples_recorded": 2,
+      "bytes": 57052,
+      "sha256": "1b14a614e34e4ad4a27b64c7e7b142d60a16aae769066033806503fcb26f960b",
+      "exists_on_disk": true
+    },
+    {
+      "name": "eval_subset_v2.json",
+      "path": "data/manifests/eval_subset_v2.json",
+      "role": "eval_manifest",
+      "description": "refuseguard eval manifest (sample id subset)",
+      "n_samples_recorded": 2,
+      "bytes": 80595,
+      "sha256": "d17be35299a56b9f5bb48d38c610a92badfbdddb2bb32962ce8b05d5668d3b63",
+      "exists_on_disk": true
+    },
+    {
+      "name": "bench_v1",
+      "path": "data/benchmarks/bench_v1/bench_v1.jsonl",
+      "role": "benchmark",
+      "description": "bench v1 prompt benchmark",
+      "provenance": "built from data/manifests + corpus; see bench_v1_meta.json",
+      "bytes": 10339929,
+      "sha256": "b1c36d6c3344cfd432a89cf73a205286576d44046d93edea0b30f83038803995",
+      "n_rows": 838,
+      "exists_on_disk": true
+    },
+    {
+      "name": "e0_prompts_v1",
+      "path": "data/benchmarks/e0_prompts_v1.jsonl",
+      "role": "benchmark",
+      "description": "e0 prompt set (round3 prompts_source; sha16 e13ec860572ffa2e recorded in run metadata)",
+      "provenance": "metadata.prompts_source in outputs/experiments/round3_e0/*",
+      "bytes": 2097180,
+      "sha256": "e13ec860572ffa2ebf1f3e551a44c4f905c0fb7bdd43e2c4d00ef6b45a49b1c4",
+      "n_rows": 725,
+      "exists_on_disk": true
+    },
+    {
+      "name": "e0_prompts_v1_meta",
+      "path": "data/benchmarks/e0_prompts_v1_meta.json",
+      "role": "benchmark_meta",
+      "description": "prompt-set meta/hash",
+      "bytes": 1741,
+      "sha256": "3e512e7c76949b3da44cb020872097e072a162a52d140a787f6cc46586be08f0",
+      "exists_on_disk": true
+    },
+    {
+      "name": "bench_attack_v1",
+      "path": "data/benchmarks/bench_attack_v1/bench_attack_v1.jsonl",
+      "role": "benchmark",
+      "description": "attack benchmark v1: 200 samples x 4 arms (C0/C5_far/C5_near/D2_task); sha16 2daa249f7543f8e0 recorded in run metadata",
+      "provenance": "metadata.bench in round5/6/7 results",
+      "bytes": 3656316,
+      "sha256": "2daa249f7543f8e0785204b7597d1b3fcd5513d38738526fd43c491dea573897",
+      "n_rows": 200,
+      "exists_on_disk": true
+    },
+    {
+      "name": "bench_attack_v2",
+      "path": "data/benchmarks/bench_attack_v2/bench_attack_v2.jsonl",
+      "role": "benchmark",
+      "description": "attack benchmark v2",
+      "bytes": 1783818,
+      "sha256": "7e8ed42421a7c2d00c64313d985e0f63e92911881cb24f1857b09f5490a3d6b4",
+      "n_rows": 160,
+      "exists_on_disk": true
+    },
+    {
+      "name": "safety_contrast_v1",
+      "path": "data/benchmarks/safety_contrast_v1.json",
+      "role": "benchmark",
+      "description": "safety contrast set",
+      "bytes": 29993,
+      "sha256": "1a63cb105a78084592806937eec341daf5eda75fec4429a870cf9026e7cbbbdb",
+      "exists_on_disk": true
+    },
+    {
+      "name": "PrimeVUL_train",
+      "path": "data/raw/primevul_hf/primevul_train.jsonl",
+      "role": "raw_corpus",
+      "description": "PrimeVUL train split (HF mirror)",
+      "provenance": "transformer train_meta.json: source starsofchance/PrimeVul mirror, official splits",
+      "bytes": 470918175,
+      "sha256": "not_computed_file_too_large",
+      "exists_on_disk": true
+    },
+    {
+      "name": "PrimeVUL_valid",
+      "path": "data/raw/primevul_hf/primevul_valid.jsonl",
+      "role": "raw_corpus",
+      "description": "PrimeVUL valid split",
+      "provenance": "same",
+      "bytes": 63564497,
+      "sha256": "7f0b4d05b063c20d5cf57478128538b8c0c36354e8def7f2d4febe6773b9dc7c",
+      "exists_on_disk": true
+    },
+    {
+      "name": "PrimeVUL_test",
+      "path": "data/raw/primevul_hf/primevul_test.jsonl",
+      "role": "raw_corpus",
+      "description": "PrimeVUL test split",
+      "provenance": "same",
+      "bytes": 66064689,
+      "sha256": "c9dcab5ee897da36eccf0dbb3b510de2dab66a7dec681af29a7a28c8a53331c4",
+      "exists_on_disk": true
+    },
+    {
+      "name": "PrimeVUL_train_paired",
+      "path": "data/raw/primevul_hf/primevul_train_paired.jsonl",
+      "role": "raw_corpus",
+      "description": "PrimeVUL paired subset",
+      "provenance": "same",
+      "bytes": 52560540,
+      "sha256": "1b2853c09ac10b5b60d8e995cbf4461b65414dcf90e0cc5086b788caeae1aaaa",
+      "exists_on_disk": true
+    },
+    {
+      "name": "benign_expansion_v1.json",
+      "path": "data/packguard/manifests/benign_expansion_v1.json",
+      "role": "packguard_manifest",
+      "description": "packguard dataset manifest",
+      "n_samples_recorded": 200,
+      "counts": {
+        "n_samples": 200,
+        "with_postinstall": 2,
+        "with_network_calls": 16,
+        "hard_negative_profile (hook OR network)": 17
+      },
+      "bytes": 14766670,
+      "sha256": "090da41d42a9c4254f27ed0da8eea665a2ee51c9241693cf85c2c0ffe8ac8819",
+      "exists_on_disk": true
+    },
+    {
+      "name": "dataset_v1.json",
+      "path": "data/packguard/manifests/dataset_v1.json",
+      "role": "packguard_manifest",
+      "description": "packguard dataset manifest",
+      "n_samples_recorded": 597,
+      "counts": {
+        "npm/malicious": 298,
+        "pypi/malicious": 86,
+        "npm/benign": 123,
+        "pypi/benign": 90
+      },
+      "bytes": 436380,
+      "sha256": "7880c6c55b0381ad49c921d854fe2e670a38202b62822f48850dd3176e868860",
+      "exists_on_disk": true
+    },
+    {
+      "name": "dataset_v2.json",
+      "path": "data/packguard/manifests/dataset_v2.json",
+      "role": "packguard_manifest",
+      "description": "packguard dataset manifest",
+      "n_samples_recorded": 603,
+      "counts": {
+        "npm/malicious": 298,
+        "pypi/malicious": 92,
+        "npm/benign": 123,
+        "pypi/benign": 90
+      },
+      "bytes": 441174,
+      "sha256": "0c062f412964d8a57c4ce128abe2e1f9d21991562123d0d5a01409fcf4d8f536",
+      "exists_on_disk": true
+    },
+    {
+      "name": "text_expansion_v1",
+      "path": "outputs/packguard/lco/expansion/text_expansion_v1.json",
+      "role": "derived_corpus",
+      "description": "200 random benign npm packages pulled from live registry (LCO expansion)",
+      "provenance": "outputs/packguard/lco/expansion/expansion_report.json stats",
+      "bytes": 14549266,
+      "sha256": "365fbdd10dde090f379582785f1d6d6f8ee6865e9576ea7cb9b921b09e8d3c06",
+      "exists_on_disk": true
+    },
+    {
+      "name": "features_v1.jsonl",
+      "path": "outputs/packguard/features/features_v1.jsonl",
+      "role": "derived_features",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 334611,
+      "n_rows": 597,
+      "exists_on_disk": true
+    },
+    {
+      "name": "features_v2.jsonl",
+      "path": "outputs/packguard/features/features_v2.jsonl",
+      "role": "derived_features",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 355538,
+      "n_rows": 603,
+      "exists_on_disk": true
+    },
+    {
+      "name": "features_malguard.jsonl",
+      "path": "outputs/packguard/malguard_style/features_malguard.jsonl",
+      "role": "derived_features",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 805356,
+      "n_rows": 603,
+      "exists_on_disk": true
+    },
+    {
+      "name": "graphs_v1.jsonl.gz",
+      "path": "outputs/packguard/features/graphs_v1.jsonl.gz",
+      "role": "derived_graphs",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 39376,
+      "n_rows": 162,
+      "exists_on_disk": true
+    },
+    {
+      "name": "graphs_v2.jsonl.gz",
+      "path": "outputs/packguard/features/graphs_v2.jsonl.gz",
+      "role": "derived_graphs",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 62930,
+      "n_rows": 235,
+      "exists_on_disk": true
+    },
+    {
+      "name": "kb_v0001.jsonl",
+      "path": "outputs/packguard/kb/kb_v0001.jsonl",
+      "role": "knowledge_base",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 29954,
+      "n_rows": 80,
+      "exists_on_disk": true
+    },
+    {
+      "name": "kb_v0002.jsonl",
+      "path": "outputs/packguard/kb/kb_v0002.jsonl",
+      "role": "knowledge_base",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 56238,
+      "n_rows": 142,
+      "exists_on_disk": true
+    },
+    {
+      "name": "findings.jsonl",
+      "path": "outputs/packguard/guarddog/findings.jsonl",
+      "role": "detector_findings",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 553494,
+      "n_rows": 603,
+      "exists_on_disk": true
+    },
+    {
+      "name": "train_vul_all_benign_25000.jsonl",
+      "path": "outputs/transformer/train_vul_all_benign_25000.jsonl",
+      "role": "training_slice",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 62404846,
+      "n_rows": 29862,
+      "exists_on_disk": true
+    },
+    {
+      "name": "train_vul_all_benign_40000.jsonl",
+      "path": "outputs/transformer/train_vul_all_benign_40000.jsonl",
+      "role": "training_slice",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 82614305,
+      "n_rows": 44862,
+      "exists_on_disk": true
+    },
+    {
+      "name": "valid_vul_all_total_10000.jsonl",
+      "path": "outputs/transformer/valid_vul_all_total_10000.jsonl",
+      "role": "training_slice",
+      "description": "derived artifact (see rows in EXPERIMENT_REGISTRY for build metadata)",
+      "bytes": 15242539,
+      "n_rows": 10000,
+      "exists_on_disk": true
+    },
+    {
+      "name": "kaggle_ladder_prompts_7b8b",
+      "path": "kaggle_pkg/dataset/ladder_prompts_7b8b.jsonl",
+      "role": "kaggle_prompt_dataset",
+      "description": "r16 Kaggle prompt dataset (ladder A0/A5/A1, 7B/8B models)",
+      "provenance": "uploaded to Kaggle as pzcuong/packguard-prompts-r16; consumed at /kaggle/input/datasets/pzcuong/packguard-prompts-r16 (r16 kernel log)",
+      "bytes": 858721,
+      "sha256": "6d0908299c16f15b0069aeb6a1060b3a7c7f622841cde9c2383383ca32c2244e",
+      "n_rows": 180,
+      "exists_on_disk": true
+    },
+    {
+      "name": "kaggle_safety_prompts_7b",
+      "path": "kaggle_pkg/dataset/safety_prompts_7b.jsonl",
+      "role": "kaggle_prompt_dataset",
+      "description": "r16 Kaggle safety prompt set (qwen7b)",
+      "provenance": "same",
+      "bytes": 1049499,
+      "sha256": "cf476f0e0ba32f16d8654589219931f7fa6c184ba1cdcf50142e6b3a47584572",
+      "n_rows": 300,
+      "exists_on_disk": true
+    },
+    {
+      "name": "dataDog-malicious-software-packages-dataset (label source)",
+      "path": "(external, via data/packguard/raw)",
+      "role": "label_source",
+      "description": "malicious_packages labels; recorded per-sample in features_v2 label_source",
+      "exists_on_disk": false
+    },
+    {
+      "name": "guarddog/extracted package sources",
+      "path": "outputs/packguard/guarddog/extracted/",
+      "role": "raw_source_dump",
+      "description": "extracted npm/pypi package trees used for feature extraction (1.6 GB; not experiment outputs)",
+      "exists_on_disk": true
+    },
+    {
+      "name": "llm_cache (refuseguard)",
+      "path": "outputs/llm_cache/",
+      "role": "generation_cache",
+      "description": "resume-safe JSONL LLM response cache (8.6 MB) — infra, not experiment output",
+      "exists_on_disk": true
+    },
+    {
+      "name": "packguard kb llm_cache",
+      "path": "outputs/packguard/kb/llm_cache/",
+      "role": "generation_cache",
+      "description": "KB classification cache for Qwen 0.5B/3B",
+      "exists_on_disk": true
+    },
+    {
+      "name": "data/packguard/raw",
+      "path": "data/packguard/raw/",
+      "role": "raw_corpus",
+      "description": "raw package metadata/archive corpus (941 MB) backing packguard manifests",
+      "exists_on_disk": true
+    }
+  ],
+  "evidence_basis": "paths/counts read from disk at build time; sha16 hashes quoted from run metadata where noted; derived artifacts' provenance lives in EXPERIMENT_REGISTRY rows' data_sources"
+}

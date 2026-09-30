@@ -917,3 +917,37 @@ analysis, and the honesty rules BEFORE the run.
   count; kernel sources kaggle_pkg/kernel/{packguard-p110-p18,
   packguard-p110-llama8b}.py; run outputs -> outputs/packguard/r16_kaggle/;
   report reports/round16/W_report.md.
+
+---
+
+## AMENDMENT-10 (round 17, statistics-prereg agent — EVIDA pilot:
+## Evidence-grounded Invariant Verdict Analysis under untrusted context);
+## registered 2026-09-30, BEFORE any round-17 generation.
+
+Reason: turns the two measured one-sided results of the D1 defense line
+(granite 4/4 flip reverts; llama silent cue-loss .167->.042->.042, restore
+0.0) into a closed loop with a counterfactual disagreement alarm (equivalence
+guarantee: strip(P2)==strip(original) 38/38, reports/round12/V1_report.md),
+a 4-CWE code-evidence checker bank, and a verify-or-abstain policy with
+pre-registered CRR/DIER endpoints. This amendment REGISTERS the pilot by
+reference: the full spec-§5 preregistration (population, benchmark, split,
+label access, n and paired-band accounting, power + MPIE, primary endpoint
+CRR @ granite pooled, secondaries incl. DIER/alarm/UAC, tests, CI, Holm
+family of 4, seed policy, exclusion/missing/invalid/retry, stopping rule,
+success gate CRR>=.40 + DIER<=.05, failure gates F1-F4 + tripwires T1-T2)
+and the complete Experiment Card (charter §E, 30 fields with sha16 hashes)
+live in:
+
+- RESEARCH_STATE/PREREGISTRATIONS/
+  prereg_EVIDA_Evidence_grounded_Invariant_Verdict_Analysis_under_untrusted_context_counterfactual_disagreement_code_evidence_adjudication_verify_or_abstain_.md
+
+Frozen here (summary; full text is the file above, which prevails on any
+conflict): only the V_trusted (stripped-view) arm is NEW (~787 MPS
+generations cap; all raw/baseline arms are asserted cache hits); D1
+machinery (`packguard.defense_strip`) is reused unchanged with its
+exclude-and-disclose gate; no training; no frontier API; 7B/8B stay
+read-only negative controls (kaggle-r16, metric-level only). Freeze check
+at registration: no `evida` artifact exists under outputs/experiments/,
+src/experiments/, configs/; git HEAD fb8988ad1ae9ef486856636c6c71129c54672e00.
+Any post-freeze change requires an AMENDMENT-10a here and in the file above
+BEFORE the first generation.
