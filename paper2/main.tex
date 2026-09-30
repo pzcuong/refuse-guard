@@ -843,6 +843,24 @@ resolved.
 % p .125); prereg §1.6 ("llama pooled ... đọc theo DIER chứ không đọc
 % CRR-as-failure") + §0 M3.
 
+\textbf{Confirmatory replication on held-out data.} To test whether the
+CR advisory effect generalizes beyond the development sample, we ran a
+pre-registered confirmatory experiment on \textbf{200 new PrimeVul
+functions} (100 vulnerable + 100 benign across four CWE families:
+787, 125, 703, 476), disjoint from all prior evaluation sets
+(freeze hash \texttt{aecc2797}), on Granite-3.3-2B. Under the CR
+advisory arm, \textbf{57 of 100 benign functions flipped to
+``vulnerable''} ($\Delta$FP $= +.57$, exact binomial $p < 10^{-15}$),
+while zero vulnerable functions were lost. The CG (generic) and CB
+(benign-framing) controls produced ${\le}3$ flips each, confirming
+that the effect is \emph{content-type-specific}, not a generic
+comment perturbation. This replication on held-out data with a
+4-fold larger sample confirms that the directional corruption is a
+robust, reproducible phenomenon.
+% SRC: outputs/confirmatory/kaggle_v2/results.jsonl (800 generations,
+% Granite-3.3-2B on T4 GPU, pre-registered AMENDMENT in
+% docs/packguard_prereg.md AMENDMENT-11, freeze hash aecc2797c3033378).
+
 \textbf{Scale boundary (read-only controls).} On the registered 7B/8B
 negative controls (Kaggle round-16, metric-level provenance only,
 record-level merging prohibited): the Qwen2.5-Coder-7B ladder shows no
