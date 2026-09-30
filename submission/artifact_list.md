@@ -26,7 +26,7 @@ cấu trúc này).
   (`packguard_fl.yaml`, `packguard_lco.yaml`, `packguard_guarddog.yaml`
   với timestamp pre-register trước scan, `data_main.yaml`,
   `configs/*_round3.yaml`).
-- `tests/` — 743 tests (pytest, chạy CPU, không cần model).
+- `tests/` — 757 tests (pytest, chạy CPU, không cần model).
 
 ### 1.2 Dữ liệu (manifests — KHÔNG phải archives)
 - `data/packguard/manifests/dataset_v2.json` — manifest 603 mẫu
@@ -48,7 +48,7 @@ cấu trúc này).
   - `p0/p0_results.json` (360 rows, mock=false — corrected-baseline grid
     + TOST + μ-sweep), `trivial/trivial_results.json` (20 seeds).
   - `fl_multiseed/grid_results.json` (640 rows, grid đã đăng ký) +
-    `r10/r2_grid_refresh/probs_dump.jsonl` (19,484 per-sample probs).
+    `r10/r2_grid_refresh/probs_dump.jsonl` (19,485 per-sample probs).
   - `r10/r1_stabilized_central/`, `r10/r3_calibration/`,
     `r10/r4_kb_v3/`, `r10/r7_mechanism_ablation/`,
     `r10/r8_safety_expand/` — các arm phụ đã audit.
