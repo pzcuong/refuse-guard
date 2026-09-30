@@ -35,3 +35,25 @@ Visual-judge: PackGuard 8/8 pass, RefuseGuard 20/20 pass · 757 tests · verify_
 - OSF: upload bundle → điền timestamp vào paper2 §setup + AMENDMENT mục lục (15 phút).
 - API key: chạy frontier runner trên prompts P0/P2 (30–90 phút/model) → điền vòng R17, cập nhật scope-claim.
 - Duyệt gỡ <4B: tải lại 7B/8B (mạng cho phép) → chạy P1-10 + A5 theo protocol Round-6/7 (đã staged).
+
+---
+
+## ADDENDUM (2026-09-30) — Q1 Research Program state machine: EVIDA pilot NO-GO
+
+State machine 15 phases đã chạy đầy đủ (forensic 77 claims + 2,810 items → gap ACCEPTED 2/3 →
+EVIDA selected score 14.5 → prereg freeze trước generation → pilot GO 2/3 → full experiment
+764 units → stats audit + 2 confirmers độc lập → Gates A–L).
+
+**Kết quả: EVIDA FAIL preregistered gates (confirmed negative, independently verified):**
+- CRR(EVIDA) = 12/55 = .2182 < gate .40; **D1-only = 18/55 = .3273** (strip đơn thuần TỐT HƠN pipeline đầy đủ)
+- DIER (defense-induced errors): 17.1% > gate 5%; recall end-to-end .527 < raw .571
+- Alarm precision .2111 (57TP/213FP) → falsifiers `F3_alarm_is_noise` + `verdict_FAIL` fired đúng prereg
+- Số được 2 confirmers độc lập tái lập khớp 100% + re-execution cache-only bit-identical
+
+**Paper2 hiện tại** = "Does Code-Evidence Adjudication Recover Corrupted LLM Verdicts? A Pre-Registered Pilot"
+(9 trang, verdict FAIL verbatim trong abstract + Table 1). PackGuard r13 đóng băng tại
+`paper2/packguard_r13_main.tex`. Chi tiết: `reports/` + `RESEARCH_STATE/DECISION_LOG.md` + commit a90868f.
+
+**Hai đường đi hợp lệ theo charter §10** (chờ quyết định):
+(a) Preregistration MỚI nhắm cap đã đo (37/55 inert counterfactuals; alarm-pruning để tăng precision .21) — cần thêm vòng chạy;
+(b) Reposition thành negative/boundary paper ("invariant alarms as specified do not meet recovery gates; simple AST-strip is the better defense").
