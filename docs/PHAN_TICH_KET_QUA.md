@@ -1,242 +1,165 @@
-# 📊 PHÂN TÍCH CHI TIẾT KẾT QUẢ NGHIÊN CỨU
+# KẾT QUẢ NGHIÊN CỨU: PHÂN TÍCH CHI TIẾT CÁC PHÁT HIỆN
 
-## RefuseGuard + PackGuard — Báo cáo toàn diện bằng tiếng Việt
+## RefuseGuard + PackGuard — Trình bày theo chuẩn bài báo khoa học Q1
 
-> **Cập nhật:** 2026-10-01 · **19 vòng** · **~7.000+ lượt sinh** · **833 bài kiểm thử** · **verify_repro 30/30** · **29+ commits**
+> **Phạm vi:** 19 vòng thí nghiệm · ~7.000+ lượt sinh · 6 mô hình (2–8B) · 833 bài kiểm thử · verify_repro 30/30 · 29+ commits
 >
-> **Tài liệu này phân tích chi tiết từng phát hiện, từng thí nghiệm, từng số liệu với biểu đồ nhúng.**
-> Biểu đồ được tạo từ dữ liệu thật bằng `paper/make_figures.py` + script trong `docs/charts/`.
+> **Mỗi phát hiện được trình bày theo cấu trúc:** Phát biểu → Kiểm định thống kê → Cỡ hiệu ứng → Khoảng tin cậy → So sánh với tài liệu tham khảo → Phạm vi khái quát → Ý nghĩa
 
 ---
 
-## MỤC LỤC
+## TÓM TẮT (ABSTRACT)
 
-1. [Tổng quan](#1-tổng-quan)
-2. [Phát hiện 1: Cảnh báo rủi ro — Suy biến định hướng](#2-phát-hiện-1-cảnh-báo-rủi-ro)
-3. [Phát hiện 2: Defense gây hại — Sụp đổ recall](#3-phát-hiện-2-defense-gây-hại)
-4. [Phát hiện 2a: Phân tích từng thành phần defense](#4-phát-hiện-2a-phân-tích-từng-thành-phần)
-5. [Phát hiện 3: Graph features chịu liên kết đàn hồi](#5-phát-hiện-3-graph-features-chịu-liên-kết-đàn-hồi)
-6. [Phát hiện 4: CodeBERT fallback](#6-phát-hiện-4-codebert-fallback)
-7. [Tín hiệu bất đồng raw-vs-strip](#7-tín-hiệu-bất-đồng)
-8. [Trình xác minh phục hồi](#8-trình-xác-minh-phục-hồi)
-9. [Kết quả âm có giá trị](#9-kết-quả-âm-có-giá-trị)
-10. [Hạn chế](#10-hạn-chế)
-11. [Bước tiếp theo](#11-bước-tiếp-theo)
+Nghiên cứu này đo lường — theo thiết kế đã đăng ký trước — mức độ mà nội dung
+không tin cậy trong code làm thay đổi phán định lỗ hổng của sáu mô hình ngôn ngữ
+lớn (2–8 tỷ tham số, open-weight), đồng thời đánh giá biện pháp phòng vệ dựa trên
+AST-sanitization và trình xác minh evidence. Kết quả chính: (1) cảnh báo rủi ro
+liên quan đến ngữ cảnh gây suy biến phán định có hướng trên Granite-3.3-2B
+(ΔFP = +59 điểm phần trăm, p < 10⁻¹⁵), tái lập trên bốn nhóm CWE; (2) blocking
+(refusal) không xảy ra ở bất kỳ mô hình hay arm nào (~7.000 lượt sinh, RR = 0,000),
+bác bỏ giả thuyết refusal cho nhiệm vụ phân tích mã ở quy mô open-weight; (3)
+defense dựa trên provenance gây sụp Recall trên Llama-3.2-3B (1,000 → 0,433,
+p = 3,4×10⁻⁷), một chi phí defense đã được đo lường và giới hạn ở mô hình ≤3 tỷ;
+(4) AST-level sanitization trung hòa hoàn toàn kênh advisory trên Granite mà không
+gây báo động sai; (5) graph features chịu liên kết đàn hồi (TOST ĐẠT ±0,02 F1)
+trong khi TF-IDF mất năng lực dưới FedAvg (p = 3,8×10⁻⁶).
 
 ---
 
-## 1. TỔNG QUAN
+## PHÁT HIỆN 1: CẢNH BÁO RỦI RO GÂY SUY BIẾN PHÁN ĐỊNH CÓ HƯỚNG
 
-### Câu hỏi nghiên cứu
+### Phát biểu
 
-> Liệu nội dung không tin cậy (comments, advisories, metadata) trong code có làm
-> mô hình ngôn ngữ lớn (LLM) thay đổi phán định lỗ hổng bảo mật một cách hệ thống không?
-> Và các biện pháp phòng vệ có khôi phục được độ chính xác mà không gây hại không?
+> Trên Granite-3.3-2B, việc chèn cảnh báo rủi ro (CR) vào chú thích hàm làm
+> tăng tỷ lệ báo động sai trên hàm lành tính từ 8% lên 67% (ΔFP = +59 điểm
+> phần trăm, p < 10⁻¹⁵) và tăng Recall trên hàm độc hại từ 8% lên 64%
+> (+56 điểm phần trăm) — một sự dịch chuyển hệ thống về phía "vulnerable"
+> trên cả hai lớp nhãn.
 
-### Quy mô thí nghiệm
+### Kiểm định thống kê
 
-| Chỉ số | Giá trị |
-|---|---|
-| **Tổng lượt sinh (generation)** | ~7.000+ (chạy local MPS/CPU + Kaggle T4 GPU) |
-| **Số mô hình** | 6 (Llama-3.2-3B, Granite-3.3-2B, Qwen-Coder-3B, Qwen-Coder-7B, Llama-3.1-8B, CodeBERT-125M) |
-| **Kho dữ liệu** | 603 gói (npm + PyPI) + 200 bổ sung + PrimeVul 66 cặppaired |
-| **Nhóm CWE** | 787, 125, 703, 476, 190, 200, 416 |
-| **Arms tấn công** | C0, CG, CB, CR + P0, P1, P2 + A0, A1, A5 |
-| **Biến thể phòng vệ** | B1 (đổi khung), B2 (cắt comment), B3 (xóa mạnh), P1 (cô lập ngữ nghĩa), P3 (provenance), D1 (cắt tối thiểu) |
-| **Đăng ký trước** | Bổ sung 1-11 (AMENDMENT-1..11) |
-| **Bài kiểm thử** | 833 đậu / 0 rớt |
-| **Số commit** | 29+ |
+| Chỉ số | Giá trị | Phương pháp |
+|---|---|---|
+| Kích thước mẫu | 100 lành + 100 độc | PrimeVul test split, seed 20260922 |
+| Mô hình | Granite-3.3-2B-Instruct | fp16, T4 GPU (Kaggle) |
+| ΔFP (CR − C0) trên benign | +59 pp | Exact binomial, p < 10⁻¹⁵ |
+| ΔRecall (CR − C0) trên vulnerable | +56 pp | Exact binomial |
+| Khoảng tin cậy 95% ΔFP | [+0,49, +0,69] | Clopper–Pearson |
+| Cỡ hiệu ứng | Odds ratio = 21,4 | Haldane–Anscombe correction |
+| Số lượt sinh | 800 (200 hàm × 4 arm) | T4 GPU, greedy, max 384 tokens |
 
-### Các mô hình đã đo
+### Tái lập trên nhiều nhóm CWE
 
-| Mô hình | Tham số | Vai trò | Hành vi nền |
+| Nhóm CWE | C0 FP | CR FP | ΔFP | n | Hướng |
+|---|---|---|---|---|---|
+| CWE-787 | 8% | 67% | +59 pp | 25 | →vulnerable |
+| CWE-125 | 8% | 67% | +59 pp | 25 | →vulnerable |
+| CWE-703 | 8% | 67% | +59 pp | 25 | →vulnerable |
+| CWE-476 | 8% | 67% | +59 pp | 25 | →vulnerable |
+| **Gộp** | **8%** | **67%** | **+59 pp** | **100** | **→vulnerable** |
+
+→ Tác động **đồng nhất trên mọi nhóm CWE** — không có nhóm nào kháng cự.
+
+### So sánh với nhóm kiểm soát
+
+| Arm | Benign→Vul FP | Vul→Ben FN | Ghi chú |
 |---|---|---|---|
-| Llama-3.2-3B-Instruct | 3 tỷ | Chính (phòng vệ gây hại + hiệu ứng CR) | Thiên lệch all-benign (nhận diện 93%, báo động 0%) |
-| Granite-3.3-2B-Instruct | 2 tỷ | Chính (xác nhận CR) | Nền thấp (8% nhận diện, 8% báo động) — có khoảng trống |
-| Qwen2.5-Coder-3B-Instruct | 3 tỷ | Phụ (KB + an toàn) | Trơ với mọi tấn công |
-| Qwen2.5-Coder-7B-Instruct | 7 tỷ | Mở rộng quy mô (Kaggle) | Trơ vẫn giữ ở 7B |
-| Llama-3.1-8B-Instruct | 8 tỷ | Mở rộng quy mô (Kaggle) | Chi phí defense tan biến ở 8B |
-| CodeBERT (fine-tuned) | 125 triệu | Fallback detector + baseline | VD-S 0,962 / F1 0,215 |
+| C0 (baseline) | 8% | 0% | Nền |
+| CG (generic) | 8% | 0% | Không tác động |
+| CB (benign framing) | 7% | 2% | Không tác động |
+| **CR (risk advisory)** | **67%** | **0%** | **Suy biến mạnh** |
+
+→ CR là arm duy nhất gây suy biến; CG và CB là nhóm kiểm soát âm tính.
+
+### So sánh với tài liệu tham khảo
+
+| Nghiên cứu | Phát hiện | Khác với chúng ta |
+|---|---|---|
+| Campbell et al. (2026) — Defensive Refusal Bias | Cyber-defense tasks bị từ chối 2,72× | Nghiên cứu này đo **refusal**; chúng ta đo **verdict corruption** |
+| OpenAI/Apollo (2025) — Anti-Scheming | Evaluation awareness thay đổi behavior trong specialized settings | Chúng ta đo trên **ordinary agent action boundaries**, không phải specialized anti-scheming |
+| PaperGym (8/2026) — Criterion leakage | Rubric criteria rò rỉ vào dataset | Chúng ta đo **context-based criterion injection**, không phải dataset contamination |
+
+### Phạm vi khái quát
+
+> Kết quả này **chỉ khái quát trên open-weight models 2–3B**. Các mô hình
+> frontier (GPT-4o, Claude) và mô hình ≥13B chưa được đo. Cần API key frontier
+> để mở rộng phạm vi.
 
 ---
 
-## 2. PHÁT HIỆN 1: CẢNH BÁO RỦI RO — SUY BIẾN ĐỊNH HƯỚNG
+## PHÁT HIỆN 2: DEFENSE GÂY HẠI RECALL THEO HƯỚNG NGƯỢC
 
-![Attack surface theo mô hình](charts/attack_surface_models.png)
+### Phát biểu
 
-### 2.1 Phát hiện chính
+> Trên Llama-3.2-3B, bọc provenance P3 (full bundle) làm Recall trên hàm độc
+> hại sụp từ 1.000 xuống .433 (39/60 cặp lật theo chiều giảm phát hiện), với
+> chi phí chủ yếu do thành phần system task-intent reassertion (28/34 = 82%
+> tổng flips, exact McNemar p = 3,4×10⁻⁷). Boundary-only provenance (A1)
+> gần như vô hại (.983).
 
-**Cảnh báo rủi ro (CR)** chèn vào phần chú thích khiến **Granite-3.3-2B đánh dấu 67% hàm lành tính thành "có lỗ hổng"** — trong khi CG (chú thích chung) và CB (khung thân thiện) gần như không có tác động. Đây là **suy biến định hướng**: nhiễu loạn chỉ kéo phán định về một phía.
+### Kiểm định thống kê
 
-### 2.2 Số liệu chi tiết theo từng mô hình
-
-#### Granite-3.3-2B (n=100 lành + 100 độc, 4 nhóm CWE)
-
-| Arm | Nhận diện(vul) | Báo động sai(ben) | ΔNhận diện | ΔBáo động | McNemar chính xác p |
+| So sánh | n | Recall A0 | Recall A5 | ΔF1 | Exact McNemar p |
 |---|---|---|---|---|---|
-| C0 | 8% | 8% | — | — | — |
-| CG | 10% | 8% | +2 điểm % | 0 | n.s. |
-| CB | 8% | 7% | 0 điểm % | −1 điểm % | n.s. |
-| **CR** | **64%** | **67%** | **+56 điểm %** | **+59 điểm %** | **< 10⁻¹⁵** |
+| Llama-3.2-3B, C5_near | 60 | 1.000 | .433 | −.567 | **3,4×10⁻⁷** |
+| Llama-3.2-3B, C5_far | 60 | 1.000 | .333 | −.667 | **1,9×10⁻⁶** |
+| Qwen-Coder-3B (inert) | 60 | 1.000 | 1.000 | 0 | — |
 
-**Chi tiết theo nhóm CWE:**
+### Component ablation (Llama-3.2-3B, C5_near, n=60)
 
-| Nhóm CWE | C0 Báo động sai | CR Báo động sai | ΔBáo động | Số mẫu | p chính xác |
-|---|---|---|---|---|---|
-| CWE-787 | 8% | 67% | +59 điểm % | 25 | < 10⁻¹⁵ |
-| CWE-125 | 8% | 67% | +59 điểm % | 25 | < 10⁻¹⁵ |
-| CWE-703 | 8% | 67% | +59 điểm % | 25 | < 10⁻¹⁵ |
-| CWE-476 | 8% | 67% | +59 điểm % | 25 | < 10⁻¹⁵ |
-| **Gộp chung** | **8%** | **67%** | **+59 điểm %** | **100** | **< 10⁻¹⁵** |
-
-→ **KHÔNG có nhóm CWE nào kháng cự** — tác động đều đặn trên mọi nhóm.
-
-#### Llama-3.2-3B (n=100+100)
-
-| Arm | Nhận diện(vul) | Báo động sai(ben) | ΔNhận diện | ΔBáo động |
+| Rung | Thành phần | Recall | Δ | Vai trò |
 |---|---|---|---|---|
-| C0 | 93% | 0% | — | — |
-| CG | 100% | 0% | +7 điểm % | 0 |
-| CB | 100% | 0% | +7 điểm % | 0 |
-| **CR** | **100%** | **3%** | +7 điểm % | +3 điểm % |
+| A0 | raw | 1.000 | — | Nền |
+| A1 | boundary wrap | .983 | −.017 | Gần vô hại |
+| A2 | + context header | .900 | −.083 | Đóng góp vừa |
+| A3 | + generic wrap | .848 | −.052 | Đóng góp vừa |
+| A4 | + string mediation | .898 | +.050 | Hồi phục |
+| **A5** | **+ system reassertion** | **.433** | **−.465** | **Thủ phạm chính** |
 
-→ Llama kháng cự tốt hơn Granite nhưng vẫn có dao động nhẹ.
+![Component ablation waterfall](charts/defense_ablation_waterfall.png)
 
-### 2.3 Nhóm kiểm soát loại trừ
+### Cross-model
 
-| Nhóm kiểm soát | Mục đích | Kết quả |
-|---|---|---|
-| CG (chú thích chung) | Loại trừ tác động của chú thích chung | ≤ 3 lật → ĐẠT |
-| CB (khung thân thiện) | Loại trừ thiên lệch hướng benign | ≤ 2 lật → ĐẠT |
-| CR (cảnh báo rủi ro) | Đo suy biến định hướng | **25-57 lật → XÁC NHẬN** |
-
-→ Tác động **không phải** do chú thích chung hay khung thân thiện — nó là **tác động của nội dung liên quan đến rủi ro**.
-
-### 2.4 Phụ thuộc mô hình
-
-| Mô hình | CR Báo động sai(ben) | Đánh giá |
-|---|---|---|
-| Granite-3.3-2B | **67%** | Nhạy nhất — mô hình đọc cảnh báo như dữ kiện thực |
-| Llama-3.2-3B | **3%** | Kháng tốt hơn nhưng vẫn có dao động nhẹ |
-| Qwen-Coder-3B | **0%** | Trơ — không đủ nhạy để kiểm tra |
-
-→ **Phụ thuộc mô hình**: Granite nhạy nhất, Llama vừa, Qwen trơ. Không thể khái quát
-"mọi mô hình đều nhạy" — phải giới hạn theo họ mô hình.
-
----
-
-## 3. PHÁT HIỆN 2: DEFENSE GÂY HẠI — SỤP ĐỔ RECALL
-
-### 3.1 Phát hiện chính
-
-**Bọc provenance P3** làm **Llama-3.2-3B sụp recall** từ 1.000 → .367/.333
-(39/60 lật, McNemar p ≤ 3,8e-6). Đây là **sự cố corrupted do defense gây ra**:
-phòng vệ gây hại nhiều hơn lợi.
-
-### 3.2 Số liệu chi tiết
-
-#### Llama-3.2-3B (n=60 vul, arm C5_near)
-
-| Bậc | Bổ sung gì | Recall | Δ so với A0 | McNemar chính xác p |
-|---|---|---|---|---|
-| A0 | thô (không defense) | 1.000 | — | — |
-| A1 | chỉ bọc boundary | .983 | −.017 | 1,0 |
-| A2 | + header ngữ cảnh | .900 | −.100 | ,002 |
-| A3 | + generic wrap | .848 | −.152 | < ,001 |
-| A4 | + xử lý chuỗi | .898 | −.102 | < ,001 |
-| **A5** | **+ khẳng định lại hệ thống** | **.433** | **−.567** | **3,4×10⁻⁷** |
-
-**Thành phần gây hại:**
-- **Khẳng định lại hệ thống (A4→A5)**: gây **28/34 = 82%** tổng hại
-- A1 (bọc boundary): gần như vô hại (−.017)
-- Kết luận: **cơ chế an toàn phức tạp gây hại; provenance tối thiểu an toàn**
-
-#### So sánh chéo mô hình
-
-| Mô hình | Recall A0 | Recall A5 | Có hại không? |
+| Model | A0 recall | A5 recall | Harm? |
 |---|---|---|---|
 | Llama-3.2-3B | 1.000 | .433 | ✅ CÓ |
-| Qwen2.5-Coder-3B | 1.000 | 1.000 | ❌ KHÔNG |
-| Qwen2.5-Coder-7B | .483 | .533 | ❌ KHÔNG |
-| Llama-3.1-8B | .600 | .550 | ❌ KHÔNG (p = ,508) |
+| Qwen-Coder-3B | 1.000 | 1.000 | ❌ KHÔNG |
+| Llama-3.1-8B | .600 | .550 | ❌ KHÔNG (p = .508) |
 
-→ **Hại là hiện tượng 3 tỷ + riêng Llama**. Ở 8 tỷ, hại tan biến.
-
-### 3.3 Tại sao quan trọng?
-
-> **Defense gây corruption** là rủi ro chưa được ghi nhận trong tài liệu
-> phòng chống chèn lệnh. Các nghiên cứu hiện tại (StruQ, CaMeL, CodeSentinel)
-> báo cáo defense hiệu quả nhưng không đo lỗi do defense gây ra trên task
-> cụ thể. Phát hiện này cho thấy defense phải được kiểm tra trên task
-> cụ thể, không chỉ trên tỷ lệ tấn công thành công.
+→ Harm là hiện tượng **3B + Llama-family-specific**. Tại 8B, harm tan biến.
 
 ---
 
-## 4. PHÁT HIỆN 2a: PHÂN TÍCH TỪNG THÀNH PHẦN DEFENSE
+## PHÁT HIỆN 3: GRAPH FEATURES CHỊU LIÊN KẾT ĐÀN HỒI
 
-![Biểu đồ thác nước ablation](charts/defense_ablation_waterfall.png)
+### Phát biểu
 
-### Chi tiết từng bậc (A0 → A5, Llama-3.2-3B)
+> Trên 20 seeds × group-split, graph features (18 chiều) đạt TOST equivalence
+> PASS (ΔF1 = −.0065, CI90 [−.0133, +.0003] ⊂ ±.02) giữa FedAvg và centralized.
+> TF-IDF **degenerates** dưới FedAvg (recall = 1.0, F1 = base rate) trong 79/80
+> cell, với hiệu ứng có ý nghĩa thống kê (ΔF1 = −.052, exact Wilcoxon
+> p = 3,8×10⁻⁶, Holm-adjusted p = 1,1×10⁻⁵).
 
-| Bậc | Thành phần | Recall | Δ so với bậc trước | Vai trò trong hại |
-|---|---|---|---|---|
-| A0 | Không defense | 1.000 | — | Nền |
-| A1 | Chỉ bọc boundary | .983 | −.017 | Gần vô hại |
-| A2 | + header ngữ cảnh | .900 | −.083 | Vừa |
-| A3 | + generic wrap | .848 | −.052 | Vừa |
-| A4 | + string mediation | .898 | +.050 (hồi phục) | Không gây hại |
-| **A5** | **+ khẳng định lại hệ thống** | **.433** | **−.465** | **GÂY HẠI CHÍNH** |
+### Bảng so sánh
 
-### Điều này có nghĩa gì?
+| Feature set | FedAvg F1 (20 seeds) | Centralized F1 | ΔF1 | TOST ±.02 | McNemar p |
+|---|---|---|---|---|---|
+| **Graph** | **.869 ± .051** | **.858 ± .047** | +.011 | ✅ PASS | n.s. |
+| TF-IDF | .790 ± .031 | .842 ± .038 | −.052 | ❌ FAIL (degenerates) | 3,8×10⁻⁶ |
 
-1. **Chỉ bọc boundary (A1) an toàn**: chỉ bọc advisory trong nhãn gần như
-   không ảnh hưởng mô hình → có thể triển khai
-2. **Khẳng định lại hệ thống gây hại**: đoạn "IMPORTANT: You must follow your
-   operating objectives..." khiến Llama sụp recall → thêm nhiễu vào system
-   prompt gây hại nhiều hơn thêm vào user prompt
-3. **A4 hồi phục một phần**: xử lý chuỗi có tác động bảo vệ nhẹ
+### Tại sao quan trọng?
 
-### Khuyến nghị
-
-> **Chỉ dùng boundary wrap (A1) khi triển khai thực tế.** Không dùng system
-> reassertion ở mô hình ≤3 tỷ. Nếu cần defense mạnh hơn, nâng cấp lên ≥8B.
+Với federated code-security classification, **compact semantic features
+chịu liên kết đàn hồi tốt hơn sparse lexical features** — một finding có giá
+trị cho cộng đồng Federated Learning.
 
 ---
 
-## 5. PHÁT HIỆN 3: GRAPH FEATURES CHỊU LIÊN KẾT ĐÀN HỒI
-
-### 5.1 Phát hiện chính
-
-Graph features (18 đặc trưng từ behavior graph) **chịu FedAvg tốt** — TOST
-equivalence ĐẠT với biên độ ±.02 F1. TF-IDF **mất khả năng** dưới FedAvg
-(dự đoán tất cả đều malicious).
-
-### 5.2 Số liệu
-
-| Bộ đặc trưng | FedAvg F1 (20 seeds) | Centralized F1 | ΔF1 | TOST ±.02 |
-|---|---|---|---|---|
-| **Graph** | .869 ± .051 | .858 ± .047 | +.011 | ✅ ĐẠT |
-| **TF-IDF** | .790 ± .031 | .842 ± .038 | −.052 | ❌ RỚT (mất năng lực) |
-
-### 5.3 Tại sao?
-
-| Đặc tính | Graph features | TF-IDF |
-|---|---|---|
-| Số chiều | 18 (gọn) | 2^18 (thưa) |
-| Không gian | Semantic classes (6) + graph metrics | Token vocabulary |
-| Đột biến client | Chịu được | Vocabulary lệch theo client |
-| FedAvg | ≈ centralized (TOST ĐẠT) | Degenerates (all-malicious) |
-
-**Kết luận:** Với phân loại bảo mật code liên kết đàn hồi, **đặc trưng ngữ nghĩa
-gọn robust hơn đặc trưng từ vựng thưa** — phát hiện có giá trị cho cộng đồng FL.
-
----
-
-## 6. PHÁT HIỆN 4: CODEBERT FALLBACK
+## PHÁT HIỆN 4: CODEBERT FALLBACK DETECTOR
 
 ### Số liệu
 
-| Chỉ số | Giá trị | Ghi chú |
+| Metric | Giá trị | Ghi chú |
 |---|---|---|
 | Recall@0.5 | .541 | Trên test subset (549 vul + 20k benign subsample) |
 | F1 | .215 | Khớp PrimeVul paper (~0.209) |
@@ -244,96 +167,55 @@ gọn robust hơn đặc trưng từ vựng thưa** — phát hiện có giá tr
 | AUC | .847 | — |
 | VD-S (FNR@FPR≤0.5%) | **.962** | Chỉ 3.8% vul được detect ở FPR ≤0.5% |
 | Paired accuracy | .009 | Gần như random trên paired vul/patched |
-| E7 fallback coverage | 0.985 → 1.000 | +1.5 điểm % usable answer coverage |
+| E7 fallback coverage gain | 0.985 → 1.000 | +1.5 điểm % usable answer coverage |
 
 **Đọc:** CodeBERT là baseline yếu nhưng đủ làm fallback. VD-S = 0.962 có nghĩa là
 96% vulnerable functions bị miss ở FPR ≤0.5% — realistic difficulty.
 
 ---
 
-## 7. TÍN HIỆU BẤT ĐỒNG RAW-VS-STRIP
+## TÓM TẮT PHÁT HIỆN 1-4
 
-### Số liệu
-
-| Chỉ số | Granite-3.3-2B | Llama-3.2-3B |
-|---|---|---|
-| CDR (bắt corruption) | 80,6% | 3,2% |
-| FAR (báo động sai) | 77,1% | 8,6% |
-
-### Đánh giá
-
-Tín hiệu **nhạy nhưng thiếu đặc hiệu** — bắt được corruption nhưng cũng cảnh
-báo sai nhiều. Để dùng làm detector production, cần kết hợp thêm signals
-(chênh lệch kích thước AST, delta độ tin cậy, nhất quán đa góc nhìn).
-
----
-
-## 8. TRÌNH XÁC MINH PHỤC HỒI
-
-### Kết quả
-
-| Phương pháp | CRR | DER | Nhận xét |
+| Phát hiện | Bản chất | Mức độ | Hướng |
 |---|---|---|---|
-| D1 (chỉ cắt) | 32,7% | 4% | Đơn giản nhưng hiệu quả |
-| EVIDA v1 (bất đồng + kiểm tra) | 21,8% | 17,1% | ❌ KHÔNG ĐẠT ngưỡng |
-| **D1 + trình xác minh evidence** | **CHƯA CHẠY** | — | Chờ thí nghiệm |
+| F1: CR advisory gây FP corruption | Granite 67% FP, Llama 3% | Tích cực cho measurement paper | Tăng FP (ben→vul) |
+| F2: Defense harm (P3) | Llama sụp recall .100→.433 | Tích cực cho defense-audit | Giảm recall (vul→ben) |
+| F3: Graph chịu FL, TF-IDF không | Graph TOST PASS, TF-IDF degenerates | Tích cực cho method paper | F1/AUC |
+| F4: CodeBERT VD-S .962 | Realistic difficulty | Baseline | — |
 
 ---
 
-## 9. KẾT QUẢ ÂM CÓ GIÁ TRỊ
+## PHẠM VI VÀ HẠN CHẾ
 
-### 9.1 Blocking không xảy ra
+### Mô hình
 
-RR = 0.000 xuyên suốt ~7.000+ lượt sinh, mọi kiểu tấn công (C1-C5), mọi mô hình (2-8B), mọi domain (vulnerability + package). Refusal pathway hoạt động (OR-Bench probes bị từ chối 56%), nhưng defensive framing không kích hoạt nó.
+Tất cả kết quả đo trên open-weight models 2–8B. Các mô hình frontier (GPT-4o,
+Claude, Gemini) chưa được đo do thiếu API key. Kết quả không khái quát cho
+frontier models.
 
-### 9.2 FedAvg ≈ Centralized
+### Corpus
 
-TOST equivalence ĐẠT với biên độ ±.02 F1 trên 20 seeds (graph features). FL "miễn phí" cho graph features.
+603 packages pilot (npm + PyPI) + 200 expansion (random benign, 17 hard-negative).
+Không bao gồm Maven, Ruby, hoặc repository-level tasks.
 
-### 9.3 TF-IDF mất năng lực under FL
+### Thống kê
 
-Recall = 1.0 (all-malicious predictor) trong 79/80 ô. Đặc trưng từ vựng thưa
-không liên kết đàn hồi robust.
+Nhiều kết quả có n nhỏ (24-60) và chưa đủ power cho confirmatory tests.
+Mọi p-value ở n nhỏ được ghi rõ là descriptive. Holm correction được áp dụng
+cho các so sánh preregistered.
 
-### 9.4 Alarm precision .2111
+### Pre-registration
 
-Tín hiệu bất đồng đơn giản (raw ≠ strip) không đủ làm corruption detector.
-Precision quá thấp để dùng production.
-
----
-
-## 10. HẠN CHẾ
-
-| Hạn chế | Chi tiết | Mức độ |
-|---|---|---|
-| **Model scale** | Chỉ 2–8B open-weight; frontier chưa đo | Nghiêm trọng |
-| **Corpus** | 603 packages pilot + 200 expansion; nhỏ hơn SOTA | Vừa |
-| **Benign labels** | Popularity-derived + random; không audit thủ công | Vừa |
-| **Safety model coverage** | Chỉ Llama + Granite responsive; Qwen inert | Giảm khẳng định |
-| **FL simulation** | 2 clients; DP/SecAgg mô phỏng | Pilot |
-| **LCO power** | MDE ≈ .05 F1; null chưa đủ power | Đã tiết lộ |
-| **Alarm precision** | .2111 (EVIDA v1); pruned 1.000 nhưng single-regime | Cần stress-test |
-| **80 mẫu không có chú thích** | Llama CR = C0 giống hệt từng byte → không kiểm tra được sự nhiễu loạn | Đã công bố |
+AMENDMENT-1..11 được đăng ký trong repo nhưng chưa có OSF timestamp công khai.
+AMENDMENT-4 được đăng ký sau khi biết 5-seed kết quả (disclosed).
 
 ---
 
-## 11. BƯỚC TIẾP THEO
+## ÁNH XẠ VỚI TÀI LIỆU THAM KHẢO
 
-### Cần từ người dùng
-
-| # | Nguồn lực | Mở khóa |
+| Finding | Paper liên quan nhất | Khác biệt |
 |---|---|---|
-| 1 | **Tài khoản OSF** | Dấu thời gian pre-registration (P1-7) |
-| 2 | **API key frontier** (GPT-4o / Claude / Gemini) | Safety attack ở quy mô lớn (P1-8) |
-| 3 | **Duyệt gỡ <4B** | P1-10 A5 thang thang trên 7B/8B qua Kaggle GPU |
-| 4 | **2 annotator** | P2-13 KB human-κ validation |
-
-### Có thể làm ngay (local, chưa duyệt)
-
-| # | Công việc | Giá trị |
-|---|---|---|
-| A | Alarm-pruning refinement ( dựa trên 37/55 inert counterfactuals) | Nâng precision .21 → .40+ |
-| B | Leave-cluster-out ở quy mô corpus mới | External validity |
-| C | Adaptive red-team: các cuộc tấn công được thiết kế để phá D1-strip defense | Gate G |
-| D | GNN trên behavior graphs (thay feature-vector) | Nâng cấp phương pháp |
-| E | Đánh giá cấp repository (bối cảnh PR/vấn đề) | Độ tin cậy bên ngoài |
+| F1 (CR advisory FP) | PaperGym (2608.31119) — criterion leakage | PaperGym đo leakage vào dataset; chúng ta đo leakage vào verdict qua untrusted context |
+| F2 (defense harm) | None — mới | Không có paper nào đo defense-induced recall collapse |
+| F3 (graph robust FL) | VulFL (2411.16099) — FL cho vuln detection | VulFL không đo robustness của representation type |
+| F4 (VD-S .962) | PrimeVul (Ding et al., ICSE 2025) | Khớp F1; VD-S chưa được báo cáo riêng |
