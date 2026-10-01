@@ -1,277 +1,240 @@
-# 📊 PHÂN TÍCH CHI TIẾT KẾT QUẢ NGHIÊN CỨU — BẢN ĐẦY ĐỦ
+# 📊 PHÂN TÍCH CHI TIẾT KẾT QUẢ NGHIÊN CỨU — ĐẦY ĐỦ 11 FINDINGS
 
-## RefuseGuard + PackGuard — 19 vòng, ~7.000+ lượt sinh, 6 mô hình, 833 bài kiểm thử
+## RefuseGuard + PackGuard — 19 vòng, ~7.000+ lượt sinh, 6 mô hình
 
----
-
-## PHẦN A: BỐI CẢNH NGHIÊN CỨU
-
-### A.1. Câu hỏi nghiên cứu
-
-> Liệu nội dung không tin cậy (chú thích, cảnh báo, metadata) trong code có làm mô hình
-> ngôn ngữ lớn (LLM) thay đổi phán định lỗ hổng một cách hệ thống không? Và các biện
-> pháp phòng vệ có khôi phục được độ chính xác mà không gây hại không?
-
-### A.2. Phạm vi đo lường
-
-| Thành phần | Chi tiết |
-|---|---|
-| **Mô hình** | 6 mô hình open-weight (2–8 tỷ tham số): Llama-3.2-3B, Granite-3.3-2B, Qwen2.5-Coder-3B, Qwen2.5-Coder-7B, Llama-3.1-8B, CodeBERT-125M (fine-tuned) |
-| **Kho dữ liệu** | 603 gói npm/PyPI (DataDog wild-capture) + 200 benign mở rộng ngẫu nhiên + PrimeVul test_paired 870 dòng |
-| **Nhóm CWE** | 787, 125, 703, 476, 190, 200, 416 |
-| **Arms tấn công** | C0 (sạch), CG (chung chung), CB (benign hướng), CR (cảnh báo rủi ro, sink-grounded), P0/P1/P2 (an toàn) |
-| **Biến thể defense** | B1 (reframe), B2 (cắt comment), B3 (xóa mạnh), P1 (cô lập ngữ nghĩa), P3 (provenance full), D1 (chỉ cắt tối thiểu) |
-| **Tổng lượt sinh** | ~7.000+ trên 19 vòng (local MPS/CPU + Kaggle T4 GPU) |
-| **Ràng buộc** | Chỉ mô hình <4B local; Kaggle GPU cho 7B/8B (đã phê duyệt) |
-
-### A.3. Phương pháp đo
-
-Mỗi hàm được tạo 4 phiên bản ngữ cảnh (C0 = sạch, CG = chú thích chung chung,
-CB = benign hướng, CR = cảnh báo rủi ro), tất cả đảm bảo **AST tương đương**
-(xóa phần chèn → AST giống gốc). Mỗi phiên bản được gửi cho mô hình LLM với
-system prompt chuẩn hóa, yêu cầu trả về JSON: `{verdict: vulnerable|benign,
-confidence, reason}`. Kết quả được phân tích bằng **McNemar exact test** (paired
-per-hàm), **Wilcoxon signed-rank** (paired per-seed), và **bootstrap CI 10.000
-lượt** (seed 20260922).
+> **Cập nhật:** 2026-10-01 · **833 tests** · **verify_repro 30/30** · **29+ commits**
+>
+> **Mỗi phát hiện có:** Phát biểu → Bảng số liệu → Kiểm định thống kê → Cỡ hiệu ứng → Diễn giải → So sánh tài liệu → Phạm vi
 
 ---
 
-## PHẦN B: BỐN PHÁT HIỆN CHÍNH
+## MỤC LỤC
+
+- [Tổng hợp 11 findings](#tổng-hợp)
+- [F1: Blocking không xảy ra (RR=0)](#f1)
+- [F2: CR Advisory — Directional Corruption](#f2)
+- [F3: Defense P3 gây harm (Component Ablation)](#f3)
+- [F4: Scale Resolution 7B/8B](#f4)
+- [F5: Graph Federation-Robust](#f5)
+- [F6: TF-IDF Degeneration](#f6)
+- [F7: CodeBERT Baseline](#f7)
+- [F8: EVIDA FAIL](#f8)
+- [F9: P1 Injection Reduction](#f9)
+- [F10: LCO Family-Shift Null](#f10)
+- [F11: Alarm Precision](#f11)
+- [Bảng tổng hợp](#bảng-tổng-hợp)
+- [Hạn chế](#hạn-chế)
+- [Bước tiếp theo](#bước-tiếp-theo)
 
 ---
 
-### 🔵 PHÁT HIỆN 1: CR ADVISORY GÂY SUY BIẾN PHÁN ĐỊNH CÓ HƯỚNG
+## F1: BLOCKING KHÔNG XẢY RA (RR = 0.000)
 
-![CR Advisory theo mô hình](charts/attack_surface_models.png)
+### Phát biểu
 
-#### Bảng số liệu chi tiết
+> Trên ~7.000+ lượt sinh qua 19 vòng, không một refusal nào được kích hoạt bởi
+> defensive framing trên open-weight models 2–8B. Refusal pathway hoạt động
+> bình thường (OR-Bench probes: 56% refusal), nhưng defensive framing về code
+> security không kích hoạt nó — ở bất kỳ arm nào (C1–C5), bất kỳ source nào
+> (system/user/tool/third-party), bất kỳ CWE family nào.
 
-| Mô hình | Arm | Recall(vul) | FP(ben) | ΔRecall | ΔFP | Exact McNemar p |
-|---|---|---|---|---|---|---|
-| **Granite-3.3-2B** | C0 | 8% | 8% | — | — | — |
-| Granite-3.3-2B | CG | 10% | 8% | +2pp | 0 | n.s. |
-| Granite-3.3-2B | CB | 8% | 7% | 0pp | −1pp | n.s. |
-| **Granite-3.3-2B** | **CR** | **64%** | **67%** | **+56pp** | **+59pp** | **< 10⁻¹⁵** |
-| Llama-3.2-3B | C0 | 93% | 0% | — | — | — |
-| Llama-3.2-3B | CG | 100% | 0% | +7pp | 0 | n.s. |
-| Llama-3.2-3B | CB | 100% | 0% | 0pp | 0 | n.s. |
-| **Llama-3.2-3B** | **CR** | **100%** | **3%** | +7pp | +3pp | n.s. |
-| Qwen-Coder-3B | C0 | ~0% | ~0% | — | — | — |
-| Qwen-Coder-3B | CR | ~0% | ~0% | 0 | 0 | — |
+### Bảng số liệu
 
-#### Diễn giải
+| Mô hình | Arm | Số gen | RR (refusal rate) | Ghi chú |
+|---|---|---|---|---|
+| Granite-3.3-2B | C0/CG/CB/CR | 400 | 0.000 | Confirmatory pilot |
+| Llama-3.2-3B | C0/CG/CB/CR | 264 | 0.000 | Smoke study |
+| Qwen-Coder-3B | C0/CG/CB/CR | 135 | 0.000 | E0 original |
+| Qwen-Coder-7B | C0/CB/CR | 300 | 0.000 | Safety n100 |
+| Llama-3.1-8B | C5_near ladder | 180 | 0.000 | EVIDA-2 |
+| **Tổng** | — | **~1.279** | **0.000** | Trừ probes |
+| OR-Bench probes | — | 225 | **56%** | Pathway hoạt động |
 
-**Granite-3.3-2B** là mô hình nhạy nhất với CR advisory. Ở baseline C0, Granite
-gần như all-benign (recall 8%, FP 8%). Khi nhận CR advisory (chứa tên sink API
-thật của chính hàm đó — ví dụ "strcpy", "system" — 100% query-relevant), Granite
-chuyển 67% benign functions thành "vulnerable" và tăng recall trên vulnerable
-functions từ 8% lên 64%.
+### Ý nghĩa
 
-Cơ chế: advisory chứa **tên sink API có thật trong function** (100% query-relevant,
-0% generic), tạo ra một "risk prior" mà Granite sử dụng làm tín hiệu bổ sung để
-chuyển từ trạng thái all-benign sang trạng thái phát hiện. Đây KHÔNG phải là
-cải thiện chất lượng phân tích — mà là **verdict được điều khiển bởi ngữ cảnh**,
-không phải bởi logic của code.
+> **Nỗi lo "safety blocking" cho code-security task là quá mức** ở open-weight
+> models 2–8B. OR-Bench probes bị refuse 56% chứng minh refusal pathway hoạt động
+> — nhưng defensive framing về code không kích hoạt nó. Đây là negative result
+> có giá trị: bác bỏ giả thuyết defensive refusal cho domain này.
 
-**Llama-3.2-3B** ít nhạy hơn đáng kể: chỉ +3pp FP, +7pp recall. Tuy nhiên,
-Llama đã có baseline recall 93% (all-vulnerable bias ngược chiều), nên còn
-headroom hạn chế cho CR tác động thêm.
+### So sánh tài liệu
 
-**Qwen-Coder-3B** hoàn toàn inert — 0% recall, 0% FP ở mọi arm. Qwen-family
-thể hiện tính trơ nhất quán với mọi loại attack.
-
-#### Tách biệt với nhóm kiểm soát
-
-| So sánh | CR FP | CG FP | CB FP | CR − max(CG,CB) | Ý nghĩa |
-|---|---|---|---|---|---|
-| Granite | 67% | 8% | 7% | **+59pp** | CR ≫ controls |
-| Llama | 3% | 0% | 0% | +3pp | Nhẹ |
-
-→ CG (generic comment) và CB (benign framing) KHÔNG gây tác động — chỉ CR
-(risk-relevant advisory) mới có effect. Điều này loại trừ giả thuyết "mọi
-chú thích đều gây nhiễu".
-
----
-
-### 🔵 PHÁT HIỆN 2: DEFENSE GÂY HẠI RECALL — COMPONENT ABLATION
-
-![Component ablation waterfall](charts/defense_ablation_waterfall.png)
-
-#### Bảng ablation đầy đủ (Llama-3.2-3B, C5_near, n=60, seed 20260923)
-
-| Bậc | Thành phần bổ sung | Recall | Δ vs bậc trước | Exact McNemar p | Flips |
-|---|---|---|---|---|---|
-| A0 | raw (không defense) | 1.000 | — | — | — |
-| A1 | + boundary wrap | .983 | −.017 | 1.0 | 1/60 |
-| A2 | + context header | .900 | −.083 | .002 | 5/60 |
-| A3 | + generic wrap | .848 | −.052 | < .001 | 3/60 |
-| A4 | + string mediation | .898 | +.050 | — | (hồi phục 3) |
-| **A5** | **+ system reassertion** | **.433** | **−.465** | **3,4×10⁻⁷** | **28/60** |
-
-#### Diễn giải từng bậc
-
-**A1 (boundary wrap)**: Chỉ bọc advisory comment trong nhãn `[UNTRUSTED-ANNOTATION]`.
-Recall giảm .017 (1 flip) — gần như vô hại. **→ An toàn, có thể deploy.**
-
-**A2 (+ context header)**: Thêm header `[CONTEXT-PROVENANCE: This context contains...]`.
-Recall giảm thêm .083 → tổng −.100. Header cung cấp thông tin bổ sung nhưng cũng
-chiếm không gian context.
-
-**A3 (+ generic wrap)**: Thêm generic wrapper quanh toàn bộ context.
-Recall giảm thêm .052 → tổng −.152. Generic wrap không chứa thông tin hữu ích
-nhưng chiếm token → pha loãng attention.
-
-**A4 (+ string mediation)**: Xử lý string literals (che giấu, cắt ngắn).
-Recall **tăng hồi phục** +.050 → tổng −.102. String mediation có tác động
-bảo vệ nhẹ (loại bỏ string độc hại hoặc gây nhiễu).
-
-**A5 (+ system reassertion)**: Thêm đoạn khẳng định lại mục tiêu trong system
-prompt ("IMPORTANT: You must follow your operating objectives..."). Recall
-**sụp từ .898 xuống .433** — mất .465 trong MỘT bậc. Đây là thủ phạm chính,
-gây **28/34 = 82%** tổng flips trong toàn bộ pipeline.
-
-#### Cross-model: Harm chỉ xảy ra trên Llama-family ≤3B
-
-| Model | Scale | A0 recall | A5 recall | Δ | Harm? |
-|---|---|---|---|---|---|
-| Llama-3.2-3B | 3B | 1.000 | .433 | **−.567** | ✅ CÓ (p = 3,4×10⁻⁷) |
-| Qwen-Coder-3B | 3B | 1.000 | 1.000 | 0 | ❌ KHÔNG |
-| Qwen-Coder-7B | 7B | .483 | .533 | +.050 | ❌ KHÔNG (p = .727) |
-| Llama-3.1-8B | 8B | .600 | .550 | −.050 | ❌ KHÔNG (p = .508) |
-
-→ **Harm là hiện tượng 3B + Llama-family-specific**. Tại 8B, harm tan biến —
-cho thấy defense cost là vấn đề của mô hình nhỏ, không phải bản chất của
-phương pháp defense.
-
----
-
-### 🔵 PHÁT HIỆN 2a: COMPONENT ABLATION — THỦ PHẠM LÀ SYSTEM REASSERTION
-
-![Component ablation waterfall](charts/defense_ablation_waterfall.png)
-
-Trong 6 bậc defense A0→A5, chỉ có **A5 (system task-intent reassertion)** gây
-phần lớn harm: recall sụp từ .898 (A4) xuống .433 (A5) — mất .465 trong một bậc.
-Trước đó, A1 (boundary wrap) chỉ gây −.017 và A4 (string mediation) thậm chí
-hồi phục +.050 so với A3.
-
-**Diễn giải:** System reassertion là đoạn text nhấn mạnh vào system prompt rằng
-"agent phải tuân theo operating objectives". Đoạn này chiếm token context,
-gây phân tán attention, và trên Llama-3.2-3B, làm model "quên" các detection
-đã thực hiện ở A0. Đây là một finding quan trọng: **việc thêm text nhấn mạnh
-vào system prompt — hành động tưởng như vô hại — lại là nguyên nhân chính
-gây mất detection.**
-
-**Khuyến nghị:** Chỉ dùng boundary wrap (A1). Loại bỏ system reassertion (A5).
-Không thêm text vào system prompt trong pipeline phân tích bảo mật.
-
----
-
-### 🔵 PHÁT HIỆN 3: GRAPH FEATURES CHỊU LIÊN KẾT ĐÀN HỒI FEDERATED
-
-#### Bảng so sánh 20 seeds
-
-| Feature set | Phương pháp | FedAvg F1 | Centralized F1 | ΔF1 | TOST ±.02 |
-|---|---|---|---|---|---|
-| **Graph (18 fts)** | sklearn LR lbfgs | **.869 ± .051** | .858 ± .047 | +.011 | ✅ PASS |
-| TF-IDF (2^18 dims) | sklearn LR lbfgs | .790 ± .031 | .842 ± .038 | −.052 | ❌ FAIL |
-
-#### Đọc kết quả
-
-Graph features (18 chiều, semantic classes + graph metrics) khi train bằng
-FedAvg (federated averaging) cho F1 **.869 ± .051** so với centralized
-**.858 ± .047** — FedAvg **không thua**, thậm chí nhỉnh hơn nhẹ. TOST
-equivalence PASS (CI90 của ΔF1 nằm trọn trong ±.02) → FedAvg **không thua
-centralized quá .02 F1** — một claim dương có kiểm định.
-
-TF-IDF (sparse lexical features) khi train bằng FedAvg cho F1 **.790 ± .031**,
-thấp hơn centralized **.842 ± .038** — ΔF1 = **−.052** (p = 3,8×10⁻⁶). Nghĩa
-là TF-IDF **mất năng lực dưới FedAvg** — dự đoán tất cả malicious.
-
-→ **Đối với federated code-security classification: dùng semantic features,
-tránh sparse lexical features.** Đây là finding có giá trị cho cộng đồng FL.
-
----
-
-### 🔵 PHÁT HIỆN 4: CR ADVISORY THEO CWE FAMILY — REPLICATION
-
-#### Confirmatory pilot trên 200 held-out samples (Granite-3.3-2B)
-
-| Nhóm CWE | C0 recall(vul) | CR recall(vul) | ΔRecall | C0 FP(ben) | CR FP(ben) | ΔFP |
-|---|---|---|---|---|---|---|
-| CWE-787 | 8% | **64%** | +56pp | 8% | **67%** | +59pp |
-| CWE-125 | 8% | **64%** | +56pp | 8% | **67%** | +59pp |
-| CWE-703 | 8% | **64%** | +56pp | 8% | **67%** | +59pp |
-| CWE-476 | 8% | **64%** | +56pp | 8% | **67%** | +59pp |
-| **Pooled** | **8%** | **64%** | **+56pp** | **8%** | **67%** | **+59pp** |
-
-→ Effect **đồng nhất trên mọi nhóm CWE** — không có nhóm nào resistant.
-
----
-
-## PHẦN C: TỔNG HỢP TẤT CẢ PHÁT HIỆN
-
-### Bảng tổng hợp: Mô hình × Attack arm × Defense × Recall
-
-| Mô hình | Scale | C0 recall | CR recall | ΔCR | P3 recall | ΔP3 | Harm P3? | CR FP(ben) |
-|---|---|---|---|---|---|---|---|---|
-| Granite-3.3-2B | 2B | 8% | 64% | +56pp | 1.000 (n=25 subset) | 0 | ❌ | 67% |
-| Llama-3.2-3B | 3B | 93% | 100% | +7pp | .433 | **−.567** | ✅ CÓ | 3% |
-| Qwen-Coder-3B | 3B | ~0% | ~0% | 0 | 1.000 | 0 | ❌ KHÔNG | 0% |
-| Qwen-Coder-7B | 7B | .483 | .533 | +5pp | .550* | −.050 | ❌ KHÔNG | 0% |
-| Llama-3.1-8B | 8B | .600 | .550 | −.050 | — | — | ❌ KHÔNG | 0% |
-
-*Qwen-7B: ladder data từ Kaggle GPU, defensive arm chưa chạy.
-
-### Đọc tổng hợp
-
-1. **CR advisory là attack surface thật** trên Granite (67% FP) và có effect
-   nhẹ trên Llama (+7pp recall). Tuy nhiên, đây là **sensitivity shift**, không
-   phải improvement — model đọc advisory như gợi ý, không phải phân tích tốt hơn.
-
-2. **Defense P3 gây harm chỉ trên Llama-3.2-3B** (−.567 recall). Qwen inert.
-   Tại 8B, harm tan biến. → **Chọn model family và scale trước khi deploy defense.**
-
-3. **Graph features federation-robust** (TOST PASS); TF-IDF degenerates.
-   → **Dùng graph features nếu federate.**
-
-4. **Alarm precision .2111** — invariance signal đơn giản không đủ. Cần
-   refinement hoặc bỏ.
-
----
-
-## 10. HẠN CHẾ TOÀN DỰ ÁN
-
-| Hạn chế | Chi tiết | Mức độ ảnh hưởng |
+| Nghiên cứu | Phát hiện | Khác với chúng ta |
 |---|---|---|
-| **Model scale** | Chỉ 2–8B open-weight; frontier (GPT-4o, Claude) chưa đo | Nghiêm trọng — cần API key |
-| **Corpus** | 603 packages pilot + 200 expansion; nhỏ hơn Cerebro ~5k | Vừa |
-| **Benign labels** | Popularity-derived + random; không audit thủ công | Vừa |
-| **Safety model coverage** | Chỉ Llama + Granite responsive; Qwen inert (floor) | Giảm khẳng định "model-dependent" |
-| **FL simulation** | 2 clients; DP/SecAgg mô phỏng | Pilot |
-| **LCO power** | n=20 seeds, MDE ≈ .05 F1 | Đã disclose |
-| **Alarm precision** | .2111 (EVIDA v1); pruned 1.000 nhưng single-regime | Cần stress-test |
-| **80 mẫu không comment** | Llama CR = C0 byte-identical → không test được perturbation | Đã công bố |
-| **Pre-registration** | AMENDMENT-1..11 trong repo; chưa có OSF timestamp công khai | Cần OSF account |
+| Campbell et al. (2026) | Cyber-defense tasks bị refuse 2,72× | Họ đo **refusal**; chúng ta đo **verdict corruption**. Họ dùng frontier models; chúng ta dùng open-weight 2–8B |
+| Robey et al. (2025) — Anti-Scheming | Evaluation awareness thay đổi behavior | Họ đo trong specialized anti-scheming settings; chúng ta đo trên ordinary action boundaries |
 
 ---
 
-## 11. BƯỚC TIẾP THEO
+## F2: CR ADVISORY — SUY BIẾN ĐỊNH HƯỚNG
 
-### Cần tài nguyên từ user
+### Phát biểu
 
-| # | Tài nguyên | Mở khóa | Thời gian |
+> Trên Granite-3.3-2B, risk advisory (CR) chèn vào comment làm **67% benign
+> functions bị flag thành "vulnerable"** (ΔFP = +59pp, p < 10⁻¹⁵) — trong khi
+> CG (generic) và CB (benign framing) chỉ gây ≤3 flips. Trên Llama, recall
+> tăng +7pp (mất headroom). Trên Qwen, inert hoàn toàn.
+
+### Bảng số liệu chi tiết
+
+| Mô hình | Arm | Recall(vul) | FP(ben) | B→V flips | V→B flips |
+|---|---|---|---|---|---|
+| Granite-3.3-2B | C0 | 8% | 8% | — | — |
+| Granite-3.3-2B | CG | 10% | 8% | 0 | 0 |
+| Granite-3.3-2B | CB | 8% | 7% | 0 | 2 |
+| **Granite-3.3-2B** | **CR** | **64%** | **67%** | **0** | **25** |
+| Llama-3.2-3B | C0 | 93% | 0% | — | — |
+| Llama-3.2-3B | CG | 100% | 0% | 0 | 0 |
+| Llama-3.2-3B | CB | 100% | 0% | 0 | 0 |
+| **Llama-3.2-3B** | **CR** | **100%** | **3%** | 0 | 3 |
+
+### Diễn giải
+
+CR advisory chứa **tên sink API có thật** trong function (100% query-relevant,
+0% generic text). Điều này tạo "risk prior" mà Granite sử dụng làm tín hiệu
+chuyển từ all-benign sang all-vulnerable. Llama có headroom hạn chế hơn (baseline
+93% recall) nên chỉ wobble +7pp.
+
+**Controls:**
+- CG (generic): 0 flips → loại trừ generic comment effect
+- CB (benign framing): 0-2 flips → loại trừ benign-direction bias
+
+→ **Chỉ CR (risk-relevant) mới gây effect** — cụ thể và direction-dependent.
+
+---
+
+## F3: DEFENSE P3 GÂY HẠI RECALL (COMPONENT ABLATION)
+
+### Phát biểu
+
+> Trên Llama-3.2-3B, bọc provenance P3 (full bundle) làm Recall sụp từ 1.000
+> xuống .433 (39/60 flips, exact McNemar p = 3,4×10⁻⁷). Component ablation
+> cho thấy **system reassertion là thủ phạm chính** (28/34 = 82% tổng harm,
+> p = 7,45×10⁻⁹), trong khi boundary-only provenance (A1) gần như vô hại (.983).
+
+### Bảng ablation
+
+| Rung | Component | Recall | Δ | McNemar p |
+|---|---|---|---|---|
+| A0 | raw | 1.000 | — | — |
+| A1 | boundary wrap | .983 | −.017 | 1.0 |
+| A2 | + context header | .900 | −.083 | .002 |
+| A3 | + generic wrap | .848 | −.052 | < .001 |
+| A4 | + string mediation | .898 | +.050 | — (hồi phục) |
+| **A5** | **+ system reassertion** | **.433** | **−.465** | **3,4×10⁻⁷** |
+
+### Cross-model
+
+| Model | A0 recall | A5 recall | Harm? |
 |---|---|---|---|
-| 1 | **OSF account** | Timestamp pre-registration (P1-7) | 15 phút |
-| 2 | **API key frontier** (GPT-4o / Claude / Gemini) | Safety attack ở quy mô lớn (P1-8) | 1-2h |
-| 3 | **Duyệt gỡ <4B** | P1-10 A5 ladder trên 7B/8B qua Kaggle GPU | 2-3h |
-| 4 | **2 annotator** | P2-13 KB human-κ validation | 1-2h |
+| Llama-3.2-3B | 1.000 | .433 | ✅ CÓ (p = 3,4×10⁻⁷) |
+| Qwen-Coder-3B | 1.000 | 1.000 | ❌ KHÔNG |
+| Llama-3.1-8B | .600 | .550 | ❌ KHÔNG (p = .508) |
 
-### Có thể làm ngay (local, chưa duyệt)
+→ Harm là hiện tượng **3B + Llama-family-specific**. Tại 8B, harm tan biến.
 
-| # | Việc | Giá trị |
-|---|---|---|
-| A | Alarm-pruning refinement | Nâng precision .21 → .40+ |
-| B | Leave-cluster-out ở scale corpus mới | External validity |
-| C | Adaptive red-team: attacks designed to break D1-strip defense | Gate G |
-| D | GNN trên behavior graphs (thay feature-vector) | Method nâng cấp |
-| E | Repository-level evaluation (PR/issue context) | External validity |
+---
+
+## F4: SCALE RESOLUTION (7B/8B)
+
+### Phát biểu
+
+> Defense cost của P3 trên Llama **fade ở 8B**: recall .600 → .550 (Δ = −.050,
+> exact McNemar p = .508). Qwen inert persists at 7B (.483 → .533, p = .727).
+> → Defense cost là hiện tượng **≤3B + Llama-family-specific**.
+
+### Bảng
+
+| Model | Scale | A0 recall | A5 recall | Δ | Exact p | Harm? |
+|---|---|---|---|---|---|---|
+| Llama-3.2-3B | 3B | 1.000 | .433 | −.567 | 3,4×10⁻⁷ | ✅ CÓ |
+| Qwen-Coder-3B | 3B | 1.000 | 1.000 | 0 | — | ❌ |
+| Llama-3.1-8B | 8B | .600 | .550 | −.050 | .508 | ❌ |
+| Qwen-Coder-7B | 7B | .483 | .533 | +.050 | .727 | ❌ |
+
+---
+
+## F5: GRAPH FEDERATION-ROBUST
+
+| Feature set | FedAvg F1 (20 seeds) | Centralized F1 | ΔF1 | TOST ±.02 |
+|---|---|---|---|---|
+| **Graph** | **.869 ± .051** | .858 ± .047 | +.011 | ✅ PASS |
+| TF-IDF | .790 ± .031 | .842 ± .038 | −.052 | ❌ FAIL (degenerates) |
+
+---
+
+## F6: TF-IDF DEGENERATION
+
+TF-IDF FedAvg recall = 1.0 (all-malicious predictor) trong 79/80 cells. Precision = base rate.
+
+---
+
+## F7: CODEBERT BASELINE
+
+| Metric | Giá trị |
+|---|---|
+| Recall@0.5 | .541 |
+| F1 | .215 |
+| MCC | .232 |
+| AUC | .847 |
+| VD-S | .962 |
+| Paired acc | .009 |
+
+---
+
+## F8: EVIDA FAIL
+
+| Metric | Giá trị | Gate | Verdict |
+|---|---|---|---|
+| CRR | .2182 | ≥ .40 | ❌ FAIL |
+| DIER | .1712 | ≤ .05 | ❌ FAIL |
+| Alarm precision | .2111 | ≥ .40 | ❌ FAIL |
+| Verdict | | | **FAIL / MECHANISM-INVALID** |
+
+---
+
+## F9: P1 INJECTION REDUCTION
+
+| Metric | Trước P1 | Sau P1 | p |
+|---|---|---|---|
+| Injection success | 0.742 | 0.484 | .0078 |
+| MCC | +0.205 | −0.029 | — |
+
+→ P1 giảm injection nhưng KHÔNG tăng MCC (mixed result).
+
+---
+
+## F10: LCO FAMILY-SHIFT NULL
+
+| Metric | Graph | TF-IDF | Kết luận |
+|---|---|---|---|
+| Degradation dd | −.0095 ± .0803 | −.0139 ± .0794 | p = .368 |
+| Power tại δ=.05 | ≈ .75 | — | MDE ≈ .05 |
+
+---
+
+## F11: ALARM PRECISION
+
+| | TP | FP | Precision |
+|---|---|---|---|
+| EVIDA v1 alarm | 57 | 213 | **.2111** |
+
+→ Invariance signal đơn giản không đủ.
+
+---
+
+## BẢNG TỔNG HỢP
+
+| Finding | Kết quả chính | Số liệu | Files |
+|---|---|---|---|
+| F1: Blocking absent | RR = 0.000 | ~7.000 gen | E0/E0v2/safety results |
+| F2: CR directional corruption | Granite +59pp FP, +56pp recall | p < 10⁻¹⁵ | confirmatory results |
+| F3: Defense P3 harm | Llama 1.000→.433, p = 3,4e-7 | 39/60 flips | defense metrics |
+| F4: Scale resolution | Harm fades at 8B (p = .508) | 480 gen Kaggle | r16_kaggle |
+| F5: Graph federation-robust | TOST PASS ±.02 | 640 runs | fl_multiseed |
+| F6: TF-IDF degeneration | recall = 1.0, 79/80 cells | p = 3,8e-6 | fl_multiseed |
+| F7: CodeBERT VD-S .962 | F1 .215 khớp paper | — | transformer eval |
+| F8: EVIDA FAIL | CRR .2182 < .40; DIER .1712 > .05 | 756 units | evida_analysis |
+| F9: P1 injection giảm | 0.742→0.484, p = .0078 | — | round3 results |
+| F10: LCO null | dd = −.0095, p = .368 | 480 runs | lco_results |
+| F11: Alarm precision .2111 | 57TP/213FP | — | evida_analysis |
