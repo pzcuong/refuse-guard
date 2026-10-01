@@ -246,3 +246,54 @@ files), not a fresh clone — on a clone the checks pass only after running
    deviations are disclosed in `reports/`, never silently patched.
 4. Citations were verified against arXiv/DOI metadata (see
    `docs/literature_review.md`); unverified references are not used.
+
+---
+
+## Latest Results (Rounds 15–19, September 2026)
+
+### Confirmatory Replication on Held-Out Data (n=200 NEW PrimeVul samples)
+
+The directional corruption phenomenon **replicates on completely held-out data** (disjoint from all prior evaluation sets):
+
+| Context | Granite-3.3-2B benign→vul FP | Llama-3.2-3B benign→vul FP |
+|---|---:|---:|
+| C0 (clean baseline) | 8% | 0% |
+| CG (generic comment) | 8% | 0% |
+| CB (benign framing) | 7% | 0% |
+| **CR (risk advisory)** | **67%** | **3%** |
+
+- Granite: **57/100 benign functions flip to "vulnerable"** under risk advisory (ΔFP = +.59, p < 10⁻¹⁵)
+- CG/CB controls: ≤ 3 flips each — effect is **content-type-specific**
+- 4 CWE families tested (787, 125, 703, 476) — replicates across families
+
+### Alarm-Pruning Validation (EVIDA-2)
+
+| Gate | Prereg threshold | Result | Verdict |
+|---|---|---|---|
+| Alarm precision | ≥ .40 | **1.000** (66/66) | ✅ PASS |
+| Corruption Recovery Rate | ≥ .35 | **.803** (53/66) | ✅ PASS |
+| Defense-Induced Error Rate | ≤ .05 | **0.000** (0/81) | ✅ PASS |
+| Useful Answer Coverage | ≥ .95 | **1.000** | ✅ PASS |
+
+**Caveats (disclosed):** recovery is fallback-driven (90.9% via CodeBERT, not invariant-checker logic); paired-vs-D1 shows 13–0 against EVIDA-2 (p = .000244) on the registered metric; truth-metric reverses to 5–8 against (n.s.); prune rule never engaged on v2 (0 FP to prune). Results are frame-regime-specific and descriptive (n < power threshold).
+
+### Scale Boundary Resolution (7B/8B on Kaggle GPU)
+
+| Model | A0 recall | A5 recall | Harm? |
+|---|---|---|---|
+| Llama-3.1-8B | .600 | .550 (p = .508) | **NO — fades at 8B** |
+| Qwen2.5-Coder-7B | .483 | .533 (p = .727) | **NO — inert persists** |
+
+Defense-induced corruption is a **3B phenomenon** that fades by 7–8B. The scale-versus-family confound is partially resolved.
+
+### Rule-Based Baseline (GuardDog 3.2.0)
+
+Full corpus (602/603 scannable): P .948 / R .792 / F1 .863 / AUC .870.
+Group-test: F1 .866 — below graph features (.923) and comparable to TF-IDF (.833).
+Same-origin bias disclosed (GuardDog rules + malicious corpus share DataDog provenance).
+
+### MalGuard/Amalfi-Style Feature Baseline
+
+41 label-blind features. MalGuard-only: ΔF1 −.0216 vs graph (raw p = .044, not Holm-surviving).
+Combined graph+malguard: +.0150 (n.s.). Graph features **compare favorably** with MalGuard-style reimplementation.
+
