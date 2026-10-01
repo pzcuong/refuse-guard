@@ -191,7 +191,30 @@ tránh sparse lexical features.** Đây là finding có giá trị cho cộng đ
 
 ## F6: TF-IDF DEGENERATION
 
-TF-IDF FedAvg recall = 1.0 (all-malicious predictor) trong 79/80 cells. Precision = base rate.
+### Phát biểu
+
+> TF-IDF FedAvg recall = 1.0 (all-malicious predictor) trong 79/80 cells.
+> Precision = base rate.
+
+### Số liệu
+
+| Metric | Giá trị | Ghi chú |
+|---|---|---|
+| Recall | 1.0 | Predicts "malicious" cho mọi sample |
+| Precision | ≈ base rate | Không phân biệt được |
+| F1 | ≈ base rate F1 | Degenerate |
+| Số cells bị degenerate | 79/80 (98.75%) | Chỉ 1 cell không degenerate |
+
+### Diễn giải
+
+TF-IDF (sparse lexical features, 2^18 chiều) khi train bằng FedAvg **mất hoàn
+toàn khả năng phân biệt** — dự đoán tất cả sample là malicious. Nguyên nhân:
+sparse lexical features có chiều rất cao và vocabulary khác nhau giữa các
+client, khiến model global không hội tụ đúng.
+
+**→ Sparse lexical features KHÔNG federation-robust.** Đây là finding có giá
+trị cho cộng đồng FL: khi federate code-security classifiers, phải dùng
+semantic/graph features thay vì raw token features.
 
 ---
 
@@ -265,13 +288,28 @@ cho bất kỳ architecture nào chỉ adjudicate khi hai view disagreement.
 > giữa graph và TF-IDF **không khác nhau** (dd = −.0095 ± .0803, p = .368).
 > Power ≈ .75 tại δ = .05.
 
+### Số liệu
+
+| Model | FedAvg F1 (group) | FedAvg F1 (LCO) | Degradation |
+|---|---|---|---|
+| Graph | .869 | .859 | −.010 |
+| TF-IDF | .842 | .850 | +.008 |
+
+### Diễn giải
+
+Cả graph và TF-IDF degradation tương đương nhau dưới family shift. Không có
+robustness ranking — cần thêm data để phân biệt. Null hai chiều có power.
+
 ---
 
 ## F11: ALARM PRECISION .2111
 
+### Số liệu
+
 EVIDA alarm: 57 TP / 213 FP = **.2111**.
 
-→ Invariance signal đơn giản không đủ.
+→ Invariance signal đơn giản (raw ≠ strip) không đủ làm corruption detector.
+Cần multi-view consistency hoặc signals tinh vi hơn.
 
 ---
 
