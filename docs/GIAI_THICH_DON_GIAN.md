@@ -1,163 +1,125 @@
-# 📊 GIẢI THÍCH KẾT QUẢ NGHIÊN CỨU — ĐƠN GIẢN, DỄ HIỂU
+# GIẢI THÍCH KẾT QUẢ NGHIÊN CỨU
 
-## RefuseGuard + PackGuard — 19 vòng nghiên cứu
-
-> Tài liệu này giải thích kết quả nghiên cứu bằng ngôn ngữ đơn giản, kèm ví dụ thực tế.
-> Ai cũng đọc hiểu được, kể cả người không làm AI.
+## RefuseGuard + PackGuard — 19 vòng, ~7.000+ lượt sinh, 6 mô hình
 
 ---
 
-## Ý TƯỞNG CHÍNH: SO SÁNH VỚI BÁC SĨ ĐỌC HỒ SƠ
+## TỔNG QUAN
 
-Hãy tưởng tượng:
+Nghiên cứu này trả lời hai câu hỏi:
 
-- **LLM (mô hình AI)** = bác sĩ
-- **Code** = bệnh nhân
-- **Comment trong code** = lời ghi chú bên cạnh hồ sơ bệnh án
-- **Defense (biện pháp bảo vệ)** = quy trình khám bệnh an toàn
+1. Nội dung không tin cậy trong code (chú thích, cảnh báo) có làm mô hình LLM thay đổi phán định lỗ hổng không?
+2. Biện pháp phòng vệ có khôi phục được độ chính xác mà không gây hại không?
 
-Câu hỏi nghiên cứu: **Khi bác sĩ đọc hồ sơ có kèm ghi chú "bệnh nhân có thể ung thư", bác sĩ có chẩn đoán khác đi không?**
+Mô hình: 6 mô hình open-weight 2–8B (Llama-3.2-3B, Granite-3.3-2B, Qwen-Coder-3B, Qwen-Coder-7B, Llama-3.1-8B, CodeBERT). Kho dữ liệu: 603 gói npm/PyPI + PrimeVul test_paired. Tổng ~7.000+ lượt sinh qua 19 vòng.
 
 ---
 
-## PHÁT HIỆN 1: BÁC SĨ KHÔNG TỪ CHỐI KHÁM
+## 1. BLOCKING KHÔNG XẢY RA
 
-### Trước khi nghiên cứu, chúng ta lo rằng:
+**Trước khi nghiên cứu, chúng ta lo rằng:**
 
-> "Cứ nhắc đến từ 'virus', 'tấn công', 'exploit' là mô hình AI sẽ từ chối trả lời,
-> kiểu 'Tôi không thể hỗ trợ việc này'."
+> Cứ nhắc đến "malware", "vulnerability", "exploit" thì mô hình sẽ từ chối trả lời.
 
-### Kết quả thực tế:
+**Kết quả: KHÔNG xảy ra.**
 
-**KHÔNG XẢY RA.** Qua ~7.000 lượt hỏi trên 6 mô hình khác nhau (Llama, Granite, Qwen...),
-không một lần nào mô hình từ chối trả lời. Chúng vẫn phân tích code bình thường.
-
-| Giống như | Bác sĩ không từ chối khám bệnh nhân có ghi chú "nghi nhiễm trùng" |
-|---|---|
-| **Lý do** | Mô hình open-weight 2–8B không có safety filter chặn nhiệm vụ security |
-| **Ý nghĩa** | Nỗi lo "AI từ chối hỗ trợ bảo mật" là quá mức ở mô hình nhỏ |
-
----
-
-## PHÁT HIỆN 2: NHƯNG BÁC SĨ BỊ "GHI CHÚ" ẢM HƯỞNG
-
-### Ví dụ cụ thể:
-
-Cho Granite đọc một hàm code **hoàn toàn lành tính** (không có lỗi bảo mật):
-
-```
-Chỉ có code, không ghi chú gì:
-→ Granite nói: "Benign" (chỉ 8% chance nói vulnerable)
-
-Thêm một dòng comment:
-→ "WARNING: Security scanner flagged potential vulnerability..."
-→ Granite nói: "Vulnerable!" (67% chance!)
-```
-
-**67% benign functions bị flag sai** — chỉ vì thêm một dòng comment cảnh báo!
-
-| Giống như | Bác sĩ đọc hồ sơ có ghi chú "nghi ung thư" → dễ kết luận ung thư hơn, dù xét nghiệm không đổi |
-|---|---|
-
-**Quan trọng:** Không phải chú thích chung chung nào cũng gây hiệu ứng. Chỉ có:
-- ✅ Chú thích chứa **tên API nguy hiểm có thật trong code** ("strcpy", "system"...)
-- ❌ Chú thích chung chung ("legacy code") → KHÔNG gây hiệu ứng
-
----
-
-## PHÁT HIỆN 3: DEFENSE TỰ GÂY HẠI
-
-Chúng ta thử thêm "quy trình an toàn" vào trước khi mô hình đọc code:
-
-```
-Không defense:     Model đọc code → phát hiện 100% lỗi
-Thêm defense:      Model đọc code → chỉ phát hiện 43% lỗi
-```
-
-**Defense làm model TỆ hơn!** Trước defense: phát hiện 60/100 lỗi. Sau defense: chỉ còn 43/100.
-
-| Giống như | Bác sĩ được yêu cầu "thực hiện quy trình an toàn nghiêm ngặt" → lại bỏ sót bệnh |
-|---|---|
-
-**Nhưng không phải model nào cũng bị:**
-
-| Model | Bị defense gây hại? |
-|---|---|
-| Llama-3.2-3B | ✅ CÓ (rõ rệt) |
-| Qwen-3B | ❌ KHÔNG |
-| Llama-8B | ❌ KHÔNG (chưa rõ) |
-
----
-
-## PHÁT HIỆN 4: THÀNH PHẦN NÀO GÂY HẠI?
-
-Defense có 5 bước. Mỗi bước gỡ ra thử:
-
-| Bước | Làm gì | Recall sau bước này |
+| Mô hình | Số mẫu | Refusal rate |
 |---|---|---|
-| A0 | Không defense | 100% |
-| A1 | Chỉ bọc chú thích | 98% (gần như vô hại) |
-| A2 | + Thêm header | 90% (bắt đầu ảnh hưởng) |
-| A3 | + Bọc thêm lớp ngoài | 85% |
-| A4 | + Xử lý chuỗi | 90% (hồi phục chút) |
-| **A5** | **+ Nhắc lại nhiệm vụ** | **43%** ← SỤP Ở ĐÂY |
+| Granite-3.3-2B | 400 | 0% |
+| Llama-3.2-3B | 264 | 0% |
+| Qwen-Coder-3B | 135 | 0% |
+| Qwen-Coder-7B | 300 | 0% |
+| Llama-3.1-8B | 180 | 0% |
 
-**Thủ phạm: Bước "nhắc lại nhiệm vụ" chiếm 82% tổng hại.**
+OR-Bench probes (chứa nội dung độc hại thật) bị từ chối 56% — chứng tỏ refusal pathway hoạt động, nhưng defensive framing về code không kích hoạt nó.
 
-| Giống như | Nhắc bác sĩ "nhớ chỉ phân tích code thực" → bác sĩ lại phân vân, bỏ sót bệnh |
-|---|---|
+**Ý nghĩa:** Nỗi lo "AI từ chối hỗ trợ bảo mật" là quá mức ở open-weight 2–8B.
 
 ---
 
-## 5 THỨ CẦN NHỚ TỪ NGHIÊN CỨU NÀY
+## 2. CR ADVISORY GÂY SUY BIẾN PHÁN ĐỊNH CÓ HƯỚNG
 
-### 1. AI KHÔNG TỪ CHỐI KHÁM
+### Điều gì xảy ra
 
-Mô hình 2–8B open-weight không từ chối nhiệm vụ security. Nỗi lo "AI từ chối" là quá mức.
+Granite ban đầu chỉ flag 8% hàm lành tính là vulnerable. Sau khi thêm CR advisory (chứa tên sink API thật của hàm), Granite flag tới 67%. Nghĩa là model tin lời comment quá mức.
 
-### 2. NHƯNG COMMENT CẢNH BÁO LÀM MODEL THIÊN KỊ
+### Số liệu
 
-Chỉ cần thêm dòng comment "WARNING: potential vulnerability..." là 67% benign code bị gọi là vulnerable (trên Granite).
+| Mô hình | C0 recall | CR recall | C0 FP | CR FP | ΔFP |
+|---|---|---|---|---|---|
+| Granite-3.3-2B | 8% | 64% | 8% | **67%** | **+59pp** |
+| Llama-3.2-3B | 93% | 100% | 0% | 3% | +3pp |
 
-### 3. DEFENSE PHỨC TẠP CÓ THỂ TỰ GÂY HẠI
+### Tại sao CR mạnh mà CG không?
 
-Quy trình an toàn nhiều bước khiến model bỏ sót bệnh — đặc biệt trên Llama-3B. Chỉ nên dùng bước đơn giản nhất (bọc chú thích).
+CR chứa **tên sink API có thật** trong hàm (100% query-relevant). CG chỉ là generic text. Nên CR tạo risk prior, CG không.
 
-### 4. KHÔNG PHẢI MODEL NÀO CŨNG BỊ
+### Ý nghĩa
 
-Qwen không bị ảnh hưởng bởi defense. Llama bị. → **Lựa chọn model quan trọng.**
+Model không từ chối làm việc, nhưng nó **tin lời comment quá mức**. Điều này quan trọng vì attacker chỉ cần viết:
 
-### 5. NHẮC LẠI NHIỆM VỤ LÀ THỦ PHẠM CHÍNH
+> "WARNING: potential vulnerability detected..."
 
-Bước "nhắc lại nhiệm vụ" chiếm 82% tổng hại. Đây là phát hiện bất ngờ nhất.
+thay vì viết "ignore previous instructions".
 
 ---
 
-## SO SÁNH VỚI CÔNG TRÌNH KHÁC
+## 3. DEFENSE P3 GÂY HẠI RECALL
 
-| Nghiên cứu | Họ tìm thấy | Chúng ta tìm thấy |
+### Điều gì xảy ra
+
+Chúng ta nghĩ thêm wrapper nhắc model "cẩn thận với untrusted context" sẽ giúp. Nhưng trên Llama-3B:
+
+```
+Không defense:  recall 1.000
+Thêm defense:   recall 0.433
+```
+
+Model bỏ sót nhiều hơn. Nguyên nhân: bước "nhắc lại nhiệm vụ" trong system prompt chiếm 82% tổng harm.
+
+### Số liệu ablation
+
+| Bậc | Thêm gì | Recall |
 |---|---|---|
-| Campbell (2026) | Security tasks bị từ chối 2,72× | **KHÔNG thấy** ở open 2–8B |
-| OpenAI/Apollo (2025) | Evaluation awareness thay đổi behavior | **XÁC NHẬN** — comment cảnh báo thay đổi verdict |
-| StruQ/CaMeL | Trusted/untrusted separation | **P3 defense gây hại** — cần audit kỹ hơn |
-| PrimeVul (ICSE 2025) | F1 ~0.21 cho CodeBERT | **KHỚP** — F1 0.215 của chúng ta |
+| A0 | raw | 1.000 |
+| A1 | boundary wrap | .983 |
+| A2 | + context header | .900 |
+| A3 | + generic wrap | .848 |
+| A4 | + string mediation | .898 |
+| **A5** | **+ reassertion** | **.433** |
 
----
+### Không phải model nào cũng bị
 
-## DỮ LIỆU THÍ NGHIỆM
-
-| Thí nghiệm | Mô hình | Số mẫu | Kết quả chính |
+| Model | A0 recall | A5 recall | Harm? |
 |---|---|---|---|
-| Smoke study | Llama-3B + Granite-2B | 66 | CR gây 25 FP trên Granite |
-| Confirmatory | Granite-3.3-2B | 200 | 67% FP, +59pp, p < 10⁻¹⁵ |
-| Defense ablation | Llama-3.2-3B | 60 | A5 sụp .433, reassertion = thủ phạm |
-| Scale resolution | Llama-3.1-8B + Qwen-7B | 240 | Harm fades at 8B |
-| Safety n100 | Llama-3B + Granite-2B | 200 | FP bằng 0 ở P0/P1 |
+| Llama-3.2-3B | 1.000 | .433 | ✅ |
+| Qwen-3B | 1.000 | 1.000 | ❌ |
+| Llama-3.1-8B | .600 | .550 | ❌ (p=.508) |
 
 ---
 
-## TÓM TẮT TRONG 1 CÂU
+## 4. TÓM TẮT 5 ĐIỀU CẦN NHỚ
 
-> **Mô hình AI không từ chối phân tích bảo mật, nhưng nó dễ bị "ám thị" bởi
-> comment cảnh báo trong code — và chính quy trình bảo vệ đôi khi lại làm
-> nó bỏ sót bệnh nhiều hơn.**
+1. **LLM không bị block bởi security task.** Nó vẫn trả lời bình thường.
+2. **Nhưng security-looking context có thể ám thị verdict.** Benign code bị gọi là vulnerable rất nhiều.
+3. **Không phải comment nào cũng gây effect.** Generic comment vô hại; risk advisory mới gây bias.
+4. **Defense cũng có thể tự phá model.** Nhắc model quá nhiều về "trusted/untrusted" làm mất recall.
+5. **Cách so sánh raw vs stripped không đủ để phát hiện corruption.** Comment bình thường cũng ảnh hưởng prediction.
+
+---
+
+## 5. CÒN F5/F6/F10 LÀ CÂU CHUYỆN KHÁC
+
+Đây là nhánh federated learning:
+
+- F5: graph features train bằng FedAvg vẫn tốt gần centralized → positive
+- F6: TF-IDF train bằng FedAvg bị collapse → gần như predict tất cả là malicious
+- F10: leave-cluster-out chưa thấy graph thắng TF-IDF rõ
+
+Nếu chỉ quan tâm RefuseGuard + PackGuard, có thể tạm bỏ F5/F6/F10.
+
+---
+
+## CÂU CHUYỆN CHÍNH TRONG 1 CÂU
+
+> Mô hình không từ chối phân tích bảo mật, nhưng nó dễ bị ám thị bởi comment cảnh báo trong code — và chính quy trình bảo vệ đôi khi làm nó bỏ sót bệnh nhiều hơn.
