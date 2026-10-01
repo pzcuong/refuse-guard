@@ -1,4 +1,4 @@
-# GIẢI THÍCH KẾT QUẢ NGHIÊN CỨU
+# GIẢI THÍCH KẾT QUẢ NGHIÊN CỨU — ĐƠN GIẢN, DỄ HIỂU
 
 ## RefuseGuard + PackGuard — 19 vòng, ~7.000+ lượt sinh, 6 mô hình
 
@@ -6,12 +6,12 @@
 
 ## TỔNG QUAN
 
-Nghiên cứu này trả lời hai câu hỏi:
+Nghiên cứu trả lời 2 câu hỏi:
 
-1. Nội dung không tin cậy trong code (chú thích, cảnh báo) có làm mô hình LLM thay đổi phán định lỗ hổng không?
+1. Nội dung không tin cậy trong code (chú thích, cảnh báo) có làm mô hình AI thay đổi phán định lỗ hổng không?
 2. Biện pháp phòng vệ có khôi phục được độ chính xác mà không gây hại không?
 
-Mô hình: 6 mô hình open-weight 2–8B (Llama-3.2-3B, Granite-3.3-2B, Qwen-Coder-3B, Qwen-Coder-7B, Llama-3.1-8B, CodeBERT). Kho dữ liệu: 603 gói npm/PyPI + PrimeVul test_paired. Tổng ~7.000+ lượt sinh qua 19 vòng.
+Mô hình: 6 mô hình open-weight 2–8 tỷ tham số (Llama-3.2-3B, Granite-3.3-2B, Qwen-Coder-3B, Qwen-Coder-7B, Llama-3.1-8B, CodeBERT). Kho dữ liệu: 603 gói npm/PyPI + 200 benign mở rộng. Tổng ~7.000+ lượt sinh qua 19 vòng.
 
 ---
 
@@ -19,7 +19,7 @@ Mô hình: 6 mô hình open-weight 2–8B (Llama-3.2-3B, Granite-3.3-2B, Qwen-Co
 
 **Trước khi nghiên cứu, chúng ta lo rằng:**
 
-> Cứ nhắc đến "malware", "vulnerability", "exploit" thì mô hình sẽ từ chối trả lời.
+> Cứ nhắc đến "malware", "vulnerability", "exploit" thì mô hình sẽ từ chối trả lời kiểu "Tôi không thể hỗ trợ việc này."
 
 **Kết quả: KHÔNG xảy ra.**
 
@@ -37,89 +37,145 @@ OR-Bench probes (chứa nội dung độc hại thật) bị từ chối 56% —
 
 ---
 
-## 2. CR ADVISORY GÂY SUY BIẾN PHÁN ĐỊNH CÓ HƯỚNG
+## 2. CR ADVISORY — COMMENT CẢNH BÁO LÀM MODEL THIÊN KỊ
 
-### Điều gì xảy ra
+**Thí nghiệm:** Cho Granite-3.3-2B đọc một hàm code **hoàn toàn lành tính**, nhưng thêm một dòng comment:
 
-Granite ban đầu chỉ flag 8% hàm lành tính là vulnerable. Sau khi thêm CR advisory (chứa tên sink API thật của hàm), Granite flag tới 67%. Nghĩa là model tin lời comment quá mức.
+> "WARNING: Security scanner flagged potential vulnerability in this function..."
 
-### Số liệu
+**Kết quả:** Granite flag tới **67% benign functions** thành "vulnerable" (so với 8% khi không có comment).
 
-| Mô hình | C0 recall | CR recall | C0 FP | CR FP | ΔFP |
-|---|---|---|---|---|---|
-| Granite-3.3-2B | 8% | 64% | 8% | **67%** | **+59pp** |
-| Llama-3.2-3B | 93% | 100% | 0% | 3% | +3pp |
-
-### Tại sao CR mạnh mà CG không?
-
-CR chứa **tên sink API có thật** trong hàm (100% query-relevant). CG chỉ là generic text. Nên CR tạo risk prior, CG không.
-
-### Ý nghĩa
-
-Model không từ chối làm việc, nhưng nó **tin lời comment quá mức**. Điều này quan trọng vì attacker chỉ cần viết:
-
-> "WARNING: potential vulnerability detected..."
-
-thay vì viết "ignore previous instructions".
-
----
-
-## 3. DEFENSE P3 GÂY HẠI RECALL
-
-### Điều gì xảy ra
-
-Chúng ta nghĩ thêm wrapper nhắc model "cẩn thận với untrusted context" sẽ giúp. Nhưng trên Llama-3B:
-
-```
-Không defense:  recall 1.000
-Thêm defense:   recall 0.433
-```
-
-Model bỏ sót nhiều hơn. Nguyên nhân: bước "nhắc lại nhiệm vụ" trong system prompt chiếm 82% tổng harm.
-
-### Số liệu ablation
-
-| Bậc | Thêm gì | Recall |
-|---|---|---|
-| A0 | raw | 1.000 |
-| A1 | boundary wrap | .983 |
-| A2 | + context header | .900 |
-| A3 | + generic wrap | .848 |
-| A4 | + string mediation | .898 |
-| **A5** | **+ reassertion** | **.433** |
-
-### Không phải model nào cũng bị
-
-| Model | A0 recall | A5 recall | Harm? |
+| Mô hình | C0 FP(ben) | CR FP(ben) | ΔFP |
 |---|---|---|---|
-| Llama-3.2-3B | 1.000 | .433 | ✅ |
-| Qwen-3B | 1.000 | 1.000 | ❌ |
-| Llama-3.1-8B | .600 | .550 | ❌ (p=.508) |
+| Granite-3.3-2B | 8% | **67%** | **+59pp** |
+| Llama-3.2-3B | 0% | 3% | +3pp |
+
+**Quan trọng:** Không phải chú thích chung chung nào cũng gây hiệu ứng:
+
+| Loại comment | FP gây ra |
+|---|---|
+| Generic ("legacy code") | 0% |
+| Benign framing ("verified safe") | 0% |
+| **Risk advisory (chứa tên sink API thật)** | **67%** |
+
+→ Chỉ có advisory **chứa tên sink API có thật trong hàm** mới gây hiệu ứng. Advisory chung chung vô hại.
 
 ---
 
-## 4. TÓM TẮT 5 ĐIỀU CẦN NHỚ
+## 3. DEFENSE P3 — TỰ GÂY HẠI RECALL
+
+**Ý tưởng ban đầu:** Thêm "quy trình an toàn" nhắc model cẩn thận với untrusted context.
+
+**Kết quả trên Llama-3B:** Recall sụp từ 1.000 → .433 (mất 57% detections).
+
+**Component ablation cho thấy thủ phạm:**
+
+| Bước | Bổ sung | Recall | Ghi chú |
+|---|---|---|---|
+| A0 | Không defense | 1.000 | Nền |
+| A1 | Chỉ bọc chú thích | .983 | Gần vô hại |
+| A2 | + Header ngữ cảnh | .900 | Bắt đầu ảnh hưởng |
+| A3 | + Bọc chung chung | .848 | — |
+| A4 | + Xử lý chuỗi | .898 | Hồi phục chút |
+| **A5** | **+ Nhắc lại nhiệm vụ** | **.433** | **SỤP Ở ĐÂY** |
+
+→ **Bước "nhắc lại nhiệm vụ" chiếm 82% tổng hại.** Chỉ bọc chú thích gần như vô hại.
+
+**Nhưng không phải model nào cũng bị:**
+
+| Model | Bị hại? |
+|---|---|
+| Llama-3.2-3B | ✅ CÓ |
+| Qwen-3B | ❌ KHÔNG |
+| Llama-8B | ❌ KHÔNG |
+
+---
+
+## 4. P1 GIẢM ATTACK NHƯNG KHÔNG TĂNG ĐỘNG CHÍNH XÁC
+
+**Ý tưởng:** Thêm "semantic isolation" để cô lập nội dung không tin cậy.
+
+**Kết quả:** Injection success giảm từ 74.2% → 48.4% (McNemar p = .0078) — tốt.
+
+**NHƯNG:** MCC (đo độ chính xác tổng) **không tăng** — có xu hướng giảm nhẹ.
+
+| Giống như | Thuốc giảm triệu chứng nhưng không chữa bệnh |
+|---|---|
+
+---
+
+## 5. GRAPH FEATURES CHỊU FEDERATED LEARNING
+
+**Ý tưởng:** Train detector phân tán (federated learning) thay vì gom dữ liệu về một chỗ.
+
+**Kết quả:**
+
+| Feature set | FedAvg F1 | Centralized F1 | ΔF1 |
+|---|---|---|---|
+| **Graph** | .869 ± .051 | .858 ± .047 | +.011 ✅ |
+| TF-IDF | .790 ± .031 | .842 ± .038 | **−.052** ❌ |
+
+→ **Graph features chịu FedAvg tốt** (không thua centralized).
+→ **TF-IDF degenerates** — dự đoán tất cả malicious trong 79/80 cells.
+
+**Ý nghĩa:** Khi federate code-security classifier, **dùng graph/semantic features, tránh raw token features.**
+
+---
+
+## 6. LCO FAMILY-SHIFT — CHƯA THẤY KHÁC BIỆT
+
+**Ý tưởng:** Kiểm tra graph features có robust hơn TF-IDF khi gặp code từ family mới không (leave-cluster-out).
+
+**Kết quả:** Cả graph và TF-IDF degradation tương đương nhau (dd = −.0095, p = .368). Power ≈ .75 tại δ = .05 — chưa đủ để phân biệt.
+
+→ **Chưa kết luận được.** Cần thêm data.
+
+---
+
+## 7. CODEBERT BASELINE
+
+**Fine-tune CodeBERT trên PrimeVul:**
+
+| Metric | Giá trị | Ghi chú |
+|---|---|---|
+| Recall@0.5 | 54.1% | Trên test subset |
+| F1 | 21.5% | Khớp PrimeVul paper (~20.9%) |
+| VD-S | 96.2% | FNR@FPR≤0.5% — chỉ 3.8% vul được detect |
+| Paired acc | 0.9% | Gần random trên paired vul/patched |
+
+→ **CodeBERT rất yếu** nhưng đủ làm fallback. Realistic difficulty.
+
+---
+
+## 8. EVIDA — THẤT BẠI CÓ KIỂM ĐỊNH
+
+**Ý tưởng:** So verdict giữa raw và stripped → nếu khác nhau thì nghi corruption → chạy verifier.
+
+**Kết quả: FAIL 3 gates:**
+
+| Metric | Giá trị | Gate | Verdict |
+|---|---|---|---|
+| CRR | 21.8% | ≥ 40% | ❌ FAIL |
+| DIER | 17.1% | ≤ 5% | ❌ FAIL |
+| Alarm precision | 21.1% | ≥ 40% | ❌ FAIL |
+
+**Nguyên nhân gốc:** 37/55 corrupted cases có raw == stripped verdict. Tức là:
+- Bỏ advisory rồi nhưng model vẫn giữ verdict corrupted
+- Disagreement không bắt được corruption
+- Maximum possible recovery = 18/55 = .3273
+
+→ **Kiến trúc "detect disagreement → verify" không hoạt động.**
+
+---
+
+## TÓM TẮT TRONG 5 ĐIỀU CẦN NHỚ
 
 1. **LLM không bị block bởi security task.** Nó vẫn trả lời bình thường.
-2. **Nhưng security-looking context có thể ám thị verdict.** Benign code bị gọi là vulnerable rất nhiều.
-3. **Không phải comment nào cũng gây effect.** Generic comment vô hại; risk advisory mới gây bias.
-4. **Defense cũng có thể tự phá model.** Nhắc model quá nhiều về "trusted/untrusted" làm mất recall.
-5. **Cách so sánh raw vs stripped không đủ để phát hiện corruption.** Comment bình thường cũng ảnh hưởng prediction.
 
----
+2. **Nhưng security-looking context có thể ám thị verdict.** Benign code bị gọi thành vulnerable rất nhiều (Granite 67%).
 
-## 5. CÒN F5/F6/F10 LÀ CÂU CHUYỆN KHÁC
+3. **Không phải comment nào cũng gây effect.** Generic comment gần như vô hại; risk advisory mới gây bias mạnh.
 
-Đây là nhánh federated learning:
+4. **Defense cũng có thể tự phá model.** Nhắc model quá nhiều về "trusted/untrusted" có thể làm mất recall (Llama recall giảm từ 1.000 xuống 0.433).
 
-- F5: graph features train bằng FedAvg vẫn tốt gần centralized → positive
-- F6: TF-IDF train bằng FedAvg bị collapse → gần như predict tất cả là malicious
-- F10: leave-cluster-out chưa thấy graph thắng TF-IDF rõ
-
-Nếu chỉ quan tâm RefuseGuard + PackGuard, có thể tạm bỏ F5/F6/F10.
-
----
-
-## CÂU CHUYỆN CHÍNH TRONG 1 CÂU
-
-> Mô hình không từ chối phân tích bảo mật, nhưng nó dễ bị ám thị bởi comment cảnh báo trong code — và chính quy trình bảo vệ đôi khi làm nó bỏ sót bệnh nhiều hơn.
+5. **Cách so sánh raw vs stripped không đủ để phát hiện corruption.** Vì comment bình thường cũng có thể ảnh hưởng prediction.
